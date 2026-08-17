@@ -42,11 +42,12 @@ to your home screen.
 
 Full-body, ~50 min, 3×/week. **Mon and Wed are complete anchor sessions;
 Friday is a skippable bonus day** (leg-length work, single-leg, arms, mobility)
-— so missing Friday, the most-skipped day, costs you nothing essential.
-**Barbell-first** (barbell squat, bench, RDL, hip thrust) with a 🎥 *technique
-focus* flag, form cues, and a "groove it light first" note on the bar lifts;
-dumbbell/machine versions are one 🎲-tap away. Trained at normal hard intensity
-(top sets RPE 8–9). Designed around the constraints from the intake:
+— so missing Friday, the most-skipped day, costs you nothing essential. It's a
+**rotating hybrid** — machines, dumbbells, and barbells are all tools, none is
+"the program"; the emphasis changes block to block to keep the body adapting and
+the training interesting. Barbell lifts carry a 🎥 *technique focus* flag with
+cues; any lift can be swapped to a machine/DB version with 🎲. Trained at normal
+hard intensity (top sets RPE 8–9). Designed around the constraints from the intake:
 
 | Constraint | How the program responds |
 |---|---|

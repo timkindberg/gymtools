@@ -5,6 +5,32 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-17 — Vision reframe + machine-forward hybrid
+
+Tim asked Claude to own the vision ("you're the boss") and stop making him
+choose; wants a hybrid that changes up, "nothing '-first'." Also reported his
+first solo session — a big machine circuit he loved — and confirmed a heel lift
+is incoming.
+
+- **Principles rewritten** around a rotating-hybrid vision (strong/balanced/
+  durable; variety on purpose; barbells/DBs/machines all tools, none primary).
+  Removed "-first" language everywhere (program, README, PR).
+- **Machines promoted to a featured tool** (he loves the sit-down convenience &
+  fast weight changes; also safe-to-failure solo and joint-friendly). Flipped
+  Day B's unilateral leg slot to **Single-Leg Leg Press** as the default
+  (was Bulgarian split squat, now the swap). Kept barbell box squat / bench /
+  RDL / hip thrust so he still builds bar skill he wants.
+- **Supersets made explicitly optional** with an in-app hint — he found holding
+  two machines impractical (others poach the empty one). Guidance: pair a
+  machine with DBs/bench, or just do straight sets.
+- **Heel lift confirmed incoming** → leg-length work is now "build balance on top
+  of the fix," not damage control.
+- Logged his baseline machine numbers in PROFILE.md for starting-load reference.
+
+Next block: once he's logged ~2–4 real weeks in the app, lean further into what
+he actually enjoys/adheres to; watch shoulder-press/overhead tolerance (he did
+machine shoulder press this session — monitor).
+
 ## 2026-08-17 — Block 1 finalized (post-intake)
 
 Third pass, after a full intake conversation. Net changes:

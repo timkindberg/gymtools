@@ -36,10 +36,11 @@ export const DISCLAIMER =
   "doctor or physical therapist before continuing. Pain is data: log it.";
 
 export const PRINCIPLES = [
-  { t: "Progressive overload is the engine", d: "Add a rep or a little weight whenever you can. The app remembers every set and tells you when to bump the load — your job is to keep beating last time." },
-  { t: "Push the hard sets", d: "Take your top sets to a real RPE 8–9 (1–2 reps left), and on safe machine/DB accessories you can go to failure. Effort drives the results — we're not sandbagging." },
-  { t: "Barbells are in — build the skill", d: "The big barbell lifts are the main movers. When one's new to you, spend a week or two light to groove the pattern (the app flags these 🎥), watch the form video, and film a set to check yourself." },
-  { t: "Leg length is the boss battle", d: "Unilateral lifts, loaded stretching, and the daily 'Loosen up' routine fight the progressive right-side tightening. A professionally-fitted heel lift is the biggest ROI of all — worth getting evaluated." },
+  { t: "The vision: strong, balanced, durable", d: "We're building an athletic, symmetrical, hard-to-break body — not babying you. Every week hits three jobs: one big strength lift, balancing work for the right side, and bulletproofing (cuff, core, carries, mobility)." },
+  { t: "Variety on purpose — a rotating hybrid", d: "Barbells, dumbbells, machines, and single-leg work are all tools; none is 'the program.' The big lift's tool rotates block to block, and reps/tempos/exercises change every few weeks so your body keeps adapting and you stay engaged. Hit 🎲 anytime you want to shuffle a lift." },
+  { t: "Progressive overload is the engine", d: "Add a rep or a little weight whenever you can. The app remembers every set and tells you when to bump the load — your job is to keep beating last time. Push top sets to a real RPE 8–9; take safe accessories to failure." },
+  { t: "New lift? Groove it first", d: "When a movement is new to you (the app flags these 🎥), spend a week or two light to own the pattern, watch the form video, and film a set to check yourself. Then load it up." },
+  { t: "Balance the right side", d: "Your heel lift handles the structural leg-length base; on top of it we train the balance — single-leg work everywhere, loaded stretching, carries, and the daily 'Loosen up' routine so the tight right side stops running the show." },
   { t: "Own your depth", d: "Your knee only complains at deep loaded bends, so we cap squat and press depth and keep every rep controlled. Everything else, load it up." },
   { t: "Log it so your trainer can coach it", d: "Your sets, symptoms, and notes are how Claude reviews your progress between blocks. Keep it fed, and every few weeks send the coach report for a program update." },
 ];
@@ -93,7 +94,7 @@ export const PROGRAM = {
       id: "A",
       name: "Day A — Push + Legs",
       dow: 1,
-      focus: "Complete full-body: barbell squat + bench, a row, unilateral legs",
+      focus: "Complete full-body: a squat, horizontal push + pull, unilateral legs",
       warmup: PRIMER,
       exercises: [
         ex({
@@ -149,7 +150,7 @@ export const PROGRAM = {
       id: "B",
       name: "Day B — Pull + Legs",
       dow: 3,
-      focus: "Complete full-body: barbell hinge, vertical pull, unilateral legs",
+      focus: "Complete full-body: a hinge, vertical pull, unilateral legs",
       warmup: PRIMER,
       exercises: [
         ex({
@@ -175,11 +176,11 @@ export const PROGRAM = {
           alternatives: ["Neutral-Grip DB Incline Press", "Machine Incline Press"],
         }),
         ex({
-          id: "b4", name: "Bulgarian Split Squat", target: "Unilateral quad / glute",
-          sets: 3, reps: "8–10/side", rpe: "8", rest: "75s", flags: ["knee", "leglength"],
-          why: "A brutal-in-a-good-way single-leg builder that forces the weaker/tighter side to work. Control the depth so the knee stays comfortable.",
-          cues: ["Back foot on a bench, torso tall", "Drop straight down, front shin near vertical", "Only as deep as the knee likes", "Drive through the front heel"],
-          alternatives: ["Single-Leg Leg Press (limited ROM)", "DB Step-up", "Split Squat to box"],
+          id: "b4", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad / glute",
+          sets: 3, reps: "10–12/side", rpe: "8", rest: "75s", flags: ["knee", "leglength"],
+          why: "One leg at a time forces your weaker/tighter side to pull its weight, and the machine keeps the meniscus on a safe, guided track — the convenient, sit-down way to hammer the asymmetry hard.",
+          cues: ["Don't let the knee cave inward", "Stop before the knee bends past ~90°", "Push through the whole foot", "Match reps and effort side to side"],
+          alternatives: ["Bulgarian Split Squat", "DB Step-up (low box)", "Split Squat to box"],
         }),
         ex({
           id: "b5", name: "Seated Leg Curl", target: "Hamstrings",

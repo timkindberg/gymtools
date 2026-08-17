@@ -13,10 +13,20 @@
   must each be complete; Friday is a bonus day.
 
 ## Experience & preferences
-- Solid technique with **dumbbells and machines**. **Wants to learn barbells**
-  and "all of it" — he's just newer to the bar and worried about form, NOT
-  uninterested. Barbell lifts are primary, with a "technique focus" flag +
-  cues + a "groove it light first" note; DB/machine versions are swaps.
+- Solid technique with **dumbbells and machines**. Interested in **all of it**,
+  including barbells ("all of it") — just newer to the bar and form. Barbells
+  are a tool he wants to build skill in, NOT the required centerpiece.
+- **LOVES machines** (discovered on his first solo session, 2026-08). Reasons he
+  named: sit down, pick a weight fast, adjust in a second, do the work. Fits his
+  low-friction / no-thinking style and is safe to push hard solo. → machines are
+  a **featured tool**, not a fallback.
+- **Coaching style he wants:** Claude is "the boss." Have a vision, don't make
+  him choose between options. He likes a **hybrid that changes things up** —
+  "nothing '-first'." Variety keeps him (and his body) engaged.
+- **Superset constraint:** in a busy rec center, tying up two machines at once
+  fails — people poach the empty one. → don't program machine-to-machine
+  supersets; make supersets optional and pair a machine with DBs/bench/bodyweight
+  kept at the station, or just straight sets.
 - Trains hard — dislikes being coddled.
 - Liked about OTF: music, no thinking required, constant variety ("surprised my
   body"). → app should be low-decision and offer exercise variety (🎲 swap).
@@ -25,6 +35,19 @@
 - Has an Apple Watch (manual entry of HR/duration/calories — iOS can't sync to
   a web app), an OTbeat band (likely dies after OTF cancellation; ignore), and
   a home scale (manual bodyweight).
+
+## Baseline — first self-run machine session (2026-08, pre-app)
+Did a big machine circuit (enjoyed it a lot). Approx numbers, useful as starting
+reference (machine stacks are NOT comparable across machines or to free weights —
+progress each machine against itself):
+- Leg press ~200 lb × 12 (3–4 sets); leg extension & leg curl ~150 × 12 (2 sets each)
+- Lat pulldown 2×12; a rope/"rope-climb" pulldown variation too
+- Shoulder press 2–3×12 **(overhead — the one to monitor for the right shoulder)**
+- Chest fly 2, chest press 2, rear-delt fly 2, low row 2–3, high row 2
+- Back extensions, crunches
+- Finisher: stair climber ~16 floors
+Takeaways: high work capacity, comfortable at 12-rep machine volume, minimal joint
+complaints reported. Program can start near these loads and push.
 
 ## Goals
 1. Muscle & strength
@@ -36,8 +59,9 @@
   of the right hip, leg, and back. He's "constantly trying to loosen it."
   Feels good after time off. → unilateral emphasis, loaded stretching for the
   right side, anti-lateral-flexion carries, daily "Loosen up" mobility routine,
-  right-side-tightness tracker. **Recommend a professionally-fitted heel lift /
-  orthotic — likely the single biggest fix; not yet evaluated as of intake.**
+  right-side-tightness tracker. **Heel lift: Tim confirmed he will have one
+  (2026-08).** That handles the structural base, so training now builds balance
+  ON TOP of it (unilateral work, carries, mobility) rather than damage-control.
 - **Right knee (meniscus).** Only really hurts at **deep loaded flexion**;
   otherwise robust, rarely flares (occasionally with running). Stable lately.
   → cap squat/press depth (box squats, limited-ROM leg press), build quad +

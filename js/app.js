@@ -317,6 +317,10 @@ function exerciseCard(exDef, draft, idx) {
   ]);
   card.appendChild(head);
 
+  if (exDef.ss) {
+    card.appendChild(el("p.ss-hint.muted.tiny", { text: `Optional superset (${exDef.ss}) — pair with the other ⇄ ${exDef.ss} move if you can keep both, otherwise just do straight sets.` }));
+  }
+
   // Coaching (why + cues + flags)
   const coach = el("details.coach");
   coach.appendChild(el("summary", { text: "Coach's notes" }));
