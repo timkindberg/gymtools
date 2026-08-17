@@ -1,7 +1,7 @@
 // =============================================================================
 // app.js — bootstrap, navigation, and all views.
 // =============================================================================
-import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, FLAG_LABELS, dayForDate } from "./program.js";
+import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, FLAG_LABELS, dayForDate } from "./program.js";
 import * as store from "./store.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
@@ -81,6 +81,7 @@ function startOrResume(day) {
       dayName: day.name,
       symptoms: {},
       symptomsDone: false,
+      metrics: {},
       entries: day.exercises.map((e) => ({
         exerciseId: e.id,
         name: e.name,
@@ -174,6 +175,9 @@ route("session", () => {
   // Cooldown
   view.appendChild(collapsible("🧘 Cool-down", day.cooldown.map(warmItem), false));
 
+  // Optional Apple Watch metrics
+  view.appendChild(watchMetricsCard(draft));
+
   // Session note + finish
   view.appendChild(el("div.card", {}, [
     el("label.field-label", { text: "Session notes" }),
@@ -185,6 +189,8 @@ route("session", () => {
   ]));
 
   view.appendChild(el("button.btn.primary.big.full", { text: "Finish & save workout", onclick: () => finishSession(draft, day) }));
+  // spacer so the floating rest timer never covers the Finish button
+  view.appendChild(el("div.session-spacer"));
 
   render(view);
   mountRestTimer();
@@ -218,6 +224,26 @@ function symptomCheck(draft) {
   card.appendChild(el("button.btn.primary.big.full", { text: "Start lifting →", onclick: () => {
     draft.symptomsDone = true; store.saveDraft(draft); navigate("session");
   }}));
+  return card;
+}
+
+function watchMetricsCard(draft) {
+  draft.metrics = draft.metrics || {};
+  const card = el("details.card.collapsible");
+  card.appendChild(el("summary", { text: "⌚ Apple Watch numbers (optional)" }));
+  const grid = el("div.metrics-grid");
+  WATCH_METRICS.forEach((m) => {
+    grid.appendChild(el("label.metric-field", {}, [
+      el("span.field-label", { text: `${m.label} (${m.unit})` }),
+      el("input.input", {
+        type: "number", inputmode: "numeric", placeholder: m.placeholder,
+        value: draft.metrics[m.id] ?? "",
+        oninput: (e) => { draft.metrics[m.id] = e.target.value === "" ? null : Number(e.target.value); store.saveDraft(draft); },
+      }),
+    ]));
+  });
+  card.appendChild(grid);
+  card.appendChild(el("p.muted.tiny", { text: "Glance at your Watch after the session and punch these in — they'll chart over time on the Progress tab." }));
   return card;
 }
 
@@ -363,6 +389,7 @@ async function finishSession(draft, day) {
     dayId: draft.dayId,
     dayName: draft.dayName,
     symptoms: draft.symptoms,
+    metrics: draft.metrics || {},
     entries: draft.entries.map((e) => ({
       exerciseId: e.exerciseId, name: e.name, pain: e.pain, note: e.note,
       sets: e.sets.filter((s) => s.weight != null || s.reps != null),
@@ -546,6 +573,19 @@ route("history", () => {
   if (!symCard.children.length) symCard.appendChild(el("p.muted", { text: "Symptom trends appear after a few check-ins." }));
   view.appendChild(symCard);
 
+  // Cardio & heart rate (from Watch)
+  const cardioMetrics = WATCH_METRICS.filter((m) => store.metricHistory(m.id).length);
+  if (cardioMetrics.length) {
+    view.appendChild(sectionTitle("Cardio & heart rate"));
+    const cCard = el("div.card");
+    cardioMetrics.forEach((m) => {
+      const hist = store.metricHistory(m.id);
+      cCard.appendChild(el("p.muted.small", { text: `${m.label} (${m.unit})` }));
+      cCard.appendChild(lineChart(hist, { color: "var(--accent2)", height: 90 }));
+    });
+    view.appendChild(cCard);
+  }
+
   // Session log
   view.appendChild(sectionTitle("Sessions"));
   sessions.forEach((s) => view.appendChild(sessionSummaryCard(s, true)));
@@ -579,6 +619,11 @@ function sessionSummaryCard(s, withDelete) {
       el("span.muted.small", { text: e.sets.map((x) => `${x.weight ?? "–"}×${x.reps ?? "–"}`).join(", ") }),
     ]));
   });
+  if (s.metrics && WATCH_METRICS.some((m) => s.metrics[m.id] != null && s.metrics[m.id] !== "")) {
+    const parts = WATCH_METRICS.filter((m) => s.metrics[m.id] != null && s.metrics[m.id] !== "")
+      .map((m) => `${m.label} ${s.metrics[m.id]}${m.unit === "min" ? "m" : m.unit === "bpm" ? "" : m.unit === "kcal" ? "cal" : ""}`);
+    det.appendChild(el("p.muted.small", { text: "⌚ " + parts.join(" · ") }));
+  }
   if (s.notes) det.appendChild(el("p.muted.small.note", { text: "“" + s.notes + "”" }));
   if (s.symptoms) {
     const sc = el("div.sym-grid");

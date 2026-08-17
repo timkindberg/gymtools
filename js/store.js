@@ -172,6 +172,13 @@ export function symptomHistory(symptomId) {
     .map((s) => ({ date: s.date, value: Number(s.symptoms[symptomId]) }));
 }
 
+// ---- Watch / cardio metric trend -------------------------------------------
+export function metricHistory(metricId) {
+  return getSessions().slice().reverse()
+    .filter((s) => s.metrics && s.metrics[metricId] != null && s.metrics[metricId] !== "")
+    .map((s) => ({ date: s.date, value: Number(s.metrics[metricId]) }));
+}
+
 // ---- Export / Import -------------------------------------------------------
 export function exportData() {
   return JSON.stringify(load(), null, 2);

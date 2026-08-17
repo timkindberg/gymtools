@@ -321,6 +321,16 @@ export const SYMPTOMS = [
   { id: "sleep", label: "Sleep", hint: "Last night. 10 = slept great", invert: true },
 ];
 
+// Optional post-workout metrics you read off your Apple Watch and punch in.
+// (Safari on iPhone can't read the Watch directly, so these are quick manual
+// entries — collapsed by default so they never get in the way.)
+export const WATCH_METRICS = [
+  { id: "durationMin", label: "Duration", unit: "min", placeholder: "60" },
+  { id: "avgHr", label: "Avg HR", unit: "bpm", placeholder: "118" },
+  { id: "peakHr", label: "Peak HR", unit: "bpm", placeholder: "150" },
+  { id: "activeCal", label: "Active cal", unit: "kcal", placeholder: "420" },
+];
+
 // Map a symptom id to the exercise flags it should warn about.
 export const FLAG_LABELS = {
   knee: "knee-sensitive",

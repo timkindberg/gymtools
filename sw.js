@@ -1,6 +1,6 @@
 // gymtools service worker — offline-first app shell.
 // Bump CACHE when you change any cached asset to force an update.
-const CACHE = "gymtools-v1";
+const CACHE = "gymtools-v2";
 const ASSETS = [
   "./",
   "./index.html",
