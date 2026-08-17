@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <title>gymtools — your pocket trainer</title>
+  <meta name="description" content="A personal-trainer PWA that plans injury-aware workouts and tracks every set, rep, and symptom." />
+  <meta name="theme-color" content="#ff5a3c" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0e0f13" media="(prefers-color-scheme: dark)" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="gymtools" />
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <main id="app" aria-live="polite"></main>
+
+  <nav id="nav" aria-label="Primary"></nav>
+
+  <div id="install-banner" class="install-banner">
+    <p>📲 Install gymtools for a full-screen, offline app.</p>
+    <button class="btn ghost small install-no">Later</button>
+    <button class="btn primary small install-yes">Install</button>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+  <noscript><p style="padding:24px">gymtools needs JavaScript enabled.</p></noscript>
+</body>
+</html>
