@@ -1,29 +1,35 @@
 // =============================================================================
 // program.js
-// The training program + coaching knowledge, designed for Tim's specific body.
+// The training program + coaching knowledge, tailored to Tim from a full intake.
 //
-// Design brief (built from evidence-based practice, see README for sources):
-//   Schedule: ~60 min, 3x/week (Mon / Wed / Fri), lunchtime, full commercial gym.
-//   Style:    Full-body each day (A/B/C rotation) for high frequency + time
-//             efficiency, with each day carrying a different emphasis.
+// PROFILE
+//   44yo, 6'3", 235 lb. On Lexapro (SSRI). No blood-pressure / heart issues,
+//   cleared to train. Decent lifter — strong technique with DUMBBELLS and
+//   MACHINES, limited barbell / rack experience. Trains at Blue Ash Rec Center.
+//   Goals: muscle & strength, fat loss (diet handled in LoseIt), stay durable.
 //
-//   Injuries / constraints this program is built around:
-//     - Leg-length discrepancy  -> favor UNILATERAL lower work, controlled
-//       bilateral lifts, no ego-loaded axial max attempts, add anti-lateral-
-//       flexion carries to train the frontal-plane trunk.
-//     - Crooked / asymmetric posture -> heavy dose of horizontal pulling,
-//       scapular control, thoracic mobility, anti-rotation core.
-//     - Tight hamstrings -> hip-hinge patterning, start hinges light, progress
-//       range slowly; mobility in warmup/cooldown.
-//     - Right shoulder wear -> NO heavy overhead pressing, NO upright rows,
-//       NO behind-the-neck work. Prefer neutral-grip horizontal pressing,
-//       landmine angles, and a big dose of rotator-cuff + scapular work.
-//     - Right knee torn meniscus -> limit deep LOADED knee flexion, no
-//       pivoting/twisting under load, build the quad (esp. VMO) and posterior
-//       chain to protect the joint, keep box/limited ROM on squats.
-//     - Cervicogenic migraines (right neck/shoulder) -> NO heavy trap loading
-//       (heavy shrugs / upright rows), avoid breath-holding grinders; train
-//       deep neck flexors (chin tucks) and cervico-scapular muscles low-load.
+// SCHEDULE
+//   ~50 min, 3x/week at lunch. Mon & Wed are the anchors and each is a
+//   complete full-body session. FRIDAY is a skippable bonus day (Tim's most-
+//   skipped day), so nothing essential lives there — it's leg-length work,
+//   single-leg, arms, and mobility. Miss it without guilt.
+//
+// CONSTRAINTS baked in
+//   - Leg-length discrepancy = THE priority. Drives progressive tightening of
+//     the right hip/leg/back. Answer: unilateral work, loaded stretching,
+//     anti-lateral-flexion carries, and a daily-usable loosening routine.
+//   - Right knee (meniscus): only hurts at DEEP loaded flexion -> cap squat /
+//     press depth, keep controlled range; mid-range loading is fine and can be
+//     challenged. No pivoting/twisting under load.
+//   - Right shoulder (wear; upright rows have hurt it): neutral-grip horizontal
+//     pressing, big dose of cuff + scap work. NO overhead press, upright rows,
+//     or behind-the-neck.
+//   - Migraines: triggered by VERY taxing sessions (hit ~5 h later) or alcohol.
+//     Answer: cap effort at RPE 7-8, never grind to failure, no brutal
+//     finishers, hydrate. The app logs whether a session triggered one so we
+//     can learn your personal threshold.
+//   - Dumbbell/machine first (Tim's strength + gentler on knee/shoulder);
+//     barbell variants are marked optional.
 //
 //   Progression: double progression. Hit the top of the rep range on every
 //   working set at or below the target RPE -> add load next time.
@@ -36,13 +42,12 @@ export const DISCLAIMER =
   "doctor or physical therapist before continuing. Pain is data: log it.";
 
 export const PRINCIPLES = [
-  { t: "Full body, 3x/week", d: "Each muscle trained ~3x weekly beats a body-part split for time-crunched training and joint health." },
-  { t: "Leave 1–3 reps in the tank", d: "Target RPE 7–8. Grinding max singles isn't the goal — sustainable strength is, and it keeps pressure off your neck and knee." },
-  { t: "Unilateral first", d: "Single-leg and single-arm work evens out your leg-length and posture asymmetries and keeps the meniscus in a safe, controlled path." },
-  { t: "Horizontal over vertical", d: "For your shoulder and neck we press and pull mostly horizontally, and skip overhead pressing, upright rows, and heavy shrugs." },
-  { t: "Own the range you use", d: "Box-limited squats and controlled tempo keep the knee in a safe arc. Depth is earned, never forced." },
-  { t: "Breathe, don't brace-and-grind", d: "Exhale through the hard part. Avoid long breath-holds — they spike neck/head pressure and can trigger migraines." },
-  { t: "Log your symptoms", d: "Knee, shoulder, and neck/head scores before each session tell us when to push and when to back off. This is the most important data here." },
+  { t: "Mon & Wed are the anchors", d: "Each is a complete full-body session, so hitting just those two still covers everything. Friday is a bonus — make it when you can, skip it without guilt." },
+  { t: "Dumbbells & machines first", d: "They play to your strengths and are gentler on the knee and shoulder than a loaded barbell. Barbell versions are marked 'optional' for when you want them." },
+  { t: "Stay under your migraine line", d: "Effort caps at RPE 7–8 and we never grind to failure. Very taxing sessions can trigger a headache hours later, so we build steadily, not brutally. Hydrate well." },
+  { t: "Leg length is the boss battle", d: "Unilateral lifts, loaded stretching, and a daily 'Loosen up' routine fight the progressive right-side tightening. Also worth getting a heel lift professionally evaluated — biggest ROI of all." },
+  { t: "Own your depth", d: "Your knee only complains at deep loaded bends, so we cap squat and press depth and keep every rep controlled. Depth is earned, never forced." },
+  { t: "Two taps beats guesswork", d: "Log your sets and your symptoms. The app tracks your strength, your joints, and what tends to set off a migraine — so we can adjust." },
 ];
 
 // Small helper so exercise objects stay readable.
@@ -51,263 +56,228 @@ const ex = (o) => ({
   alternatives: [], why: "", cues: [], flags: [], ...o,
 });
 
-// Warmup / cooldown are shared-ish but tailored per day.
-const HINGE_WARMUP = [
-  { name: "Bike — easy spin", detail: "5 min, knee-friendly. Get blood to the legs without impact." },
-  { name: "World's greatest stretch", detail: "5/side. Opens hips, hamstrings, T-spine." },
-  { name: "Glute bridge", detail: "2×12. Wake up the glutes before they have to protect the knee." },
-  { name: "Quad sets / TKEs", detail: "2×15. Tighten the quad (VMO) — direct meniscus support." },
-  { name: "Chin tucks", detail: "10 slow reps. Deep-neck-flexor primer for your neck/migraine." },
+// ---- Warm-ups / cool-downs (leg-length forward) ----------------------------
+const PRIMER = [
+  { name: "Bike — easy spin", detail: "4 min. Knee-friendly warm-up, no impact." },
+  { name: "Half-kneeling hip-flexor stretch", detail: "45s right / 30s left. Attack the tight right side first." },
+  { name: "90/90 hip switches", detail: "8/side. Restore hip rotation both ways." },
+  { name: "Hip airplane (hold a rack)", detail: "5/side. Control + glute of the standing leg." },
+  { name: "Glute bridge", detail: "2×12. Wake the glutes before they protect the knee." },
+  { name: "Band cuff ER/IR", detail: "2×15/side, light. Prep the right shoulder." },
+  { name: "Chin tucks", detail: "10 slow reps. Deep-neck-flexor primer." },
 ];
-const UPPER_WARMUP = [
-  { name: "Bike or row — easy", detail: "5 min to raise core temp." },
-  { name: "Band pull-aparts", detail: "2×20. Scapular + rear-delt wake up." },
-  { name: "Cuff ER/IR with band", detail: "2×15/side, light. Prep the right shoulder." },
-  { name: "Scapular push-ups", detail: "2×10. Serratus / scap control." },
-  { name: "Thoracic openers", detail: "8/side. Rotate from the mid-back, not the neck." },
-  { name: "Chin tucks", detail: "10 slow reps. Neck primer." },
-];
-const NECK_COOLDOWN = [
-  { name: "Upper-trap stretch", detail: "30s/side, gentle. Ear toward shoulder — the big one for your right-side headaches." },
-  { name: "Levator scapulae stretch", detail: "30s/side. Nose toward armpit, light hand assist." },
-  { name: "Chin tuck holds", detail: "5×10s. Finish by re-setting the deep neck flexors." },
-];
-const LEG_COOLDOWN = [
-  { name: "Supine hamstring stretch", detail: "30s/side with a strap. Ease into the tight hamstrings." },
+const RIGHT_SIDE_COOLDOWN = [
+  { name: "Half-kneeling hip-flexor stretch", detail: "45s right / 30s left. The right hip is the ringleader — give it extra." },
+  { name: "Supine hamstring strap stretch", detail: "45s right / 30s left." },
   { name: "Figure-4 glute stretch", detail: "30s/side." },
-  ...NECK_COOLDOWN,
+  { name: "Upper-trap + levator stretch", detail: "30s/side, gentle. Eases the right-side neck tension behind your headaches." },
+  { name: "Chin tucks", detail: "5×10s. Reset the deep neck flexors." },
 ];
+
+// ---- Standalone mobility routine (open any day) -----------------------------
+export const MOBILITY_ROUTINE = {
+  name: "Loosen up",
+  blurb: "5–8 minutes. Your front-line defense against the progressive right-side tightening. Do it daily-ish — especially on off days — and give the right side extra time. No weights, no gym required.",
+  steps: [
+    { name: "90/90 hip switches", detail: "8/side, slow. Reclaim hip rotation." },
+    { name: "Half-kneeling hip-flexor stretch", detail: "45s right / 30s left. Tall spine, squeeze the down-glute." },
+    { name: "Figure-4 / standing glute stretch", detail: "30s/side." },
+    { name: "Supine hamstring strap stretch", detail: "45s right / 30s left. Ease into the tight side." },
+    { name: "Hip airplane", detail: "5/side. Balance + hip control." },
+    { name: "Adductor rock-backs", detail: "8 slow reps. Opens the inner hip." },
+    { name: "Open-book thoracic rotation", detail: "8/side. Rotate from the mid-back, not the neck." },
+    { name: "Upper-trap + levator stretch", detail: "30s/side. Right-side neck de-load." },
+    { name: "Chin tucks", detail: "10 slow reps." },
+  ],
+};
 
 export const PROGRAM = {
   name: "Tim's Rebuild — MWF Full Body",
   updated: "2026-08-17",
   days: [
-    // ---------------------------------------------------------------- DAY A
+    // ---------------------------------------------------------------- MONDAY
     {
       id: "A",
-      name: "Day A — Lower & Core",
-      dow: 1, // Monday
-      focus: "Knee-safe legs + anti-rotation core",
-      warmup: HINGE_WARMUP,
+      name: "Day A — Push + Legs",
+      dow: 1,
+      focus: "Complete full-body: horizontal push, a pull, knee-safe legs",
+      warmup: PRIMER,
       exercises: [
         ex({
           id: "a1", name: "Goblet Box Squat", target: "Quads / glutes",
-          sets: 3, reps: "8–10", rest: "2 min",
-          why: "A box caps depth so the knee stays in a safe, repeatable arc while you still load the quad hard — exactly what a torn meniscus wants.",
-          cues: ["Sit back to the box, don't crash", "Knees track over toes, no caving in", "Stand up through mid-foot", "Exhale on the way up"],
-          flags: ["knee"],
-          alternatives: ["Leg Press (limited ROM)", "Belt Squat", "Hack Squat (partial)"],
+          sets: 3, reps: "8–10", rest: "2 min", flags: ["knee"],
+          why: "A box caps depth so the knee stays in its safe, pain-free arc while you still load the quad hard. Your knee only barks at deep bends — this keeps you out of that zone.",
+          cues: ["Sit back to the box, don't crash onto it", "Knees track over toes, no caving in", "Drive up through mid-foot", "Exhale on the way up — no breath-holding"],
+          barbellNote: "Optional once it feels easy: a barbell box squat. But goblet keeps you upright and is easier on the knee, so no rush.",
+          alternatives: ["Leg Press (limited ROM)", "Hack Squat (partial)", "Belt Squat"],
         }),
         ex({
-          id: "a2", name: "Dumbbell Romanian Deadlift", target: "Hamstrings / glutes",
-          sets: 3, reps: "8–10", rest: "90s",
-          why: "Trains the hip hinge and lengthens tight hamstrings under control. Start lighter than you think and add range as you loosen up.",
-          cues: ["Soft knees, push hips back", "Bar/DBs close to legs", "Stop when hamstrings tension — not when back rounds", "Flat back throughout"],
-          flags: ["hamstring"],
-          alternatives: ["45° Back Extension", "Cable Pull-Through", "Seated Good Morning (light)"],
+          id: "a2", name: "Neutral-Grip DB Bench Press", target: "Chest / triceps",
+          sets: 3, reps: "8–10", rest: "90s", flags: ["shoulder"], ss: "S1",
+          why: "Palms-in pressing keeps the worn right shoulder in its happiest position while you press real load. Supersetted with the row below to save time.",
+          cues: ["Elbows ~45°, not flared to 90°", "Lower to the lower chest", "Don't over-arch or shrug", "Stop just short of any shoulder pinch"],
+          alternatives: ["Machine Chest Press", "Floor Press", "Low-Incline Neutral DB Press"],
         }),
         ex({
-          id: "a3", name: "Reverse Lunge (short step)", target: "Unilateral legs",
-          sets: 3, reps: "8/side", rest: "90s",
-          why: "Reverse (not forward) lunges are gentler on the knee and the short step keeps shear low. Unilateral work evens out your leg-length difference.",
-          cues: ["Step back, drop straight down", "Front shin near vertical", "Push through the front heel", "No twisting at the bottom"],
-          flags: ["knee", "leglength"],
-          alternatives: ["Step-ups (low box)", "Split Squat to box", "Bulgarian Split Squat (light)"],
+          id: "a3", name: "Chest-Supported DB Row", target: "Mid-back / posture",
+          sets: 3, reps: "10–12", rest: "75s", flags: ["posture", "shoulder"], ss: "S1",
+          why: "The chest pad removes your low back and lets you pull hard into the muscles that unround your posture. Squeeze the shoulder blades.",
+          cues: ["Pull elbows toward your hips", "Squeeze the blades together, pause", "Don't shrug toward your ears (protect the neck)"],
+          alternatives: ["Seated Cable Row (neutral)", "Machine Row", "Seal Row"],
         }),
         ex({
-          id: "a4", name: "Seated Leg Curl", target: "Hamstrings",
-          sets: 3, reps: "10–12", rest: "75s",
-          why: "Direct hamstring strength supports the knee and balances all the quad work. Machine = zero balance demand on the joint.",
-          cues: ["Smooth down, controlled up", "No jerking with the low back", "Full but pain-free range"],
-          flags: ["hamstring"],
-          alternatives: ["Lying Leg Curl", "Stability-Ball Curl", "Nordic negatives (advanced)"],
+          id: "a4", name: "DB Reverse Lunge (short step)", target: "Unilateral legs",
+          sets: 3, reps: "8/side", rest: "75s", flags: ["knee", "leglength"],
+          why: "Reverse lunges are gentler on the knee than forward ones, and single-leg work is your #1 tool against the leg-length imbalance. Even out left vs right.",
+          cues: ["Step straight back, drop down", "Front shin near vertical", "Push through the front heel", "No twisting at the bottom"],
+          alternatives: ["DB Step-up (low box)", "Split Squat to a box", "Bulgarian Split Squat (light)"],
         }),
         ex({
-          id: "a5", name: "Terminal Knee Extension (band) or partial Leg Extension", target: "Quad / VMO",
-          sets: 3, reps: "12–15", rest: "60s",
-          why: "Builds the VMO (inner quad) that stabilizes the kneecap. Keep leg-extension range shallow (0–45°) if the machine pinches.",
-          cues: ["Squeeze the quad hard at lockout", "Slow negatives", "Stop short of any pinch"],
-          flags: ["knee"],
-          alternatives: ["Wall-sit isometrics", "Spanish Squat (band)", "Step-down (low)"],
-        }),
-        ex({
-          id: "a6", name: "Standing Calf Raise", target: "Calves",
-          sets: 3, reps: "12–15", rest: "60s",
-          why: "Strong calves absorb landing forces and take load off the knee.",
-          cues: ["Full stretch at the bottom", "Pause at the top"],
-          alternatives: ["Seated Calf Raise", "Leg-Press Calf Raise"],
-        }),
-        ex({
-          id: "a7", name: "Pallof Press", target: "Anti-rotation core",
-          sets: 3, reps: "10/side", rest: "45s",
-          why: "Anti-rotation core is the antidote to a crooked posture and an uneven pelvis. Resist the twist — don't create it.",
-          cues: ["Press straight out, hips square", "Don't let the cable rotate you", "Breathe normally"],
-          flags: ["posture", "leglength"],
-          alternatives: ["Band Pallof", "Half-Kneeling Pallof"],
-        }),
-        ex({
-          id: "a8", name: "Dead Bug", target: "Anti-extension core",
-          sets: 3, reps: "8/side", rest: "45s",
-          why: "Teaches the core to keep the spine neutral — foundational for posture and a happy low back.",
-          cues: ["Low back stays glued to the floor", "Slow opposite arm/leg", "Exhale as you extend"],
-          flags: ["posture"],
-          alternatives: ["Bird Dog", "Hollow-body hold"],
-        }),
-      ],
-      cooldown: LEG_COOLDOWN,
-    },
-
-    // ---------------------------------------------------------------- DAY B
-    {
-      id: "B",
-      name: "Day B — Upper & Posture",
-      dow: 3, // Wednesday
-      focus: "Shoulder-safe push/pull + rotator cuff + posture",
-      warmup: UPPER_WARMUP,
-      exercises: [
-        ex({
-          id: "b1", name: "Neutral-Grip DB Bench Press (flat/low incline)", target: "Chest / triceps",
-          sets: 3, reps: "8–10", rest: "2 min",
-          why: "A neutral (palms-in) grip keeps the right shoulder in its happiest, most open position while you still press real load.",
-          cues: ["Elbows ~45°, not flared to 90°", "Lower to lower chest", "Don't over-arch or shrug", "Stop just short of shoulder pinch"],
-          flags: ["shoulder"],
-          alternatives: ["Machine Chest Press", "Floor Press", "Neutral-grip Incline"],
-        }),
-        ex({
-          id: "b2", name: "Chest-Supported Row", target: "Mid-back / scapula",
-          sets: 3, reps: "10–12", rest: "90s",
-          why: "The chest pad removes the low back and lets you pull hard into the muscles that fix rounded posture. Squeeze the shoulder blades.",
-          cues: ["Pull elbows to hips", "Squeeze blades together, pause", "Don't shrug toward your ears (protect the neck)"],
-          flags: ["posture", "shoulder"],
-          alternatives: ["Seal Row", "Seated Cable Row (neutral)"],
-        }),
-        ex({
-          id: "b3", name: "Landmine Press", target: "Shoulders (safe angle)",
-          sets: 3, reps: "8–10/side", rest: "90s",
-          why: "Presses on an incline angle instead of straight overhead — you get pressing strength without jamming the worn shoulder or loading the neck.",
-          cues: ["Press up and slightly forward", "Ribs down, don't lean back", "Keep the neck long and relaxed"],
-          flags: ["shoulder", "neck"],
-          alternatives: ["Low Incline Machine Press", "Half-Kneeling 1-Arm DB Press (to eye level only)"],
-        }),
-        ex({
-          id: "b4", name: "Lat Pulldown (front, neutral/wide)", target: "Lats / upper back",
-          sets: 3, reps: "10–12", rest: "90s",
-          why: "Vertical pull done safely — to the FRONT of the chest, never behind the neck.",
-          cues: ["Pull to the collarbone", "Drive elbows down", "Control the way up", "No behind-the-neck, ever"],
-          flags: ["shoulder"],
-          alternatives: ["Neutral-Grip Assisted Pull-up", "Straight-Arm Pulldown"],
-        }),
-        ex({
-          id: "b5", name: "Face Pull", target: "Rear delts / cuff / posture",
-          sets: 3, reps: "15", rest: "60s",
-          why: "The single best exercise for your combo of shoulder wear, neck tension, and posture. Light weight, high reps, no ego.",
-          cues: ["Pull rope to the eyes/forehead", "Externally rotate — thumbs back", "Elbows high, but DON'T shrug the traps"],
-          flags: ["shoulder", "posture", "neck"],
+          id: "a5", name: "Face Pull", target: "Rear delts / cuff / posture",
+          sets: 3, reps: "15", rest: "60s", flags: ["shoulder", "posture", "neck"], ss: "S2",
+          why: "The best single exercise for your combo of shoulder wear, neck tension, and posture. Light and clean — no ego, no trap-shrugging.",
+          cues: ["Pull the rope to eyes/forehead", "Thumbs point back (external rotation)", "Elbows high but DON'T shrug the traps"],
           alternatives: ["Band Face Pull", "Prone Rear-Delt Raise"],
         }),
         ex({
-          id: "b6", name: "Cable External Rotation", target: "Rotator cuff (right shoulder)",
-          sets: 3, reps: "12–15/side", rest: "60s",
-          why: "Direct rotator-cuff strength for the worn right shoulder. Elbow pinned to your side, light and precise.",
-          cues: ["Elbow glued to ribs, 90°", "Rotate the forearm out slowly", "Small range, no momentum"],
-          flags: ["shoulder"],
-          alternatives: ["Side-Lying DB ER", "Band ER"],
+          id: "a6", name: "Half-Kneeling Pallof Press", target: "Anti-rotation core",
+          sets: 3, reps: "10/side", rest: "45s", flags: ["posture", "leglength"], ss: "S2",
+          why: "Half-kneeling adds a hip-flexor stretch on the down leg while you train the core to resist twisting — a two-for-one for your posture and pelvis.",
+          cues: ["Hips square, ribs down", "Press straight out, don't let the cable rotate you", "Breathe normally"],
+          alternatives: ["Standing Pallof", "Band Pallof", "Bird Dog"],
+        }),
+      ],
+      cooldown: RIGHT_SIDE_COOLDOWN,
+    },
+
+    // ---------------------------------------------------------------- WEDNESDAY
+    {
+      id: "B",
+      name: "Day B — Pull + Legs",
+      dow: 3,
+      focus: "Complete full-body: hip hinge, vertical pull, unilateral legs",
+      warmup: PRIMER,
+      exercises: [
+        ex({
+          id: "b1", name: "Dumbbell Romanian Deadlift", target: "Hamstrings / glutes",
+          sets: 3, reps: "8–10", rest: "2 min", flags: ["hamstring", "leglength"],
+          why: "Trains the hip hinge and loads the hamstrings through a controlled stretch. Keeping the hips level here is direct anti-tightening work for your right side.",
+          cues: ["Soft knees, push the hips back", "DBs stay close to the legs", "Keep the hips square — don't hike the right", "Stop when hamstrings tension, before the back rounds"],
+          barbellNote: "Optional: a barbell RDL lets you load heavier down the road. Dumbbells are easier to keep symmetric, which matters for you.",
+          alternatives: ["45° Back Extension", "Cable Pull-Through", "Seated Good Morning (light)"],
         }),
         ex({
-          id: "b7", name: "Incline DB Curl", target: "Biceps",
-          sets: 2, reps: "10–12", rest: "60s",
-          why: "Arms, and the stretched position is easy on the joints.",
+          id: "b2", name: "Lat Pulldown (neutral grip, to front)", target: "Lats / upper back",
+          sets: 3, reps: "10–12", rest: "90s", flags: ["shoulder"], ss: "S1",
+          why: "Vertical pulling done shoulder-safe — always to the FRONT, never behind the neck. Neutral grip is the friendliest for the right shoulder.",
+          cues: ["Pull to the collarbone", "Drive the elbows down", "Control the way up", "Never behind the neck"],
+          alternatives: ["Neutral-Grip Assisted Pull-up", "Straight-Arm Pulldown"],
+        }),
+        ex({
+          id: "b3", name: "Neutral-Grip DB Incline Press", target: "Upper chest / shoulders",
+          sets: 3, reps: "8–10", rest: "90s", flags: ["shoulder"], ss: "S1",
+          why: "A low incline hits the shoulder-safe pressing angle and keeps upper-body pushing in the week without going overhead.",
+          cues: ["Low incline (~30°)", "Elbows ~45°", "Lower under control", "No shrug at the top"],
+          alternatives: ["Machine Incline Press", "Machine Chest Press"],
+        }),
+        ex({
+          id: "b4", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad / glute",
+          sets: 3, reps: "10/side", rest: "75s", flags: ["knee", "leglength"],
+          why: "One leg at a time forces the weaker/tighter side to pull its weight, and the machine keeps the meniscus on a safe, guided track.",
+          cues: ["Don't let the knee cave inward", "Stop before the knee bends past ~90°", "Push through the whole foot"],
+          alternatives: ["DB Bulgarian Split Squat to box (shallow)", "Step-up (low box)"],
+        }),
+        ex({
+          id: "b5", name: "Seated Leg Curl", target: "Hamstrings",
+          sets: 3, reps: "10–12", rest: "60s", flags: ["hamstring"], ss: "S2",
+          why: "Direct hamstring strength supports the knee and balances all the quad work.",
+          cues: ["Smooth down, controlled up", "No jerking with the low back", "Full but pain-free range"],
+          alternatives: ["Lying Leg Curl", "Stability-Ball Curl"],
+        }),
+        ex({
+          id: "b6", name: "Cable External Rotation", target: "Rotator cuff (right shoulder)",
+          sets: 3, reps: "12–15/side", rest: "45s", flags: ["shoulder"], ss: "S2",
+          why: "Direct rotator-cuff strength for the worn shoulder — the daily insurance that keeps pressing pain-free.",
+          cues: ["Elbow glued to your ribs, bent 90°", "Rotate the forearm out slowly", "Small range, no momentum"],
+          alternatives: ["Side-Lying DB External Rotation", "Band External Rotation"],
+        }),
+        ex({
+          id: "b7", name: "Suitcase Carry (optional if time)", target: "Anti-lateral-flexion core",
+          sets: 2, reps: "40 yd/side", rpe: "7", rest: "60s", flags: ["leglength", "posture"],
+          why: "Loading one side forces your trunk to stay level — the exact frontal-plane control your uneven pelvis needs. Skip it if you're short on time.",
+          cues: ["Stand tall, shoulders level", "Don't lean away from the weight", "Slow, even steps"],
+          alternatives: ["Suitcase Hold (isometric)", "Side Plank"],
+        }),
+      ],
+      cooldown: RIGHT_SIDE_COOLDOWN,
+    },
+
+    // ---------------------------------------------------------------- FRIDAY
+    {
+      id: "C",
+      name: "Day C — Bonus: Mobility, Single-Leg & Arms",
+      dow: 5,
+      optional: true,
+      note: "The skip-friendly day. Mon + Wed already cover the essentials — Friday is where you chip away at the leg-length asymmetry, hit arms, and loosen everything up. Make it when you can; no guilt when you can't.",
+      focus: "Leg-length weak points, glutes, arms, and a long loosen-out",
+      warmup: PRIMER,
+      exercises: [
+        ex({
+          id: "c1", name: "Hip Thrust", target: "Glutes",
+          sets: 3, reps: "10–12", rest: "90s", flags: ["knee", "posture"],
+          why: "The most knee- and back-friendly way to build powerful glutes — and strong glutes are what protect your knee and pull your posture tall.",
+          cues: ["Chin tucked, ribs down", "Drive through the heels", "Squeeze glutes at the top, pause", "Don't hyperextend the low back"],
+          barbellNote: "Optional: barbell hip thrust (use a pad) once you want more load. A DB across the hips or a machine works great meanwhile.",
+          alternatives: ["Machine Hip Thrust", "Glute Bridge", "45° Back Extension"],
+        }),
+        ex({
+          id: "c2", name: "DB Lateral Lunge (comfortable depth)", target: "Adductors / frontal plane",
+          sets: 3, reps: "8/side", rest: "75s", flags: ["knee", "leglength"],
+          why: "Side-to-side loading trains the inner hip and frontal-plane control that a leg-length difference neglects. Stay shallow — you only need pain-free range.",
+          cues: ["Sit into the bending hip, keep the other leg straight", "Only as deep as stays pain-free", "Push back to center through the heel", "No knee twisting"],
+          alternatives: ["Adductor Machine + Hip Abduction Machine", "Cossack Squat (shallow, assisted)"],
+        }),
+        ex({
+          id: "c3", name: "Single-Arm DB Row", target: "Unilateral back",
+          sets: 3, reps: "10/side", rest: "60s", flags: ["posture", "leglength"],
+          why: "Evens out left/right back strength and reinforces posture. Braced on a bench so the low back stays safe.",
+          cues: ["Flat back, brace a hand on the bench", "Pull to the hip", "Don't rotate the torso to cheat the weight"],
+          alternatives: ["Chest-Supported Row", "Seated Cable Row"],
+        }),
+        ex({
+          id: "c4", name: "Single-Leg DB RDL (light)", target: "Unilateral hinge / balance",
+          sets: 3, reps: "8/side", rest: "60s", flags: ["hamstring", "leglength"],
+          why: "Loaded stretching for the right hamstring and glute plus a big balance and hip-control demand — a direct hit on the asymmetry. Keep it light and precise.",
+          cues: ["Hinge on one leg, back leg reaches behind", "Hips stay level (don't let them open)", "Light DB — control beats load here"],
+          alternatives: ["B-Stance RDL", "45° Back Extension"],
+        }),
+        ex({
+          id: "c5", name: "Incline DB Curl", target: "Biceps",
+          sets: 3, reps: "10–12", rest: "60s", ss: "S1",
+          why: "Arms — the stretched position is joint-friendly. Supersetted with pushdowns.",
           cues: ["Slow negative", "No swinging"],
           alternatives: ["Cable Curl", "Hammer Curl"],
         }),
         ex({
-          id: "b8", name: "Triceps Rope Pushdown", target: "Triceps",
-          sets: 2, reps: "12–15", rest: "60s",
-          why: "Rounds out pressing strength, shoulder-friendly.",
-          cues: ["Elbows pinned", "Full lockout, slow return"],
-          alternatives: ["Overhead Rope Ext (if pain-free)", "Close-grip push-up"],
+          id: "c6", name: "Triceps Rope Pushdown", target: "Triceps",
+          sets: 3, reps: "12–15", rest: "60s", ss: "S1",
+          why: "Rounds out arm work, shoulder-friendly.",
+          cues: ["Elbows pinned to your sides", "Full lockout, slow return"],
+          alternatives: ["DB Skull-crusher", "Overhead Rope (if pain-free)"],
+        }),
+        ex({
+          id: "c7", name: "Side Plank", target: "Anti-lateral-flexion core",
+          sets: 2, reps: "20–30s/side", rpe: "7", rest: "45s", flags: ["leglength", "posture"],
+          why: "Trains the side of the trunk to hold you level — frontal-plane core that supports the pelvis.",
+          cues: ["Straight line head to heels", "Hips up, don't sag", "Breathe"],
+          alternatives: ["Suitcase Hold", "Copenhagen Plank (easy)"],
         }),
       ],
       cooldown: [
-        { name: "Gentle doorway pec stretch", detail: "30s/side, elbow BELOW shoulder height to protect the right shoulder." },
-        ...NECK_COOLDOWN,
+        ...MOBILITY_ROUTINE.steps.slice(0, 6),
+        { name: "Upper-trap + levator stretch", detail: "30s/side." },
+        { name: "Chin tucks", detail: "10 slow reps." },
       ],
-    },
-
-    // ---------------------------------------------------------------- DAY C
-    {
-      id: "C",
-      name: "Day C — Full Body & Posterior Chain",
-      dow: 5, // Friday
-      focus: "Glute/posterior strength + carries + optional Zone-2",
-      warmup: HINGE_WARMUP,
-      exercises: [
-        ex({
-          id: "c1", name: "Hip Thrust", target: "Glutes",
-          sets: 3, reps: "8–10", rest: "2 min",
-          why: "The most knee- and back-friendly way to build powerful glutes — and strong glutes are what protect your knee and pull your posture upright.",
-          cues: ["Chin tucked, ribs down", "Drive through heels", "Squeeze glutes at the top, pause", "Don't hyperextend the low back"],
-          flags: ["knee", "posture"],
-          alternatives: ["Machine Hip Thrust", "Glute Bridge", "Cable Pull-Through"],
-        }),
-        ex({
-          id: "c2", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad/glute",
-          sets: 3, reps: "10/side", rest: "90s",
-          why: "One leg at a time fixes side-to-side imbalances from your leg-length difference, and the machine keeps the meniscus on a safe track.",
-          cues: ["Don't let the knee cave in", "Stop before the knee bends past ~90°", "Push through the whole foot"],
-          flags: ["knee", "leglength"],
-          alternatives: ["Step-up (low box)", "Split Squat to box"],
-        }),
-        ex({
-          id: "c3", name: "Incline DB Press (neutral grip)", target: "Upper chest / shoulders",
-          sets: 3, reps: "8–10", rest: "90s",
-          why: "Low-incline pressing hits the shoulder-safe angle and keeps upper-body pushing in the week.",
-          cues: ["Elbows ~45°", "Lower under control", "No shrug at the top"],
-          flags: ["shoulder"],
-          alternatives: ["Machine Incline Press", "Landmine Press"],
-        }),
-        ex({
-          id: "c4", name: "Single-Arm DB Row", target: "Unilateral back",
-          sets: 3, reps: "10/side", rest: "75s",
-          why: "Evens out left/right back strength and reinforces posture. Bench-supported so the low back is safe.",
-          cues: ["Flat back, brace on the bench", "Pull to the hip", "Don't rotate the torso to cheat"],
-          flags: ["posture"],
-          alternatives: ["Chest-Supported Row", "Seated Cable Row"],
-        }),
-        ex({
-          id: "c5", name: "Cable Pull-Through", target: "Hamstrings / glutes",
-          sets: 3, reps: "12", rest: "75s",
-          why: "A hip hinge with the load in front — very low-back-friendly, great for grooving the hinge with your tight hamstrings.",
-          cues: ["Hips back, arms stay straight", "Snap hips forward, squeeze glutes", "Neutral spine"],
-          flags: ["hamstring"],
-          alternatives: ["DB RDL (light)", "45° Back Extension"],
-        }),
-        ex({
-          id: "c6", name: "Suitcase Carry", target: "Anti-lateral-flexion core",
-          sets: 3, reps: "30–40 yd/side", rest: "60s",
-          why: "Carrying a load on one side forces the trunk to stay level — directly trains the frontal-plane control your uneven pelvis needs.",
-          cues: ["Stand tall, shoulders level", "Don't lean away from the weight", "Slow, controlled steps"],
-          flags: ["leglength", "posture"],
-          alternatives: ["Suitcase Hold (isometric)", "Side Plank"],
-        }),
-        ex({
-          id: "c7", name: "Pallof Press", target: "Anti-rotation core",
-          sets: 2, reps: "10/side", rest: "45s",
-          why: "More anti-rotation to close out the week.",
-          cues: ["Hips square", "Resist the twist"],
-          flags: ["posture", "leglength"],
-          alternatives: ["Band Pallof", "Bird Dog"],
-        }),
-        ex({
-          id: "c8", name: "Optional: Zone-2 finisher", target: "Conditioning (knee-safe)",
-          sets: 1, reps: "8–10 min", rpe: "conversational", rest: "—",
-          why: "A nod to your Orange Theory cardio, kept knee-friendly. Incline walk or bike at a pace where you can still talk.",
-          cues: ["Nose-breathing pace", "Incline walk or bike — no running/jumping", "Optional — skip if short on time"],
-          flags: ["knee"],
-          alternatives: ["Incline treadmill walk", "Stationary bike", "Elliptical"],
-        }),
-      ],
-      cooldown: LEG_COOLDOWN,
     },
   ],
 };
@@ -315,20 +285,19 @@ export const PROGRAM = {
 // Symptom trackers shown before each session. 0 = none/great, 10 = worst.
 export const SYMPTOMS = [
   { id: "knee", label: "Right knee", hint: "Meniscus — any pain, catching, swelling?", invert: false },
+  { id: "tightness", label: "Right-side tightness", hint: "Hip / leg / back — how locked up is the right side today?", invert: false },
   { id: "shoulder", label: "Right shoulder", hint: "Wear — pinch, ache, weakness?", invert: false },
-  { id: "neck", label: "Neck / headache", hint: "Right-side tension, migraine warning signs?", invert: false },
+  { id: "neck", label: "Neck / headache", hint: "Right-side tension or migraine warning signs?", invert: false },
   { id: "energy", label: "Energy", hint: "How's the tank today? 10 = fully charged", invert: true },
   { id: "sleep", label: "Sleep", hint: "Last night. 10 = slept great", invert: true },
 ];
 
 // Optional post-workout metrics you read off your Apple Watch and punch in.
-// (Safari on iPhone can't read the Watch directly, so these are quick manual
-// entries — collapsed by default so they never get in the way.)
 export const WATCH_METRICS = [
-  { id: "durationMin", label: "Duration", unit: "min", placeholder: "60" },
-  { id: "avgHr", label: "Avg HR", unit: "bpm", placeholder: "118" },
-  { id: "peakHr", label: "Peak HR", unit: "bpm", placeholder: "150" },
-  { id: "activeCal", label: "Active cal", unit: "kcal", placeholder: "420" },
+  { id: "durationMin", label: "Duration", unit: "min", placeholder: "50" },
+  { id: "avgHr", label: "Avg HR", unit: "bpm", placeholder: "115" },
+  { id: "peakHr", label: "Peak HR", unit: "bpm", placeholder: "148" },
+  { id: "activeCal", label: "Active cal", unit: "kcal", placeholder: "380" },
 ];
 
 // Map a symptom id to the exercise flags it should warn about.
@@ -343,7 +312,6 @@ export const FLAG_LABELS = {
 
 // The rotation: which day template to run on the Nth workout.
 export function dayForDate(date, sessions) {
-  // Prefer day-of-week mapping (Mon=A, Wed=B, Fri=C); otherwise rotate by count.
   const dow = date.getDay();
   const byDow = PROGRAM.days.find((d) => d.dow === dow);
   if (byDow) return byDow;

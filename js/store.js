@@ -84,6 +84,42 @@ export function deleteSession(id) {
   save();
 }
 
+export function updateSession(id, patch) {
+  const d = load();
+  const s = d.sessions.find((x) => x.id === id);
+  if (s) { Object.assign(s, patch); save(); }
+  return s;
+}
+
+// The most recent completed session (used for the "migraine after last?" prompt).
+export function lastSession() {
+  return getSessions()[0] || null;
+}
+
+function sessionVolume(s) {
+  return (s.entries || []).reduce((v, e) =>
+    v + (e.sets || []).reduce((vv, x) => vv + (Number(x.weight) || 0) * (Number(x.reps) || 0), 0), 0);
+}
+
+// Compare training load of sessions that triggered a migraine vs. those that
+// didn't — surfaces Tim's personal "too taxing" threshold once there's data.
+export function migraineInsight() {
+  const rated = getSessions().filter((s) => s.causedMigraine === true || s.causedMigraine === false);
+  const hit = rated.filter((s) => s.causedMigraine === true);
+  const ok = rated.filter((s) => s.causedMigraine === false);
+  if (hit.length === 0 || ok.length === 0) {
+    return { enough: false, migraineCount: hit.length, ratedCount: rated.length };
+  }
+  const avg = (arr) => Math.round(arr.reduce((a, s) => a + sessionVolume(s), 0) / arr.length);
+  return {
+    enough: true,
+    migraineCount: hit.length,
+    ratedCount: rated.length,
+    avgVolMigraine: avg(hit),
+    avgVolOk: avg(ok),
+  };
+}
+
 // ---- Bodyweight ------------------------------------------------------------
 export function getBodyweight() {
   return load().bodyweight.slice().sort((a, b) => (a.date < b.date ? -1 : 1));

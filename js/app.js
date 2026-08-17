@@ -1,7 +1,7 @@
 // =============================================================================
 // app.js — bootstrap, navigation, and all views.
 // =============================================================================
-import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, FLAG_LABELS, dayForDate } from "./program.js";
+import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS, dayForDate } from "./program.js";
 import * as store from "./store.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
@@ -42,9 +42,10 @@ route("today", () => {
 
   // Today's plan card
   const planCard = el("div.card.today-card");
-  planCard.appendChild(el("div.today-badge", { text: `Day ${day.id}` }));
+  planCard.appendChild(el("div.today-badge", { text: day.optional ? `Day ${day.id} · bonus` : `Day ${day.id}` }));
   planCard.appendChild(el("h2", { text: day.name.replace(/^Day [A-C] — /, "") }));
   planCard.appendChild(el("p.muted", { text: day.focus }));
+  if (day.optional && day.note) planCard.appendChild(el("p.optional-note", { text: "🎈 " + day.note }));
   const preview = el("ul.today-list");
   day.exercises.slice(0, 6).forEach((e) =>
     preview.appendChild(el("li", {}, [
@@ -58,6 +59,12 @@ route("today", () => {
     el("button.btn.ghost", { text: "View full plan", onclick: () => navigate("program/" + day.id) }),
   ]));
   view.appendChild(planCard);
+
+  // Loosen-up shortcut — the leg-length front line, usable any day
+  view.appendChild(el("button.btn.ghost.full.loosen", {
+    html: "🧘 Loosen up &nbsp;·&nbsp; <span class='muted'>5-min mobility for the right side</span>",
+    onclick: () => navigate("mobility"),
+  }));
 
   // Last session recap
   if (lastSession) {
@@ -200,6 +207,20 @@ function symptomCheck(draft) {
   const card = el("div.card.symptom-check");
   card.appendChild(el("h2", { text: "Quick check-in" }));
   card.appendChild(el("p.muted", { text: "Two taps per slider. This tells the coach when to push and when to protect a joint." }));
+
+  // Migraine follow-up on the previous session (they hit ~5h later, so we ask now)
+  const prev = store.lastSession();
+  if (prev) {
+    const setMig = (v) => { store.updateSession(prev.id, { causedMigraine: v }); navigate("session"); };
+    card.appendChild(el("div.migraine-q", {}, [
+      el("p.field-label", { text: `Did a migraine follow your last workout? (${prev.dayName.replace(/^Day [A-C] — /, "")}, ${fmtDate(prev.date)})` }),
+      el("div.seg", {}, [
+        el("button", { class: "seg-btn" + (prev.causedMigraine === false ? " active" : ""), text: "No", onclick: () => setMig(false) }),
+        el("button", { class: "seg-btn" + (prev.causedMigraine === true ? " active" : ""), text: "Yes 🤕", onclick: () => setMig(true) }),
+      ]),
+    ]));
+  }
+
   SYMPTOMS.forEach((s) => {
     const val = draft.symptoms[s.id] != null ? draft.symptoms[s.id] : (s.invert ? 7 : 0);
     draft.symptoms[s.id] = val;
@@ -249,7 +270,8 @@ function watchMetricsCard(draft) {
 
 function symptomAlerts(symptoms) {
   const out = [];
-  if ((symptoms.knee || 0) >= 4) out.push("Right knee is flaring — use the lighter alternatives, cut squat depth, skip the Zone-2 finisher if it barks.");
+  if ((symptoms.knee || 0) >= 4) out.push("Right knee is flaring — use the lighter alternatives, cut squat/press depth, and avoid any deep loaded bends today.");
+  if ((symptoms.tightness || 0) >= 5) out.push("Right side is locked up — give the Loosen-up routine extra time, lean into the single-leg work, and keep your hips square on every hinge.");
   if ((symptoms.shoulder || 0) >= 4) out.push("Right shoulder is cranky — drop pressing load, keep everything below shoulder height, do extra cuff & face-pull warm-up.");
   if ((symptoms.neck || 0) >= 4) out.push("Neck/head is elevated — keep weights lighter, breathe (no grinding), and don't shrug during pulls. Stop if a migraine builds.");
   if ((symptoms.energy || 10) <= 3) out.push("Low energy — treat today as a technique day. Same movements, ~2 RPE lighter is a win.");
@@ -265,16 +287,34 @@ function exerciseCard(exDef, draft, idx) {
   const sugg = store.suggestion(exDef.id, topRep);
   const last = store.lastPerformance(exDef.id);
 
+  // Variety swap: cycle through the main lift + its listed alternatives
+  const displayName = entry.variant || exDef.name;
+  const swapOptions = [exDef.name, ...(exDef.alternatives || [])];
+  const doSwap = () => {
+    const cur = entry.variant || exDef.name;
+    const next = swapOptions[(swapOptions.indexOf(cur) + 1) % swapOptions.length];
+    entry.variant = next === exDef.name ? null : next;
+    store.saveDraft(draft);
+    navigate("session");
+  };
+
   // Header
   const head = el("div.exercise-head", {}, [
     el("div.exercise-idx", { text: String(idx + 1) }),
     el("div.exercise-title", {}, [
-      el("h3", { text: exDef.name }),
+      el("div.title-row", {}, [
+        el("h3", { text: displayName }),
+        exDef.ss ? el("span.ss-badge", { text: "⇄ superset " + exDef.ss }) : null,
+      ]),
       el("p.muted.small", { text: `${exDef.target} · ${exDef.sets}×${exDef.reps} · RPE ${exDef.rpe} · rest ${exDef.rest}` }),
+      entry.variant ? el("p.variant-note.tiny", { text: "swapped from " + exDef.name }) : null,
     ]),
-    el("a.icon-btn", { html: "▶", title: "How-to video",
-      href: "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + exDef.name + " proper form"),
-      target: "_blank", rel: "noopener" }),
+    el("div.exercise-actions", {}, [
+      swapOptions.length > 1 ? el("button.icon-btn", { html: "🎲", title: "Swap for variety", onclick: doSwap }) : null,
+      el("a.icon-btn", { html: "▶", title: "How-to video",
+        href: "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + displayName + " proper form"),
+        target: "_blank", rel: "noopener" }),
+    ]),
   ]);
   card.appendChild(head);
 
@@ -283,11 +323,12 @@ function exerciseCard(exDef, draft, idx) {
   coach.appendChild(el("summary", { text: "Coach's notes" }));
   if (exDef.why) coach.appendChild(el("p.why", { text: exDef.why }));
   if (exDef.cues && exDef.cues.length) coach.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
+  if (exDef.barbellNote) coach.appendChild(el("p.barbell-note.small", { text: "🏋️ " + exDef.barbellNote }));
   if (exDef.flags && exDef.flags.length) {
     coach.appendChild(el("div.flags", {}, exDef.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   }
   if (exDef.alternatives && exDef.alternatives.length) {
-    coach.appendChild(el("p.muted.small", { text: "Swaps: " + exDef.alternatives.join(" · ") }));
+    coach.appendChild(el("p.muted.small", { text: "Swaps (or hit 🎲): " + exDef.alternatives.join(" · ") }));
   }
   card.appendChild(coach);
 
@@ -391,7 +432,7 @@ async function finishSession(draft, day) {
     symptoms: draft.symptoms,
     metrics: draft.metrics || {},
     entries: draft.entries.map((e) => ({
-      exerciseId: e.exerciseId, name: e.name, pain: e.pain, note: e.note,
+      exerciseId: e.exerciseId, name: e.name, variant: e.variant || null, pain: e.pain, note: e.note,
       sets: e.sets.filter((s) => s.weight != null || s.reps != null),
     })),
     notes: draft.notes,
@@ -455,6 +496,35 @@ function beep() {
 }
 
 // ---------------------------------------------------------------------------
+// MOBILITY (Loosen up)
+// ---------------------------------------------------------------------------
+route("mobility", () => {
+  const view = el("div.view");
+  view.appendChild(el("header.subhead", {}, [
+    el("button.icon-btn", { html: "&larr;", title: "Back", onclick: () => navigate("today") }),
+    el("h1.subhead-title", { text: MOBILITY_ROUTINE.name }),
+  ]));
+  view.appendChild(el("div.card", {}, [
+    el("p", { text: MOBILITY_ROUTINE.blurb }),
+  ]));
+  const list = el("ol.mobility-list");
+  MOBILITY_ROUTINE.steps.forEach((s) => {
+    list.appendChild(el("li.mobility-item", {}, [
+      el("div", {}, [
+        el("span.warm-name", { text: s.name }),
+        el("span.muted.small", { text: s.detail }),
+      ]),
+      el("a.icon-btn", { html: "▶", title: "How-to",
+        href: "https://www.youtube.com/results?search_query=" + encodeURIComponent(s.name + " stretch how to"),
+        target: "_blank", rel: "noopener" }),
+    ]));
+  });
+  view.appendChild(el("div.card", {}, [list]));
+  view.appendChild(el("p.muted.small.center", { text: "Give the right side extra time. Consistency beats intensity here." }));
+  render(view);
+});
+
+// ---------------------------------------------------------------------------
 // PROGRAM (browse)
 // ---------------------------------------------------------------------------
 route("program", (param) => {
@@ -485,6 +555,7 @@ route("program", (param) => {
     el("h2", { text: day.name }),
     el("p.muted", { text: day.focus }),
     el("p.muted.small", { text: dayScheduleLabel(day) }),
+    day.optional && day.note ? el("p.optional-note", { text: "🎈 " + day.note }) : null,
   ]));
   view.appendChild(collapsible("🔥 Warm-up", day.warmup.map(warmItem), false));
   day.exercises.forEach((e, i) => view.appendChild(programExercise(e, i)));
@@ -503,13 +574,17 @@ function programExercise(e, i) {
   card.appendChild(el("div.exercise-head", {}, [
     el("div.exercise-idx", { text: String(i + 1) }),
     el("div.exercise-title", {}, [
-      el("h3", { text: e.name }),
+      el("div.title-row", {}, [
+        el("h3", { text: e.name }),
+        e.ss ? el("span.ss-badge", { text: "⇄ superset " + e.ss }) : null,
+      ]),
       el("p.muted.small", { text: `${e.target} · ${e.sets}×${e.reps} · RPE ${e.rpe} · rest ${e.rest}` }),
     ]),
     el("a.icon-btn", { html: "▶", href: "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + e.name + " proper form"), target: "_blank", rel: "noopener" }),
   ]));
   if (e.why) card.appendChild(el("p.why", { text: e.why }));
   if (e.cues && e.cues.length) card.appendChild(el("ul.cues", {}, e.cues.map((c) => el("li", { text: c }))));
+  if (e.barbellNote) card.appendChild(el("p.barbell-note.small", { text: "🏋️ " + e.barbellNote }));
   if (e.flags && e.flags.length) card.appendChild(el("div.flags", {}, e.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   if (e.alternatives && e.alternatives.length) card.appendChild(el("p.muted.small", { text: "Swaps: " + e.alternatives.join(" · ") }));
   return card;
@@ -573,6 +648,22 @@ route("history", () => {
   if (!symCard.children.length) symCard.appendChild(el("p.muted", { text: "Symptom trends appear after a few check-ins." }));
   view.appendChild(symCard);
 
+  // Migraine threshold insight
+  const mig = store.migraineInsight();
+  if (mig.ratedCount >= 1) {
+    view.appendChild(sectionTitle("Migraine threshold"));
+    const mCard = el("div.card");
+    if (mig.enough) {
+      mCard.appendChild(el("p", { html: `Sessions that triggered a migraine averaged <strong>${mig.avgVolMigraine.toLocaleString()} ${units()}</strong> of volume; sessions that didn't averaged <strong>${mig.avgVolOk.toLocaleString()} ${units()}</strong>.` }));
+      mCard.appendChild(el("p.muted.small", { text: mig.avgVolMigraine > mig.avgVolOk
+        ? "Bigger/heavier sessions look like the trigger — we'll keep load under that line and back off when your neck score is up."
+        : "No clear volume pattern yet — the trigger may be intensity or something outside the gym (alcohol, sleep). Keep logging." }));
+    } else {
+      mCard.appendChild(el("p.muted", { text: `Logged ${mig.migraineCount} migraine follow-up${mig.migraineCount === 1 ? "" : "s"} so far. Once there's a mix of yes/no answers, this shows what session load tends to set one off.` }));
+    }
+    view.appendChild(mCard);
+  }
+
   // Cardio & heart rate (from Watch)
   const cardioMetrics = WATCH_METRICS.filter((m) => store.metricHistory(m.id).length);
   if (cardioMetrics.length) {
@@ -604,6 +695,7 @@ function sessionSummaryCard(s, withDelete) {
       el("p.muted.small", { text: `${fmtDate(s.date)} · ${totalSets} sets · ${Math.round(vol).toLocaleString()} ${units()} volume` }),
     ]),
     el("div.session-badges", {}, [
+      s.causedMigraine === true ? el("span.pill.migraine", { text: "🤕" }) : null,
       s.symptoms ? severityBar(worstSymptom(s.symptoms), false) : null,
       painFlags ? el("span.pill.warn", { text: `⚠︎ ${painFlags}` }) : null,
     ]),
@@ -615,7 +707,7 @@ function sessionSummaryCard(s, withDelete) {
   (s.entries || []).forEach((e) => {
     if (!e.sets || !e.sets.length) return;
     det.appendChild(el("div.log-line", {}, [
-      el("span", { text: e.name + (e.pain ? " ⚠︎" : "") }),
+      el("span", { text: (e.variant || e.name) + (e.pain ? " ⚠︎" : "") }),
       el("span.muted.small", { text: e.sets.map((x) => `${x.weight ?? "–"}×${x.reps ?? "–"}`).join(", ") }),
     ]));
   });
@@ -644,7 +736,7 @@ function sessionSummaryCard(s, withDelete) {
   return card;
 }
 function worstSymptom(sym) {
-  return Math.max(sym.knee || 0, sym.shoulder || 0, sym.neck || 0);
+  return Math.max(sym.knee || 0, sym.tightness || 0, sym.shoulder || 0, sym.neck || 0);
 }
 
 // ---------------------------------------------------------------------------
