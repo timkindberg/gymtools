@@ -9,7 +9,7 @@ session.
 No accounts, no servers, no data leaving your device. Just a web page you install
 to your home screen.
 
-**Live app:** `https://timkindberg.github.io/gymtools/` *(after first deploy — see below)*
+[**Live app:**](https://timkindberg.github.io/gymtools/)` *(after first deploy — see below)*
 
 ---
 
