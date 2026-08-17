@@ -269,13 +269,11 @@ function watchMetricsCard(draft) {
 }
 
 function symptomAlerts(symptoms) {
+  // Injury management only — no migraine/fatigue coddling (Tim trains through those).
   const out = [];
-  if ((symptoms.knee || 0) >= 4) out.push("Right knee is flaring — use the lighter alternatives, cut squat/press depth, and avoid any deep loaded bends today.");
-  if ((symptoms.tightness || 0) >= 5) out.push("Right side is locked up — give the Loosen-up routine extra time, lean into the single-leg work, and keep your hips square on every hinge.");
-  if ((symptoms.shoulder || 0) >= 4) out.push("Right shoulder is cranky — drop pressing load, keep everything below shoulder height, do extra cuff & face-pull warm-up.");
-  if ((symptoms.neck || 0) >= 4) out.push("Neck/head is elevated — keep weights lighter, breathe (no grinding), and don't shrug during pulls. Stop if a migraine builds.");
-  if ((symptoms.energy || 10) <= 3) out.push("Low energy — treat today as a technique day. Same movements, ~2 RPE lighter is a win.");
-  if ((symptoms.sleep || 10) <= 3) out.push("Poor sleep — recovery is down. Don't chase PRs; leave 3+ reps in the tank.");
+  if ((symptoms.knee || 0) >= 4) out.push("Right knee is flaring — 🎲 swap to the lower-impact options, keep squat/press depth shallow, and skip deep loaded bends today.");
+  if ((symptoms.tightness || 0) >= 5) out.push("Right side is locked up — give the Loosen-up routine extra time and keep your hips square on every hinge.");
+  if ((symptoms.shoulder || 0) >= 4) out.push("Right shoulder is cranky — 🎲 swap barbell presses to the neutral-grip DB versions and add an extra cuff/face-pull warm-up set.");
   return out;
 }
 
@@ -305,6 +303,7 @@ function exerciseCard(exDef, draft, idx) {
       el("div.title-row", {}, [
         el("h3", { text: displayName }),
         exDef.ss ? el("span.ss-badge", { text: "⇄ superset " + exDef.ss }) : null,
+        exDef.learn ? el("span.learn-badge", { text: "🎥 technique" }) : null,
       ]),
       el("p.muted.small", { text: `${exDef.target} · ${exDef.sets}×${exDef.reps} · RPE ${exDef.rpe} · rest ${exDef.rest}` }),
       entry.variant ? el("p.variant-note.tiny", { text: "swapped from " + exDef.name }) : null,
@@ -323,7 +322,7 @@ function exerciseCard(exDef, draft, idx) {
   coach.appendChild(el("summary", { text: "Coach's notes" }));
   if (exDef.why) coach.appendChild(el("p.why", { text: exDef.why }));
   if (exDef.cues && exDef.cues.length) coach.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
-  if (exDef.barbellNote) coach.appendChild(el("p.barbell-note.small", { text: "🏋️ " + exDef.barbellNote }));
+  if (exDef.techNote) coach.appendChild(el("p.barbell-note.small", { text: "🎥 " + exDef.techNote }));
   if (exDef.flags && exDef.flags.length) {
     coach.appendChild(el("div.flags", {}, exDef.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   }
@@ -525,6 +524,38 @@ route("mobility", () => {
 });
 
 // ---------------------------------------------------------------------------
+// COACH REPORT (the bridge to Claude)
+// ---------------------------------------------------------------------------
+route("report", () => {
+  const view = el("div.view");
+  view.appendChild(el("header.subhead", {}, [
+    el("button.icon-btn", { html: "&larr;", title: "Back", onclick: () => navigate("settings") }),
+    el("h1.subhead-title", { text: "Coach report" }),
+  ]));
+  const text = store.coachReport();
+  view.appendChild(el("div.card", {}, [
+    el("p.muted.small", { text: "This is how your data reaches Claude. Copy it, paste it into a Claude conversation, and ask for a program update — roughly every 4 weeks, or whenever something stalls or hurts." }),
+    el("button.btn.primary.full", { text: "📋 Copy to clipboard", onclick: () => copyText(text) }),
+    el("pre.report", { text }),
+  ]));
+  render(view);
+});
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Copied — paste it into a Claude chat");
+  } catch (e) {
+    const ta = el("textarea", { value: text });
+    ta.style.cssText = "position:fixed;left:-9999px;top:0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand("copy"); toast("Copied"); }
+    catch (e2) { toast("Select the text below and copy manually"); }
+    ta.remove();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // PROGRAM (browse)
 // ---------------------------------------------------------------------------
 route("program", (param) => {
@@ -577,6 +608,7 @@ function programExercise(e, i) {
       el("div.title-row", {}, [
         el("h3", { text: e.name }),
         e.ss ? el("span.ss-badge", { text: "⇄ superset " + e.ss }) : null,
+        e.learn ? el("span.learn-badge", { text: "🎥 technique" }) : null,
       ]),
       el("p.muted.small", { text: `${e.target} · ${e.sets}×${e.reps} · RPE ${e.rpe} · rest ${e.rest}` }),
     ]),
@@ -584,7 +616,7 @@ function programExercise(e, i) {
   ]));
   if (e.why) card.appendChild(el("p.why", { text: e.why }));
   if (e.cues && e.cues.length) card.appendChild(el("ul.cues", {}, e.cues.map((c) => el("li", { text: c }))));
-  if (e.barbellNote) card.appendChild(el("p.barbell-note.small", { text: "🏋️ " + e.barbellNote }));
+  if (e.techNote) card.appendChild(el("p.barbell-note.small", { text: "🎥 " + e.techNote }));
   if (e.flags && e.flags.length) card.appendChild(el("div.flags", {}, e.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   if (e.alternatives && e.alternatives.length) card.appendChild(el("p.muted.small", { text: "Swaps: " + e.alternatives.join(" · ") }));
   return card;
@@ -785,6 +817,13 @@ route("settings", () => {
       el("input", { type: "checkbox", checked: st.sound, onchange: (e) => store.setSettings({ sound: e.target.checked }) }),
       el("span", { text: "Rest-timer sound" }),
     ]),
+  ]));
+
+  // coaching bridge
+  view.appendChild(el("div.card.coach-card", {}, [
+    el("h3", { text: "🧑‍🏫 Coaching with Claude" }),
+    el("p.muted.small", { text: "This app is your daily coach and logs everything. Every few weeks — or whenever a lift stalls or something hurts — send Claude your report to get an updated program. That's how the two connect." }),
+    el("button.btn.primary", { text: "📋 Coach report", onclick: () => navigate("report") }),
   ]));
 
   // data

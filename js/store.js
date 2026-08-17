@@ -215,6 +215,91 @@ export function metricHistory(metricId) {
     .map((s) => ({ date: s.date, value: Number(s.metrics[metricId]) }));
 }
 
+// ---- Coach report ----------------------------------------------------------
+// A compact, human-readable Markdown summary of recent training that Tim pastes
+// into a Claude conversation to get the program reviewed and updated. This is
+// the bridge between the on-device data and his (async) coach.
+export function coachReport() {
+  const d = load();
+  const p = d.profile;
+  const sessions = getSessions(); // newest first
+  const L = [];
+  L.push("# gymtools training report");
+  L.push("");
+  L.push('_Paste this into a Claude chat and say: "Review my training and update my program."_');
+  L.push("");
+  if (!sessions.length) { L.push("No sessions logged yet — nothing to review."); return L.join("\n"); }
+
+  const dates = sessions.map((s) => s.date).slice().sort();
+  const first = dates[0].slice(0, 10);
+  const last = dates[dates.length - 1].slice(0, 10);
+  const last28 = sessions.filter((s) => Date.now() - new Date(s.date) <= 28 * 86400000).length;
+  L.push(`**Athlete:** ${p.name || "—"} · units ${p.units}`);
+  L.push(`**Range:** ${first} → ${last} · ${sessions.length} sessions total · ${last28} in the last 4 weeks`);
+  const bw = getBodyweight();
+  if (bw.length) L.push(`**Bodyweight:** ${bw[0].weight} → ${bw[bw.length - 1].weight} ${p.units} (${bw.length} entries)`);
+  L.push("");
+
+  // per-exercise progress
+  const ids = [];
+  const nameById = {};
+  sessions.slice().reverse().forEach((s) => (s.entries || []).forEach((e) => {
+    if (!(e.exerciseId in nameById)) ids.push(e.exerciseId);
+    nameById[e.exerciseId] = e.variant || e.name;
+  }));
+  L.push("## Lift progress");
+  let any = false;
+  ids.forEach((id) => {
+    const h = exerciseHistory(id);
+    if (!h.length) return;
+    any = true;
+    const f = h[0], l = h[h.length - 1];
+    let tag = "";
+    if (h.length >= 3) {
+      const prev = h[h.length - 3];
+      tag = l.e1rm > prev.e1rm ? " — progressing ↑" : " — ⚠️ STALLED (no e1RM gain in 3 sessions)";
+    }
+    L.push(`- **${nameById[id]}**: top set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${h.length} sessions${tag}`);
+  });
+  if (!any) L.push("- (not enough logged sets yet)");
+  L.push("");
+
+  // symptoms / recovery
+  L.push("## Symptoms & recovery");
+  const latest = sessions[0];
+  if (latest.symptoms) {
+    const s = latest.symptoms;
+    L.push(`- Latest check-in — knee ${s.knee ?? "—"}, right-side tightness ${s.tightness ?? "—"}, shoulder ${s.shoulder ?? "—"}, neck/head ${s.neck ?? "—"}, energy ${s.energy ?? "—"}, sleep ${s.sleep ?? "—"} (0=none/10=worst; energy & sleep 10=best)`);
+  }
+  const avg = (id) => {
+    const vals = sessions.map((s) => s.symptoms && s.symptoms[id]).filter((v) => v != null);
+    return vals.length ? Math.round((vals.reduce((a, b) => a + Number(b), 0) / vals.length) * 10) / 10 : null;
+  };
+  const at = avg("tightness");
+  if (at != null) L.push(`- Right-side tightness averaging ${at}/10 across all sessions`);
+  const migCount = sessions.filter((s) => s.causedMigraine === true).length;
+  const rated = sessions.filter((s) => s.causedMigraine === true || s.causedMigraine === false).length;
+  if (rated) L.push(`- Migraines: ${migCount} of ${rated} rated sessions triggered one (logged as data, program not adjusted for it)`);
+  const pains = [];
+  sessions.slice(0, 12).forEach((s) => (s.entries || []).forEach((e) => {
+    if (e.pain) pains.push(`${nameById[e.exerciseId] || e.name} (${s.date.slice(0, 10)})${e.note ? ": " + e.note : ""}`);
+  }));
+  if (pains.length) L.push(`- ⚠️ Pain flagged on: ${pains.slice(0, 6).join("; ")}`);
+  L.push("");
+
+  // recent notes
+  const notes = sessions.filter((s) => s.notes && s.notes.trim()).slice(0, 4);
+  if (notes.length) {
+    L.push("## Recent notes");
+    notes.forEach((s) => L.push(`- _${s.date.slice(0, 10)}_: ${s.notes.trim()}`));
+    L.push("");
+  }
+
+  L.push("## Coach, please");
+  L.push("Progress what's working, fix anything stalled or flagged for pain, and keep the guardrails: knee depth-capped, shoulder no overhead/upright-row, leg-length work front and center. Give me updated loads/reps and any exercise swaps for the next 4-week block.");
+  return L.join("\n");
+}
+
 // ---- Export / Import -------------------------------------------------------
 export function exportData() {
   return JSON.stringify(load(), null, 2);

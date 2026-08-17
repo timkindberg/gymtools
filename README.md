@@ -43,17 +43,19 @@ to your home screen.
 Full-body, ~50 min, 3×/week. **Mon and Wed are complete anchor sessions;
 Friday is a skippable bonus day** (leg-length work, single-leg, arms, mobility)
 — so missing Friday, the most-skipped day, costs you nothing essential.
-Dumbbell- and machine-first (barbell variants are marked optional), designed
-around the specific constraints from the intake:
+**Barbell-first** (barbell squat, bench, RDL, hip thrust) with a 🎥 *technique
+focus* flag, form cues, and a "groove it light first" note on the bar lifts;
+dumbbell/machine versions are one 🎲-tap away. Trained at normal hard intensity
+(top sets RPE 8–9). Designed around the constraints from the intake:
 
 | Constraint | How the program responds |
 |---|---|
 | **Leg-length discrepancy** (the priority — drives progressive right-side tightening) | Unilateral lifts throughout, loaded stretching for the right side, anti-lateral-flexion carries, a daily mobility routine, and a right-side-tightness tracker |
 | Crooked / asymmetric posture | Heavy horizontal pulling, scapular control, anti-rotation core |
-| Tight hamstrings | Hip-hinge patterning, hips-square cueing, range progressed slowly, mobility work |
-| Right shoulder wear | Neutral-grip horizontal pressing, big dose of cuff + face pulls — **no** overhead press, upright rows, or behind-the-neck |
-| Right knee (meniscus, hurts only at deep loaded flexion) | Depth-capped box squats & limited-ROM leg press, quad focus, strong posterior chain, no deep loaded flexion or twisting |
-| Migraines (triggered by very taxing sessions or alcohol) | Effort capped at RPE 7–8, never to failure, no brutal finishers; the app logs which sessions trigger a headache to learn your threshold |
+| Tight hamstrings | Hip-hinge patterning, hips-square cueing, mobility work |
+| Right shoulder wear | Cuff + face pulls in volume; standard/neutral horizontal pressing — **no** overhead press, upright rows, or behind-the-neck |
+| Right knee (meniscus, hurts only at deep loaded flexion) | Depth-capped box squats & limited-ROM single-leg work, quad focus, strong posterior chain, no deep loaded flexion or twisting |
+| Migraines (triggered by very taxing sessions or alcohol) | **Not** programmed around — trained normally; the app just logs whether a session triggered one, as data |
 
 > ⚠️ **Not medical advice.** This app was built around the injuries you
 > described but can't examine you. Sharp, pinching, or radiating pain means
@@ -64,6 +66,23 @@ Programming choices were grounded in current evidence-based practice
 quad strength & limited ROM; shoulder impingement —
 [avoid overhead/behind-neck, prioritize scapular + cuff work](https://www.chicagospineandsports.com/blog/how-to-exercise-when-managing-shoulder-impingement-syndrome-a-guide-to-safe-and-effective-workouts);
 cervicogenic headache — [low-load deep-neck-flexor training](https://theprehabguys.com/cervicogenic-headache-exercises/)).
+
+## How the coaching loop works
+
+The app is your **daily** coach; Claude is your **programming** coach between
+blocks. They connect through a report you paste into a Claude conversation —
+because your data lives only on your device (nothing syncs to a server).
+
+| Cadence | You | The app | Claude |
+|---|---|---|---|
+| Daily | Check in, lift, log | Auto-progresses loads, rest timer, swaps | — |
+| Weekly | Glance at Progress | Trends, stalls, symptom lines | — |
+| ~Every 4 weeks | **Settings → Coach report → Copy**, paste into a Claude chat, ask for an update | Generates the report | Reviews it, edits `js/program.js`, pushes → your app updates |
+| Anytime | Stall or pain? Send the report | | Reacts |
+
+Claude's memory of you lives in [`coach/PROFILE.md`](coach/PROFILE.md) and the
+[`coach/COACHING_LOG.md`](coach/COACHING_LOG.md), so any future session is
+instantly up to speed on your intake and every past program decision.
 
 ## Deploying to GitHub Pages
 
