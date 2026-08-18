@@ -325,14 +325,17 @@ textarea.input { resize: vertical; }
 
 /* ---- Rest timer ---- */
 .rest-timer {
-  position: fixed; left: 50%; transform: translateX(-50%) translateY(140%);
+  position: fixed; left: 50%; transform: translateX(-50%) translateY(8px);
   bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
   width: min(92%, var(--maxw)); background: var(--card); border: 1px solid var(--accent);
-  border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; z-index: 60;
-  transition: transform .3s cubic-bezier(.2,.9,.3,1.2);
-  pointer-events: none;
+  border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; z-index: 70;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease, visibility .25s;
 }
-.rest-timer.active { transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.rest-timer.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1; visibility: visible; pointer-events: auto;
+}
 .rest-fill { height: 4px; background: var(--accent); width: 100%; }
 .rest-body { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
 .rest-label { font-weight: 800; font-size: 16px; }
