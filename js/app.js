@@ -927,22 +927,9 @@ function highlightNav(path) {
 buildNav();
 startRouter((path) => highlightNav(path));
 
-// PWA: register service worker + install prompt
+// PWA: register the service worker for offline use.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch((e) => console.warn("SW failed", e));
   });
 }
-let deferredPrompt = null;
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault(); deferredPrompt = e;
-  const banner = document.getElementById("install-banner");
-  if (banner) {
-    banner.classList.add("show");
-    banner.querySelector(".install-yes").onclick = async () => {
-      banner.classList.remove("show");
-      deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null;
-    };
-    banner.querySelector(".install-no").onclick = () => banner.classList.remove("show");
-  }
-});

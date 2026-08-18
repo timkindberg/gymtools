@@ -350,15 +350,5 @@ textarea.input { resize: vertical; }
 .modal-msg { margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
-/* ---- Install banner ---- */
-.install-banner {
-  position: fixed; left: 50%; transform: translateX(-50%) translateY(140%);
-  bottom: calc(var(--nav-h) + var(--safe-b) + 12px); width: min(92%, var(--maxw));
-  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 12px 14px; display: flex; align-items: center; gap: 12px; z-index: 55;
-  transition: transform .3s ease;
-  pointer-events: none;
-}
-.install-banner.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
 .install-banner p { flex: 1; font-size: 14px; }
 .install-banner .btn { padding: 8px 12px; }
