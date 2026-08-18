@@ -925,11 +925,25 @@ function highlightNav(path) {
 }
 
 buildNav();
-startRouter((path) => highlightNav(path));
+startRouter((path) => {
+  highlightNav(path);
+  // The rest timer lives outside #app, so make sure it never lingers on a
+  // non-workout screen.
+  if (path !== "session") {
+    const bar = document.getElementById("rest-timer");
+    if (bar) bar.classList.remove("active");
+    clearInterval(restState.interval);
+  }
+});
 
-// PWA: register the service worker for offline use.
+// PWA: register the service worker for offline use, and check for updates
+// whenever the app is brought back to the foreground so it stays current.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch((e) => console.warn("SW failed", e));
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update().catch(() => {});
+      });
+    }).catch((e) => console.warn("SW failed", e));
   });
 }
