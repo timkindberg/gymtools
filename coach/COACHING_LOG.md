@@ -5,6 +5,32 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-19 — Session 1 review (Day B)
+
+First real workout, went well. Actual weights (he beat my conservative seeds
+on most — recalibrate upward via the app's history, no manual reseed needed):
+- Barbell RDL 165×? (seed was 135), Lat Pulldown 160 (seed 120), Single-Leg
+  Leg Press 130 (seed 100), Seated Leg Curl 150 (matched), Cable ER 12.5
+  (seed 10), Suitcase Carry 60 (seed 50).
+- Swapped the b3 slot (Seated DB Shoulder Press) → **Barbell Incline Press @135**
+  via 🎲. He may prefer incline; offered to make it the default. NOTE: logging a
+  barbell-incline weight under the b3 (DB shoulder press) slot means the slot's
+  next "last time"/suggestion will read 135 — cross-implement history quirk.
+- Symptoms all clean: knee 0, tightness 2, shoulder 1, neck 0, energy/sleep 7.
+  No migraine (first session). Body tolerated it well.
+- Duration ~1:10 (target ~50); he attributes it to learning the app/movements
+  and was happy with it. Expect it to compress as logging/movements get automatic.
+- Reminder: e1RM figures are rough Epley estimates, inflated at high reps and
+  meaningless for the carry — treat as trend lines only.
+- Fixed coachReport()'s "Coach, please" text: it was emitting the stale
+  "shoulder no overhead" rule. Now points to PROFILE.md as the living source.
+
+NEXT DIRECTION (his ask): move to a proper DB-backed app (Supabase leaning),
+developed IN TANDEM so the GitHub Pages localStorage version keeps working for
+his next workout. Plan: one codebase, storage-adapter seam, cloud sync additive
+behind sign-in; default stays local/offline. Awaiting him to create a Supabase
+project (URL + anon key) — the one thing only he can do.
+
 ## 2026-08-18 — Shoulder: overhead press cleared; upright row is the culprit
 
 Tim clarified the shoulder aggravator is the **upright row** (standing, elbows

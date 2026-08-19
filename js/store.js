@@ -296,7 +296,7 @@ export function coachReport() {
   }
 
   L.push("## Coach, please");
-  L.push("Progress what's working, fix anything stalled or flagged for pain, and keep the guardrails: knee depth-capped, shoulder no overhead/upright-row, leg-length work front and center. Give me updated loads/reps and any exercise swaps for the next 4-week block.");
+  L.push("Review the numbers, progress what's working, and fix anything stalled or flagged for pain. Follow my current injury guardrails and preferences — the up-to-date source is coach/PROFILE.md in the repo, not this report. Give me updated loads/reps and any swaps for the next block.");
   return L.join("\n");
 }
 
