@@ -366,6 +366,19 @@ function exerciseCard(exDef, draft, idx) {
   });
   card.appendChild(setsWrap);
 
+  // Barbell plate helper: live breakdown of what to load, off a 45 lb bar.
+  if (/barbell/i.test(displayName)) {
+    const plateNote = el("div.plate-note");
+    const draw = (w) => {
+      const b = plateBreakdown(w, 45);
+      plateNote.textContent = b ? `🏋️ ${Math.round(Number(w))} lb → ${b.text}` : "🏋️ enter a weight for the plate math";
+    };
+    const firstW = setsWrap.querySelector(".set-input");
+    draw((firstW && firstW.value) ? firstW.value : startWeight);
+    if (firstW) firstW.addEventListener("input", (e) => draw(e.target.value || startWeight));
+    card.insertBefore(plateNote, setsWrap);
+  }
+
   // add/remove set + pain toggle
   card.appendChild(el("div.set-tools", {}, [
     el("button.btn.ghost.small", { text: "+ set", onclick: () => {
@@ -630,6 +643,10 @@ function programExercise(e, i) {
   if (e.why) card.appendChild(el("p.why", { text: e.why }));
   if (e.cues && e.cues.length) card.appendChild(el("ul.cues", {}, e.cues.map((c) => el("li", { text: c }))));
   if (e.techNote) card.appendChild(el("p.barbell-note.small", { text: "🎥 " + e.techNote }));
+  if (/barbell/i.test(e.name) && e.start != null) {
+    const b = plateBreakdown(e.start, 45);
+    if (b) card.appendChild(el("div.plate-note", { text: `🏋️ Start ${e.start} lb → ${b.text}` }));
+  }
   if (e.flags && e.flags.length) card.appendChild(el("div.flags", {}, e.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   if (e.alternatives && e.alternatives.length) card.appendChild(el("p.muted.small", { text: "Swaps: " + e.alternatives.join(" · ") }));
   return card;
@@ -889,6 +906,23 @@ function importBackup() {
 // ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
+// Plate math for a barbell total (standard 45 lb bar, symmetric loading).
+function plateBreakdown(total, bar = 45) {
+  const t = Number(total);
+  if (!t || t <= 0) return null;
+  if (t < bar) return { text: `lighter than the empty ${bar} lb bar` };
+  if (t === bar) return { text: `just the empty ${bar} lb bar` };
+  let rem = (t - bar) / 2;
+  const plates = [45, 35, 25, 10, 5, 2.5];
+  const used = [];
+  for (const p of plates) {
+    while (rem >= p - 1e-9) { used.push(p); rem = Math.round((rem - p) * 100) / 100; }
+  }
+  const sideStr = used.length ? used.join(" + ") : "0";
+  const short = rem > 0.01 ? ` (+${rem} short — nearest below)` : "";
+  return { text: `${bar} bar + ${sideStr} per side${short}` };
+}
+
 function statTile(value, label) {
   return el("div.stat-tile", {}, [el("span.stat-value", { text: value }), el("span.stat-label", { text: label })]);
 }
