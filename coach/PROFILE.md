@@ -49,6 +49,29 @@ progress each machine against itself):
 Takeaways: high work capacity, comfortable at 12-rep machine volume, minimal joint
 complaints reported. Program can start near these loads and push.
 
+## Strength reference — OTF dumbbell picks (self-reported, sub-failure)
+Tim does NOT train to failure, so these are comfortable working weights (per
+dumbbell unless noted). Used to seed the program's `start` weights.
+- Chest press: 55–60 (60s ~3×12 fresh, no failure); 70s → failure at 6–10
+- Bent/standing DB row: 55–60 (60s 3×8, 50s 3×12)
+- Shoulder press: 40 fresh (3×8–12, may fail late); drops fast to 30–35, even 20–25 when shoulders tapped
+- Single-DB deadlift: ~90 (one 90 DB, 3×8–12, challenging)
+- Split-squat / lunge: 25–30 each (3×8–12)
+- Single-leg step-up: 35–40 each (grip-limited before legs)
+- High row: 25–30 (2–3×8–12)
+- Chest fly: 30 (3×10–12)
+- Rear fly: 12–15 (2–3×8–12)
+- Goblet/DB squat: 35–40 each (2–3×8–12)
+
+Seeded `start` weights in js/program.js (per-DB for DB lifts; stack for machines;
+barbells deliberately conservative for technique): box squat 95, bench 135,
+chest-supported row 50, reverse lunge 30, face pull 40, barbell RDL 135,
+pulldown 120, DB incline 45, single-leg leg press 100, seated leg curl 150,
+external rotation 10, suitcase carry 50, hip thrust 135, lateral lunge 25,
+single-arm row 55, single-leg RDL 35, incline curl 30, triceps pushdown 40.
+These are STARTING anchors — expect to adjust session 1, then double-progression
+takes over. No biceps/triceps DB data given; those were estimated.
+
 ## Goals
 1. Muscle & strength
 2. Fat loss (driven by diet/steps, since in-session cardio is minimal)
