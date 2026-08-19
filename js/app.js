@@ -5,11 +5,36 @@ import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUT
 import * as store from "./store.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
-  route, startRouter, navigate, toast, confirmDialog,
+  route, startRouter, navigate, toast, confirmDialog, currentRoute, keepScroll,
 } from "./ui.js";
 
 const app = document.getElementById("app");
 const units = () => store.getProfile().units;
+
+// --- Session scroll memory (survives swaps, re-renders, and app relaunch) ---
+let prevRoutePath = null; // the route rendered before the current one
+let sessionScroll = Number(localStorage.getItem("gymtools.sessionScroll") || 0) || 0;
+let ignoreScrollSave = false;
+let scrollTick = false;
+window.addEventListener("scroll", () => {
+  if (ignoreScrollSave || scrollTick) return;
+  if (currentRoute().path !== "session") return;
+  scrollTick = true;
+  requestAnimationFrame(() => {
+    sessionScroll = window.scrollY;
+    try { localStorage.setItem("gymtools.sessionScroll", String(sessionScroll)); } catch (e) { /* ignore */ }
+    scrollTick = false;
+  });
+}, { passive: true });
+function restoreSessionScroll() {
+  ignoreScrollSave = true;
+  window.scrollTo(0, sessionScroll);
+  requestAnimationFrame(() => requestAnimationFrame(() => { ignoreScrollSave = false; }));
+}
+function resetSessionScroll() {
+  sessionScroll = 0;
+  try { localStorage.removeItem("gymtools.sessionScroll"); } catch (e) { /* ignore */ }
+}
 
 // ---------------------------------------------------------------------------
 // TODAY
@@ -81,6 +106,7 @@ route("today", () => {
 function startOrResume(day) {
   const draft = store.loadDraft();
   if (!draft) {
+    resetSessionScroll(); // fresh workout starts at the top
     const newDraft = {
       date: new Date().toISOString(),
       startedAt: new Date().toISOString(),
@@ -139,6 +165,10 @@ function weekKey(d) {
 route("session", () => {
   const draft = store.loadDraft();
   if (!draft) { navigate("today"); return; }
+  // Fresh entry (opening/resuming): restore your saved scroll. In-place
+  // re-renders (swap, +set…) are left to the router, which keeps your spot.
+  const freshEntry = prevRoutePath !== "session";
+  if (freshEntry) keepScroll();
   const day = PROGRAM.days.find((d) => d.id === draft.dayId);
 
   const view = el("div.view");
@@ -201,6 +231,7 @@ route("session", () => {
 
   render(view);
   mountRestTimer();
+  if (freshEntry) restoreSessionScroll();
 });
 
 function symptomCheck(draft) {
@@ -407,8 +438,8 @@ function exerciseCard(exDef, draft, idx) {
   if (entry.pain) card.classList.add("has-pain");
 
   // per-exercise note
-  const noteBox = el("input.input.note-input", {
-    type: "text", placeholder: "note (optional)", value: entry.note || "",
+  const noteBox = el("textarea.input.note-input", {
+    rows: 2, placeholder: "notes (optional) — form cues, how it felt, tweaks…", value: entry.note || "",
     oninput: (e) => { entry.note = e.target.value; store.saveDraft(draft); },
   });
   card.appendChild(noteBox);
@@ -979,6 +1010,11 @@ function highlightNav(path) {
 }
 
 buildNav();
+// If a workout is in progress, reopening the app drops you straight back into
+// it (at your scroll position) instead of the home screen.
+if (store.loadDraft() && ["", "#", "#/", "#/today"].includes(location.hash)) {
+  location.hash = "/session";
+}
 startRouter((path) => {
   highlightNav(path);
   // The rest timer lives outside #app, so make sure it never lingers on a
@@ -988,6 +1024,7 @@ startRouter((path) => {
     if (bar) bar.classList.remove("active");
     clearInterval(restState.interval);
   }
+  prevRoutePath = path;
 });
 
 // PWA: register the service worker for offline use, and check for updates

@@ -114,13 +114,27 @@ export function currentRoute() {
   return { path: path || "today", param: rest.join("/") };
 }
 
+let lastPath = null;
+let overrideScroll = false;
+// A route handler can call this to take over scroll management for its render
+// (e.g. the session view restores your position instead of jumping to top).
+export function keepScroll() { overrideScroll = true; }
+
 export function startRouter(onChange) {
   const go = () => {
     const { path, param } = currentRoute();
+    const samePath = path === lastPath;
+    const prevScroll = window.scrollY;
+    overrideScroll = false;
     const handler = routes[path] || notFound;
     if (handler) handler(param);
     if (onChange) onChange(path, param);
-    window.scrollTo(0, 0);
+    if (!overrideScroll) {
+      // Same view re-rendering in place (swap, +set, delete…) keeps your spot;
+      // navigating to a different view starts at the top.
+      window.scrollTo(0, samePath ? prevScroll : 0);
+    }
+    lastPath = path;
   };
   window.addEventListener("hashchange", go);
   go();
