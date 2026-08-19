@@ -342,6 +342,11 @@ function exerciseCard(exDef, draft, idx) {
       el("span.muted.small", { text: `Last (${relDay(last.date)}): ${setStr || "—"}` }),
       sugg ? el("span.sugg", { text: "🎯 " + sugg.note }) : null,
     ]));
+  } else {
+    // No history yet — coach the first-time weight pick, since we can't suggest one.
+    card.appendChild(el("div.lasttime", {}, [
+      el("span.sugg", { text: `🎯 First time on this one — pick a weight you could do about ${topRep + 2} reps with, and stop at ${topRep}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.` }),
+    ]));
   }
 
   // Set rows
