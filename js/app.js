@@ -327,12 +327,18 @@ function exerciseCard(exDef, draft, idx) {
     card.appendChild(el("p.ss-hint.muted.tiny", { text: `Optional superset (${exDef.ss}) — pair with the other ⇄ ${exDef.ss} move if you can keep both, otherwise just do straight sets.` }));
   }
 
-  // Coaching (why + cues + flags)
+  // Coaching. The why/cues/techNote are written for the DEFAULT movement, so on
+  // a swap we drop them (they'd be wrong for the new lift) and show a swap note.
+  // The flags describe why this slot exists — those carry over to any swap.
   const coach = el("details.coach");
   coach.appendChild(el("summary", { text: "Coach's notes" }));
-  if (exDef.why) coach.appendChild(el("p.why", { text: exDef.why }));
-  if (exDef.cues && exDef.cues.length) coach.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
-  if (exDef.techNote) coach.appendChild(el("p.barbell-note.small", { text: "🎥 " + exDef.techNote }));
+  if (entry.variant) {
+    coach.appendChild(el("p.why", { text: `You swapped to ${entry.variant} for variety — it fills the same slot as ${exDef.name}. Tap ▶ above for its form; the flags below are why this slot is in your program.` }));
+  } else {
+    if (exDef.why) coach.appendChild(el("p.why", { text: exDef.why }));
+    if (exDef.cues && exDef.cues.length) coach.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
+    if (exDef.techNote) coach.appendChild(el("p.barbell-note.small", { text: "🎥 " + exDef.techNote }));
+  }
   if (exDef.flags && exDef.flags.length) {
     coach.appendChild(el("div.flags", {}, exDef.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   }
