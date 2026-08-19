@@ -344,9 +344,10 @@ function exerciseCard(exDef, draft, idx) {
     ]));
   } else {
     // No history yet — coach the first-time weight pick, since we can't suggest one.
-    card.appendChild(el("div.lasttime", {}, [
-      el("span.sugg", { text: `🎯 First time on this one — pick a weight you could do about ${topRep + 2} reps with, and stop at ${topRep}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.` }),
-    ]));
+    const hint = exDef.start != null
+      ? `🎯 Suggested start: ${exDef.start} ${units()}. Adjust so you stop around ${topRep} reps with the last one or two feeling hard. From next session I'll suggest the load.`
+      : `🎯 First time on this one — pick a weight you could do about ${topRep + 2} reps with, and stop at ${topRep}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
+    card.appendChild(el("div.lasttime", {}, [el("span.sugg", { text: hint })]));
   }
 
   // Set rows
@@ -357,8 +358,11 @@ function exerciseCard(exDef, draft, idx) {
     el("span.set-col", { text: "Reps" }),
     el("span.set-col", { text: "✓" }),
   ]));
+  // What to show as the weight placeholder: the progression suggestion if we
+  // have history, otherwise a coached starting weight if one is defined.
+  const startWeight = sugg ? sugg.weight : (exDef.start != null ? exDef.start : null);
   entry.sets.forEach((setData, si) => {
-    setsWrap.appendChild(setRow(entry, setData, si, draft, sugg));
+    setsWrap.appendChild(setRow(entry, setData, si, draft, startWeight));
   });
   card.appendChild(setsWrap);
 
@@ -388,11 +392,11 @@ function exerciseCard(exDef, draft, idx) {
   return card;
 }
 
-function setRow(entry, setData, si, draft, sugg) {
+function setRow(entry, setData, si, draft, phWeight) {
   const row = el("div.set-row");
   row.appendChild(el("span.set-col.set-num", { text: String(si + 1) }));
   const wInput = el("input.set-input", {
-    type: "number", inputmode: "decimal", placeholder: sugg ? String(sugg.weight) : "–", value: setData.weight ?? "",
+    type: "number", inputmode: "decimal", placeholder: phWeight != null ? String(phWeight) : "–", value: setData.weight ?? "",
     oninput: (e) => { setData.weight = e.target.value === "" ? null : Number(e.target.value); store.saveDraft(draft); },
   });
   const rInput = el("input.set-input", {

@@ -184,7 +184,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "b5", name: "Seated Leg Curl", target: "Hamstrings",
-          sets: 3, reps: "10–12", rpe: "9", rest: "60s", flags: ["hamstring"], ss: "S2",
+          sets: 3, reps: "10–12", rpe: "9", rest: "60s", flags: ["hamstring"], ss: "S2", start: 150,
           why: "Direct hamstring strength supports the knee and balances all the quad work. Take these close to failure.",
           cues: ["Smooth down, controlled up", "No jerking with the low back", "Full but pain-free range"],
           alternatives: ["Lying Leg Curl", "Nordic Curl (negatives)"],
