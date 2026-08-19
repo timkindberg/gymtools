@@ -18,9 +18,11 @@
 //     Unilateral work, loaded stretching, carries, daily mobility routine.
 //   - Right knee (meniscus): only hurts at DEEP loaded flexion -> cap depth,
 //     controlled range; mid-range loads hard. No pivoting/twisting under load.
-//   - Right shoulder (wear; upright rows have hurt it): lots of cuff + scap
-//     work, NO overhead press, upright rows, or behind-the-neck. (Barbell bench
-//     is fine; the neutral-grip DB version is always a swap away for bad days.)
+//   - Right shoulder (wear). The confirmed aggravator is the UPRIGHT ROW
+//     (standing, elbows flared, pulling to the chin) — that stays OUT. Overhead
+//     pressing is OK (Tim cleared it): warm the cuff, keep form clean,
+//     autoregulate on bad days. Still no behind-the-neck. Lots of cuff + scap
+//     work stays.
 //   - Migraines: Tim treats them and does NOT want the program watered down.
 //     We train hard and progress normally; the app still LOGS whether a session
 //     triggered one, purely as data.
@@ -169,11 +171,12 @@ export const PROGRAM = {
           alternatives: ["Neutral-Grip Lat Pulldown", "Assisted Pull-up", "Weighted Pull-up"],
         }),
         ex({
-          id: "b3", name: "Neutral-Grip DB Incline Press", target: "Upper chest / shoulders",
-          sets: 3, reps: "8–10", rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1", start: 45,
-          why: "A low incline with a palms-in grip hits the shoulder-safe pressing angle and adds upper-chest without going overhead. Non-competing superset with the pulldown.",
-          cues: ["Low incline (~30°)", "Palms facing in", "Elbows ~45°", "Lower under control, no shrug at the top"],
-          alternatives: ["Barbell Incline Press", "Machine Incline Press"],
+          id: "b3", name: "Seated DB Shoulder Press", target: "Shoulders / triceps",
+          sets: 3, reps: "8–10", rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1", start: 35,
+          why: "Overhead pressing is back on the menu — you cleared it. This builds the delts and balances the horizontal bench on Day A. (The upright row is the move we skip, not this.)",
+          cues: ["Warm the cuff + a face-pull set first", "Press up, don't let the elbows flare way back", "Ribs down, don't overarch", "Stop just short of any pinch"],
+          techNote: "Your press strength fades fast when the shoulder's tired — on a rough day, 🎲 swap to the incline press instead of grinding.",
+          alternatives: ["Neutral-Grip DB Incline Press", "Machine Shoulder Press", "Barbell Overhead Press"],
         }),
         ex({
           id: "b4", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad / glute", start: 100,

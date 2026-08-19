@@ -90,9 +90,12 @@ takes over. No biceps/triceps DB data given; those were estimated.
   → cap squat/press depth (box squats, limited-ROM leg press), build quad +
   posterior chain, no pivoting/twisting under load. Mid-range loads are fine to
   push hard.
-- **Right shoulder (wear).** Upright rows have aggravated it. → neutral-grip /
-  standard horizontal pressing OK (incl. barbell bench), big dose of rotator-
-  cuff + scapular work. **No overhead pressing, upright rows, or behind-the-neck.**
+- **Right shoulder (wear).** The confirmed aggravator is the **UPRIGHT ROW**
+  (standing, elbows flared out, pulling the weight up to the chin/shoulders) —
+  keep that OUT. **Overhead pressing is OK** (Tim cleared it, 2026-08): warm the
+  cuff, keep form clean, autoregulate (his shoulder-press strength drops fast
+  when the shoulder's tired — 40s fresh → 20–25 when tapped). No behind-the-neck.
+  Keep the big dose of rotator-cuff + scapular work.
 - **Migraines.** Triggered by **very taxing sessions (onset ~5 h later) or
   alcohol.** He treats them (ibuprofen, massage) and **explicitly does NOT want
   the program watered down for them.** → program at normal hard intensity; the

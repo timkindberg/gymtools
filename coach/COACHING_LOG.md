@@ -5,6 +5,19 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-18 — Shoulder: overhead press cleared; upright row is the culprit
+
+Tim clarified the shoulder aggravator is the **upright row** (standing, elbows
+flared, pulling to the chin), NOT overhead pressing. Overhead press is fine.
+- Removed the blanket "no overhead press" constraint everywhere (kept: no
+  upright row, no behind-the-neck).
+- Day B `b3` changed from Neutral-Grip DB Incline Press → **Seated DB Shoulder
+  Press** (start 35; incline is now the 🎲 swap). Gives vertical-press balance
+  (Day A horizontal bench / Day B vertical press). Emphasized cuff warm-up +
+  autoregulation — his OHP strength drops fast when the shoulder's tired.
+- Also seeded per-exercise `start` weights from his OTF dumbbell numbers and
+  added a barbell plate-loading helper (see git log).
+
 ## 2026-08-17 — Vision reframe + machine-forward hybrid
 
 Tim asked Claude to own the vision ("you're the boss") and stop making him

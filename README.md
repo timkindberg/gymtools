@@ -54,7 +54,7 @@ hard intensity (top sets RPE 8–9). Designed around the constraints from the in
 | **Leg-length discrepancy** (the priority — drives progressive right-side tightening) | Unilateral lifts throughout, loaded stretching for the right side, anti-lateral-flexion carries, a daily mobility routine, and a right-side-tightness tracker |
 | Crooked / asymmetric posture | Heavy horizontal pulling, scapular control, anti-rotation core |
 | Tight hamstrings | Hip-hinge patterning, hips-square cueing, mobility work |
-| Right shoulder wear | Cuff + face pulls in volume; standard/neutral horizontal pressing — **no** overhead press, upright rows, or behind-the-neck |
+| Right shoulder wear | Cuff + face pulls in volume; overhead pressing is fine (warm the cuff, autoregulate) — the move to avoid is the **upright row** (and behind-the-neck) |
 | Right knee (meniscus, hurts only at deep loaded flexion) | Depth-capped box squats & limited-ROM single-leg work, quad focus, strong posterior chain, no deep loaded flexion or twisting |
 | Migraines (triggered by very taxing sessions or alcohol) | **Not** programmed around — trained normally; the app just logs whether a session triggered one, as data |
 
