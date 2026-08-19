@@ -285,6 +285,12 @@ function exerciseCard(exDef, draft, idx) {
   const sugg = store.suggestion(exDef.id, topRep);
   const last = store.lastPerformance(exDef.id);
 
+  // Weight to pre-fill: history-based suggestion if we have it; otherwise the
+  // seeded start — but ONLY for the default exercise, since that number is
+  // calibrated to the default implement (e.g. 45 per dumbbell). A swapped
+  // variant (dumbbell→barbell, etc.) needs its own number, so we don't guess.
+  const startWeight = sugg ? sugg.weight : (!entry.variant && exDef.start != null ? exDef.start : null);
+
   // Variety swap: cycle through the main lift + its listed alternatives
   const displayName = entry.variant || exDef.name;
   const swapOptions = [exDef.name, ...(exDef.alternatives || [])];
@@ -343,10 +349,12 @@ function exerciseCard(exDef, draft, idx) {
       sugg ? el("span.sugg", { text: "🎯 " + sugg.note }) : null,
     ]));
   } else {
-    // No history yet — coach the first-time weight pick, since we can't suggest one.
-    const hint = exDef.start != null
-      ? `🎯 Suggested start: ${exDef.start} ${units()}. Adjust so you stop around ${topRep} reps with the last one or two feeling hard. From next session I'll suggest the load.`
-      : `🎯 First time on this one — pick a weight you could do about ${topRep + 2} reps with, and stop at ${topRep}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
+    // No history yet — coach the weight pick, since we can't suggest one.
+    const hint = startWeight != null
+      ? `🎯 Suggested start: ${startWeight} ${units()}. Adjust so you stop around ${topRep} reps with the last one or two feeling hard. From next session I'll suggest the load.`
+      : entry.variant
+        ? `🎯 Swapped to ${displayName} — pick a weight that leaves a rep or two in the tank at ${topRep} reps (the seeded start was for the original move). I'll suggest loads once you've logged this one.`
+        : `🎯 First time on this one — pick a weight you could do about ${topRep + 2} reps with, and stop at ${topRep}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
     card.appendChild(el("div.lasttime", {}, [el("span.sugg", { text: hint })]));
   }
 
@@ -358,9 +366,6 @@ function exerciseCard(exDef, draft, idx) {
     el("span.set-col", { text: "Reps" }),
     el("span.set-col", { text: "✓" }),
   ]));
-  // What to show as the weight placeholder: the progression suggestion if we
-  // have history, otherwise a coached starting weight if one is defined.
-  const startWeight = sugg ? sugg.weight : (exDef.start != null ? exDef.start : null);
   entry.sets.forEach((setData, si) => {
     setsWrap.appendChild(setRow(entry, setData, si, draft, startWeight));
   });
