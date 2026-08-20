@@ -3,6 +3,7 @@
 // =============================================================================
 import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS, dayForDate } from "./program.js";
 import * as store from "./store.js";
+import * as sync from "./sync.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
   route, startRouter, navigate, toast, confirmDialog, currentRoute, keepScroll,
@@ -34,6 +35,53 @@ function restoreSessionScroll() {
 function resetSessionScroll() {
   sessionScroll = 0;
   try { localStorage.removeItem("gymtools.sessionScroll"); } catch (e) { /* ignore */ }
+}
+
+// --- Cloud sync orchestration (all additive; no-op unless signed in) ---------
+let cloudUser = null;                 // signed-in Supabase user, or null
+let cloudStatus = "local";            // local | syncing | synced | error
+let cloudView = { stage: "email", email: "", code: "" };
+let pushTimer = null;
+
+const refreshCurrent = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
+const refreshIfSettings = () => { if (currentRoute().path === "settings") refreshCurrent(); };
+
+async function initCloud() {
+  if (!sync.configured() || !sync.hasStoredSession()) return;
+  try {
+    cloudUser = await sync.currentUser();
+    if (cloudUser) await mergeWithCloud();
+  } catch (e) { console.warn("cloud init failed", e); }
+}
+
+async function mergeWithCloud() {
+  if (!cloudUser) return;
+  cloudStatus = "syncing"; refreshIfSettings();
+  try {
+    const remote = await sync.pull(cloudUser.id);
+    const localTs = store.getUpdatedAt();
+    if (remote && (!localTs || remote.updated_at > localTs)) {
+      store.applyRemote(remote.data);   // remote is newer — take it
+      cloudStatus = "synced"; refreshCurrent();
+    } else {
+      await sync.push(cloudUser.id, store.load(), store.getUpdatedAt()); // local newer/empty remote
+      cloudStatus = "synced";
+    }
+  } catch (e) { console.warn("merge failed", e); cloudStatus = "error"; }
+  refreshIfSettings();
+}
+
+function schedulePush() {
+  if (!cloudUser) return;
+  cloudStatus = "syncing";
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async () => {
+    try {
+      await sync.push(cloudUser.id, store.load(), store.getUpdatedAt());
+      cloudStatus = "synced";
+    } catch (e) { console.warn("push failed", e); cloudStatus = "error"; }
+    refreshIfSettings();
+  }, 1500);
 }
 
 // ---------------------------------------------------------------------------
@@ -891,6 +939,9 @@ route("settings", () => {
     ]),
   ]));
 
+  // cloud sync
+  view.appendChild(cloudCard());
+
   // coaching bridge
   view.appendChild(el("div.card.coach-card", {}, [
     el("h3", { text: "🧑‍🏫 Coaching with Claude" }),
@@ -943,6 +994,58 @@ function importBackup() {
     } catch (e) { toast("Import failed — invalid file"); }
   });
   input.click();
+}
+
+function cloudCard() {
+  const card = el("div.card.cloud-card", {}, [el("h3", { text: "☁️ Cloud sync" })]);
+  if (!sync.configured()) {
+    card.appendChild(el("p.muted.small", { text: "Not configured — running local-only." }));
+    return card;
+  }
+  if (cloudUser) {
+    card.appendChild(el("p.muted.small", { html: `Signed in as <strong>${cloudUser.email || "you"}</strong>. Your data backs up and syncs across your devices automatically.` }));
+    card.appendChild(el("p.muted.tiny", { text: "Status: " + cloudStatus }));
+    card.appendChild(el("div.btn-col", {}, [
+      el("button.btn.ghost", { text: "Sync now", onclick: () => mergeWithCloud() }),
+      el("button.btn.ghost.danger-text", { text: "Sign out (data stays on this device)", onclick: async () => {
+        await sync.signOut(); cloudUser = null; cloudStatus = "local"; cloudView = { stage: "email", email: "", code: "" };
+        toast("Signed out"); navigate("settings");
+      } }),
+    ]));
+    return card;
+  }
+  card.appendChild(el("p.muted.small", { text: "Sign in with your email to back up your training and sync it across devices. Your data stays private — only you can read it." }));
+  if (cloudView.stage === "code") {
+    card.appendChild(el("p.muted.small", { text: `Enter the 6-digit code emailed to ${cloudView.email}:` }));
+    const codeInput = el("input.input", { type: "text", inputmode: "numeric", placeholder: "123456", value: cloudView.code });
+    codeInput.addEventListener("input", (e) => { cloudView.code = e.target.value; });
+    card.appendChild(codeInput);
+    card.appendChild(el("div.btn-col", {}, [
+      el("button.btn.primary", { text: "Verify & sign in", onclick: async () => {
+        try {
+          cloudUser = await sync.verifyCode(cloudView.email, cloudView.code || "");
+          cloudView = { stage: "email", email: "", code: "" };
+          toast("Signed in ☁️");
+          await mergeWithCloud();
+          navigate("settings");
+        } catch (e) { toast("Invalid or expired code"); }
+      } }),
+      el("button.btn.ghost.small", { text: "Use a different email", onclick: () => { cloudView.stage = "email"; navigate("settings"); } }),
+    ]));
+  } else {
+    const emailInput = el("input.input", { type: "email", inputmode: "email", autocapitalize: "off", placeholder: "you@email.com", value: cloudView.email });
+    emailInput.addEventListener("input", (e) => { cloudView.email = e.target.value; });
+    card.appendChild(emailInput);
+    card.appendChild(el("button.btn.primary", { text: cloudView.stage === "sending" ? "Sending…" : "Email me a code", onclick: async () => {
+      const email = (cloudView.email || "").trim();
+      if (!email) { toast("Enter your email first"); return; }
+      cloudView.stage = "sending"; navigate("settings");
+      try { await sync.sendCode(email); cloudView.stage = "code"; toast("Code sent — check your email"); }
+      catch (e) { toast("Couldn't send code"); cloudView.stage = "email"; }
+      navigate("settings");
+    } }));
+  }
+  return card;
 }
 
 // ---------------------------------------------------------------------------
@@ -1009,6 +1112,7 @@ function highlightNav(path) {
   });
 }
 
+store.onSave(schedulePush); // push local changes to the cloud when signed in
 buildNav();
 // If a workout is in progress, reopening the app drops you straight back into
 // it (at your scroll position) instead of the home screen.
@@ -1038,3 +1142,6 @@ if ("serviceWorker" in navigator) {
     }).catch((e) => console.warn("SW failed", e));
   });
 }
+
+// Kick off cloud sync if the user has signed in before (no-op otherwise).
+initCloud();

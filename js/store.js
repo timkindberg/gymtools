@@ -47,8 +47,23 @@ function migrate(data) {
   return merged;
 }
 
+let saveHook = null;
+// Register a callback fired after every local save (used by cloud sync to push).
+export function onSave(fn) { saveHook = fn; }
+
 export function save() {
   if (!cache) return;
+  cache.updatedAt = new Date().toISOString();
+  localStorage.setItem(KEY, JSON.stringify(cache));
+  if (saveHook) { try { saveHook(); } catch (e) { /* ignore */ } }
+}
+
+export function getUpdatedAt() { return load().updatedAt || null; }
+
+// Overwrite local data with a remote snapshot WITHOUT bumping the timestamp or
+// firing the save hook (so pulling doesn't echo back as a push).
+export function applyRemote(data) {
+  cache = migrate(data);
   localStorage.setItem(KEY, JSON.stringify(cache));
 }
 
