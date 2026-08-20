@@ -5,6 +5,20 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-20 — Cloud sync live (Supabase)
+
+Shipped optional Supabase cloud sync and Tim confirmed sign-in + sync works.
+- Architecture: single `app_state` row per user (whole app-state JSON),
+  last-write-wins by timestamp; email-OTP (6-digit) auth; vendored UMD SDK
+  (js/vendor/supabase.umd.js, no CDN dep); all sign-in-gated so local-only
+  behavior is unchanged. Config/keys in js/config.js (publishable key, safe).
+- Supabase project ref: nkzwschaooasinmxknip (Tim's account). Table + RLS
+  ("own state", auth.uid() = user_id) created and verified.
+- Hardening TODO (optional): disable public signups in Supabase Auth now that
+  his account exists, and set sync.js sendCode shouldCreateUser:false.
+- Unlocks a future automated coaching loop (a scheduled session could read his
+  data directly) — not built yet; coach report is still the current mechanism.
+
 ## 2026-08-19 — Session 1 review (Day B)
 
 First real workout, went well. Actual weights (he beat my conservative seeds
