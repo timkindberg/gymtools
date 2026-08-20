@@ -40,7 +40,7 @@ function resetSessionScroll() {
 // --- Cloud sync orchestration (all additive; no-op unless signed in) ---------
 let cloudUser = null;                 // signed-in Supabase user, or null
 let cloudStatus = "local";            // local | syncing | synced | error
-let cloudView = { stage: "email", email: "", code: "" };
+let cloudView = { email: "", password: "" };
 let pushTimer = null;
 
 const refreshCurrent = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
@@ -1008,43 +1008,43 @@ function cloudCard() {
     card.appendChild(el("div.btn-col", {}, [
       el("button.btn.ghost", { text: "Sync now", onclick: () => mergeWithCloud() }),
       el("button.btn.ghost.danger-text", { text: "Sign out (data stays on this device)", onclick: async () => {
-        await sync.signOut(); cloudUser = null; cloudStatus = "local"; cloudView = { stage: "email", email: "", code: "" };
+        await sync.signOut(); cloudUser = null; cloudStatus = "local"; cloudView = { email: "", password: "" };
         toast("Signed out"); navigate("settings");
       } }),
     ]));
     return card;
   }
-  card.appendChild(el("p.muted.small", { text: "Sign in with your email to back up your training and sync it across devices. Your data stays private — only you can read it." }));
-  if (cloudView.stage === "code") {
-    card.appendChild(el("p.muted.small", { text: `Enter the 6-digit code emailed to ${cloudView.email}:` }));
-    const codeInput = el("input.input", { type: "text", inputmode: "numeric", placeholder: "123456", value: cloudView.code });
-    codeInput.addEventListener("input", (e) => { cloudView.code = e.target.value; });
-    card.appendChild(codeInput);
-    card.appendChild(el("div.btn-col", {}, [
-      el("button.btn.primary", { text: "Verify & sign in", onclick: async () => {
-        try {
-          cloudUser = await sync.verifyCode(cloudView.email, cloudView.code || "");
-          cloudView = { stage: "email", email: "", code: "" };
-          toast("Signed in ☁️");
-          await mergeWithCloud();
-          navigate("settings");
-        } catch (e) { toast("Invalid or expired code"); }
-      } }),
-      el("button.btn.ghost.small", { text: "Use a different email", onclick: () => { cloudView.stage = "email"; navigate("settings"); } }),
-    ]));
-  } else {
-    const emailInput = el("input.input", { type: "email", inputmode: "email", autocapitalize: "off", placeholder: "you@email.com", value: cloudView.email });
-    emailInput.addEventListener("input", (e) => { cloudView.email = e.target.value; });
-    card.appendChild(emailInput);
-    card.appendChild(el("button.btn.primary", { text: cloudView.stage === "sending" ? "Sending…" : "Email me a code", onclick: async () => {
-      const email = (cloudView.email || "").trim();
-      if (!email) { toast("Enter your email first"); return; }
-      cloudView.stage = "sending"; navigate("settings");
-      try { await sync.sendCode(email); cloudView.stage = "code"; toast("Code sent — check your email"); }
-      catch (e) { toast("Couldn't send code"); cloudView.stage = "email"; }
+  card.appendChild(el("p.muted.small", { text: "Sign in with an email + password to back up and sync across devices. No confirmation emails — just pick a password you'll remember. Your data stays private (only you can read it)." }));
+  const emailInput = el("input.input", { type: "email", inputmode: "email", autocapitalize: "off", autocomplete: "username", placeholder: "you@email.com", value: cloudView.email });
+  emailInput.addEventListener("input", (e) => { cloudView.email = e.target.value; });
+  const pwInput = el("input.input", { type: "password", autocomplete: "current-password", placeholder: "password (8+ characters)", value: cloudView.password || "" });
+  pwInput.addEventListener("input", (e) => { cloudView.password = e.target.value; });
+  card.appendChild(emailInput);
+  card.appendChild(pwInput);
+
+  const doAuth = async (mode) => {
+    const email = (cloudView.email || "").trim();
+    const pw = cloudView.password || "";
+    if (!email || !pw) { toast("Enter your email and a password"); return; }
+    try {
+      cloudUser = mode === "signup" ? await sync.signUp(email, pw) : await sync.signInPassword(email, pw);
+      cloudView = { email: "", password: "" };
+      toast("Signed in ☁️");
+      await mergeWithCloud();
       navigate("settings");
-    } }));
-  }
+    } catch (e) {
+      const msg = (e && e.message) || "";
+      if (msg === "no-session") toast("Turn off 'Confirm email' in Supabase, then try again.");
+      else if (/already/i.test(msg)) toast("That account exists — use Sign in.");
+      else if (/invalid|credential/i.test(msg)) toast("Wrong email or password.");
+      else toast("Sign-in failed: " + msg);
+    }
+  };
+
+  card.appendChild(el("div.btn-col", {}, [
+    el("button.btn.primary", { text: "Sign in", onclick: () => doAuth("signin") }),
+    el("button.btn.ghost.small", { text: "First time here? Create account", onclick: () => doAuth("signup") }),
+  ]));
   return card;
 }
 

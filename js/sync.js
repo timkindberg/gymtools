@@ -66,16 +66,19 @@ export async function currentUser() {
   } catch (e) { return null; }
 }
 
-// Send a 6-digit email code (works in a PWA — no redirect needed).
-export async function sendCode(email) {
+// Email + password auth — no confirmation emails, works in an installed PWA.
+export async function signUp(email, password) {
   const c = await client();
-  const { error } = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  const { data, error } = await c.auth.signUp({ email: email.trim(), password });
   if (error) throw error;
+  // No session means "Confirm email" is still enabled in Supabase.
+  if (!data.session) throw new Error("no-session");
+  return data.user;
 }
 
-export async function verifyCode(email, token) {
+export async function signInPassword(email, password) {
   const c = await client();
-  const { data, error } = await c.auth.verifyOtp({ email: email.trim(), token: token.trim(), type: "email" });
+  const { data, error } = await c.auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw error;
   return data.user;
 }
