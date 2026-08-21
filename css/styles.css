@@ -307,6 +307,17 @@ textarea.input { resize: vertical; }
 
 .disclaimer { border-style: dashed; }
 
+/* version footer + changelog */
+.version-footer { margin-top: 4px; }
+.update-status { font-weight: 600; }
+.update-avail { color: var(--warn); }
+.changelog { margin-top: 10px; }
+.changelog summary { cursor: pointer; font-weight: 700; }
+.changelog-list { margin-top: 10px; display: flex; flex-direction: column; gap: 2px; }
+.change-item { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.change-item:last-child { border-bottom: none; }
+.change-msg { flex: 1; }
+
 /* ---- Bottom nav ---- */
 #nav {
   position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + var(--safe-b));

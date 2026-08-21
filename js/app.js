@@ -4,6 +4,7 @@
 import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS, dayForDate } from "./program.js";
 import * as store from "./store.js";
 import * as sync from "./sync.js";
+import { APP_VERSION, BUILD_DATE } from "./version.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
   route, startRouter, navigate, toast, confirmDialog, currentRoute, keepScroll,
@@ -969,10 +970,60 @@ route("settings", () => {
     el("h3", { text: "A note on safety" }),
     el("p.muted.small", { text: DISCLAIMER }),
   ]));
-  view.appendChild(el("p.muted.tiny.center", { text: "gymtools · a personal training PWA · built for Tim" }));
+  view.appendChild(versionFooter());
 
   render(view);
 });
+
+function versionFooter() {
+  const wrap = el("div.version-footer");
+  const status = el("span.update-status");
+  wrap.appendChild(el("p.muted.tiny.center", {}, [
+    `gymtools ${APP_VERSION} · ${BUILD_DATE} · `, status,
+  ]));
+
+  // Compare the running version against the freshly-fetched one.
+  status.textContent = "checking…";
+  fetch("./js/version.js", { cache: "no-store" })
+    .then((r) => r.text())
+    .then((t) => {
+      const m = t.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+      const latest = m ? m[1] : null;
+      if (!latest) { status.textContent = ""; return; }
+      if (latest === APP_VERSION) { status.textContent = "✓ up to date"; }
+      else { status.textContent = `update ${latest} available — reopen the app`; status.classList.add("update-avail"); }
+    })
+    .catch(() => { status.textContent = ""; });
+
+  // Live changelog from the repo's recent commits — loaded only when expanded.
+  const details = el("details.card.changelog");
+  details.appendChild(el("summary", { text: "Recent changes" }));
+  const list = el("div.changelog-list");
+  details.appendChild(list);
+  let loaded = false;
+  details.addEventListener("toggle", () => {
+    if (!details.open || loaded) return;
+    loaded = true;
+    list.appendChild(el("p.muted.small", { text: "Loading…" }));
+    fetch("https://api.github.com/repos/timkindberg/gymtools/commits?per_page=15", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("http " + r.status))))
+      .then((commits) => {
+        clear(list);
+        commits.forEach((c) => {
+          const msg = ((c.commit && c.commit.message) || "").split("\n")[0];
+          const date = c.commit && c.commit.author && c.commit.author.date;
+          list.appendChild(el("div.change-item", {}, [
+            el("span.change-msg", { text: msg }),
+            date ? el("span.muted.tiny", { text: relDay(date) }) : null,
+          ]));
+        });
+        if (!commits.length) list.appendChild(el("p.muted.small", { text: "No changes found." }));
+      })
+      .catch(() => { clear(list); loaded = false; list.appendChild(el("p.muted.small", { text: "Couldn't load recent changes (offline, or GitHub rate-limited)." })); });
+  });
+  wrap.appendChild(details);
+  return wrap;
+}
 
 function exportBackup() {
   const blob = new Blob([store.exportData()], { type: "application/json" });
