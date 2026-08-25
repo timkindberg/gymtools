@@ -1,13 +1,22 @@
 // =============================================================================
 // app.js — bootstrap, navigation, and all views.
 // =============================================================================
-import { PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS, dayForDate } from "./program.js";
+import {
+  PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS,
+  dayForDate, alternativeNames,
+} from "./program.js";
+import { getMovement, movementName, loadLabel } from "./movements.js";
+import {
+  measureInfo, prescriptionFor, formatPrescription, formatSet, setAmount,
+  isLogged, validateSet,
+} from "./measures.js";
+import { applyInferredRoles, roleLabel, roleOf, nextRole } from "./sets.js";
 import * as store from "./store.js";
 import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
-  route, startRouter, navigate, toast, confirmDialog, currentRoute, keepScroll,
+  route, startRouter, navigate, toast, confirmDialog, promptDialog, currentRoute, keepScroll,
 } from "./ui.js";
 
 const app = document.getElementById("app");
@@ -164,13 +173,24 @@ function startOrResume(day) {
       symptoms: {},
       symptomsDone: false,
       metrics: {},
-      entries: day.exercises.map((e) => ({
-        exerciseId: e.id,
-        name: e.name,
-        sets: Array.from({ length: e.sets }, () => ({ weight: null, reps: null, done: false })),
-        pain: false,
-        note: "",
-      })),
+      // An entry records BOTH the slot it filled and the movement performed in
+      // it. The movement is what history keys on; the slot only says what was
+      // programmed today. measure/loadMode are denormalized so an old session
+      // still reads correctly if the registry later changes.
+      entries: day.exercises.map((e) => {
+        const mv = getMovement(e.movement);
+        return {
+          exerciseId: e.id,
+          movementId: e.movement,
+          name: e.name,
+          variant: null,
+          measure: mv ? mv.measure : "reps",
+          loadMode: mv ? mv.loadMode : "total",
+          sets: Array.from({ length: e.sets }, () => ({ weight: null, amount: null, role: "work", done: false })),
+          pain: false,
+          note: "",
+        };
+      }),
       notes: "",
     };
     store.saveDraft(newDraft);
@@ -182,9 +202,7 @@ function quickStats(sessions) {
   const wrap = el("div.stat-row");
   const thisWeek = sessions.filter((s) => (Date.now() - new Date(s.date)) < 7 * 86400000).length;
   const streak = computeStreak(sessions);
-  const totalVol = sessions.slice(0, 8).reduce((sum, s) =>
-    sum + (s.entries || []).reduce((v, e) =>
-      v + (e.sets || []).reduce((vv, x) => vv + (Number(x.weight) || 0) * (Number(x.reps) || 0), 0), 0), 0);
+  const totalVol = sessions.slice(0, 8).reduce((sum, s) => sum + store.sessionVolume(s), 0);
   wrap.appendChild(statTile(thisWeek + "/3", "This week"));
   wrap.appendChild(statTile(String(sessions.length), "Total sessions"));
   wrap.appendChild(statTile(streak + "w", "Week streak"));
@@ -357,27 +375,68 @@ function symptomAlerts(symptoms) {
   return out;
 }
 
+// A draft can outlive a program change (an exercise added to the day, an app
+// update mid-workout), so a slot with no entry gets one rather than blowing up
+// the whole session view.
+function entryForSlot(draft, exDef) {
+  let entry = draft.entries.find((e) => e.exerciseId === exDef.id);
+  if (!entry) {
+    const mv = getMovement(exDef.movement);
+    entry = {
+      exerciseId: exDef.id,
+      movementId: exDef.movement,
+      name: exDef.name,
+      variant: null,
+      measure: mv ? mv.measure : "reps",
+      loadMode: mv ? mv.loadMode : "total",
+      sets: Array.from({ length: exDef.sets }, () => ({ weight: null, amount: null, role: "work", done: false })),
+      pain: false,
+      note: "",
+    };
+    draft.entries.push(entry);
+    store.saveDraft(draft);
+  }
+  return entry;
+}
+
 function exerciseCard(exDef, draft, idx) {
-  const entry = draft.entries.find((e) => e.exerciseId === exDef.id);
+  const entry = entryForSlot(draft, exDef);
+
+  // The movement actually being performed here — the slot's default, or
+  // whatever 🎲 landed on. Everything below reads from this, not from the slot.
+  const movementId = entry.variant || entry.movementId || exDef.movement;
+  const movement = getMovement(movementId);
+  const prescription = prescriptionFor(exDef, movement);
+  const measure = (movement && movement.measure) || prescription.measure;
+  const info = measureInfo(measure);
+  const target = prescription.max;
   const card = el("div.card.exercise");
 
-  const topRep = parseInt(String(exDef.reps).split(/[–-]/).pop(), 10) || 10;
-  const sugg = store.suggestion(exDef.id, topRep);
-  const last = store.lastPerformance(exDef.id);
+  const sugg = store.suggestion(movementId, prescription);
+  const last = store.lastPerformance(movementId);
+  // What was last done in this SLOT, whatever it was. Context only — a barbell
+  // incline number never becomes a dumbbell shoulder-press suggestion (#2).
+  const slotLast = last ? null : store.lastPerformanceInSlot(exDef.id);
 
   // Weight to pre-fill: history-based suggestion if we have it; otherwise the
   // seeded start — but ONLY for the default exercise, since that number is
   // calibrated to the default implement (e.g. 45 per dumbbell). A swapped
   // variant (dumbbell→barbell, etc.) needs its own number, so we don't guess.
-  const startWeight = sugg ? sugg.weight : (!entry.variant && exDef.start != null ? exDef.start : null);
+  const startWeight = sugg && sugg.weight != null
+    ? sugg.weight
+    : (!entry.variant && exDef.start != null ? exDef.start : null);
+  const startAmount = sugg && sugg.amount != null ? sugg.amount : target;
 
-  // Variety swap: cycle through the main lift + its listed alternatives
-  const displayName = entry.variant || exDef.name;
-  const swapOptions = [exDef.name, ...(exDef.alternatives || [])];
+  // Variety swap: cycle through the main lift + its listed alternatives.
+  const displayName = movementName(movementId, entry.variantName || exDef.name);
+  const swapOptions = [exDef.movement, ...(exDef.alternatives || [])];
   const doSwap = () => {
-    const cur = entry.variant || exDef.name;
-    const next = swapOptions[(swapOptions.indexOf(cur) + 1) % swapOptions.length];
-    entry.variant = next === exDef.name ? null : next;
+    const next = swapOptions[(swapOptions.indexOf(movementId) + 1) % swapOptions.length];
+    entry.variant = next === exDef.movement ? null : next;
+    entry.movementId = next;
+    entry.variantName = null;
+    const mv = getMovement(next);
+    if (mv) { entry.measure = mv.measure; entry.loadMode = mv.loadMode; }
     store.saveDraft(draft);
     navigate("session");
   };
@@ -391,7 +450,7 @@ function exerciseCard(exDef, draft, idx) {
         exDef.ss ? el("span.ss-badge", { text: "⇄ superset " + exDef.ss }) : null,
         exDef.learn ? el("span.learn-badge", { text: "🎥 technique" }) : null,
       ]),
-      el("p.muted.small", { text: `${exDef.target} · ${exDef.sets}×${exDef.reps} · RPE ${exDef.rpe} · rest ${exDef.rest}` }),
+      el("p.muted.small", { text: `${exDef.target} · ${exDef.sets}×${formatPrescription(prescription)} · RPE ${exDef.rpe} · rest ${exDef.rest}` }),
       entry.variant ? el("p.variant-note.tiny", { text: "swapped from " + exDef.name }) : null,
     ]),
     el("div.exercise-actions", {}, [
@@ -413,7 +472,7 @@ function exerciseCard(exDef, draft, idx) {
   const coach = el("details.coach");
   coach.appendChild(el("summary", { text: "Coach's notes" }));
   if (entry.variant) {
-    coach.appendChild(el("p.why", { text: `You swapped to ${entry.variant} for variety — it fills the same slot as ${exDef.name}. Tap ▶ above for its form; the flags below are why this slot is in your program.` }));
+    coach.appendChild(el("p.why", { text: `You swapped to ${displayName} for variety — it fills the same slot as ${exDef.name}. Tap ▶ above for its form; the flags below are why this slot is in your program.` }));
   } else {
     if (exDef.why) coach.appendChild(el("p.why", { text: exDef.why }));
     if (exDef.cues && exDef.cues.length) coach.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
@@ -422,43 +481,62 @@ function exerciseCard(exDef, draft, idx) {
   if (exDef.flags && exDef.flags.length) {
     coach.appendChild(el("div.flags", {}, exDef.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   }
-  if (exDef.alternatives && exDef.alternatives.length) {
-    coach.appendChild(el("p.muted.small", { text: "Swaps (or hit 🎲): " + exDef.alternatives.join(" · ") }));
+  const altNames = alternativeNames(exDef);
+  if (altNames.length) {
+    coach.appendChild(el("p.muted.small", { text: "Swaps (or hit 🎲): " + altNames.join(" · ") }));
   }
   card.appendChild(coach);
 
   // Last time / suggestion
   if (last) {
-    const setStr = last.sets.filter((s) => s.weight != null).map((s) => `${s.weight}×${s.reps}`).join(", ");
+    const setStr = store.loggedSets(last.sets).map((s) => formatSet(movement, s) + roleGlyph(s)).join(", ");
     card.appendChild(el("div.lasttime", {}, [
       el("span.muted.small", { text: `Last (${relDay(last.date)}): ${setStr || "—"}` }),
       sugg ? el("span.sugg", { text: "🎯 " + sugg.note }) : null,
+      sugg && sugg.basis ? el("span.muted.tiny", { text: sugg.basis }) : null,
     ]));
   } else {
-    // No history yet — coach the weight pick, since we can't suggest one.
+    // No history for THIS movement — coach the weight pick, since we can't
+    // suggest one. If the slot itself has history under another movement, say
+    // so, so the blank doesn't read like lost data.
+    const amountHint = measure === "reps" ? `${target} reps` : `${target}${info.unit}`;
     const hint = startWeight != null
-      ? `🎯 Suggested start: ${startWeight} ${units()}. Adjust so you stop around ${topRep} reps with the last one or two feeling hard. From next session I'll suggest the load.`
+      ? `🎯 Suggested start: ${startWeight} ${units()}. Adjust so you stop around ${amountHint} with the last one or two feeling hard. From next session I'll suggest the load.`
       : entry.variant
-        ? `🎯 Swapped to ${displayName} — pick a weight that leaves a rep or two in the tank at ${topRep} reps (the seeded start was for the original move). I'll suggest loads once you've logged this one.`
-        : `🎯 First time on this one — pick a weight you could do about ${topRep + 2} reps with, and stop at ${topRep}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
-    card.appendChild(el("div.lasttime", {}, [el("span.sugg", { text: hint })]));
+        ? `🎯 Swapped to ${displayName} — pick a weight that leaves a rep or two in the tank at ${amountHint} (the seeded start was for the original move). I'll suggest loads once you've logged this one.`
+        : `🎯 First time on this one — pick a weight you could hold about ${measure === "reps" ? target + 2 + " reps" : amountHint} with, and stop at ${amountHint}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
+    const box = el("div.lasttime", {}, [el("span.sugg", { text: hint })]);
+    if (slotLast && slotLast.movementId && slotLast.movementId !== movementId) {
+      const prevMv = getMovement(slotLast.movementId);
+      box.appendChild(el("span.muted.tiny", {
+        text: `In this slot ${relDay(slotLast.date)} you did ${movementName(slotLast.movementId, slotLast.entry.name)} ` +
+          `(${store.loggedSets(slotLast.sets).map((x) => formatSet(prevMv, x)).join(", ")}) — different movement, so that weight isn't carried over.`,
+      }));
+    }
+    card.appendChild(box);
   }
 
   // Set rows
+  const badges = [];
+  const refreshRoles = () => {
+    applyInferredRoles(entry.sets);
+    badges.forEach((b, i) => paintRoleBadge(b, entry.sets[i]));
+  };
   const setsWrap = el("div.sets");
   setsWrap.appendChild(el("div.set-row.set-header", {}, [
     el("span.set-col", { text: "Set" }),
-    el("span.set-col", { text: units() }),
-    el("span.set-col", { text: "Reps" }),
+    el("span.set-col", { text: loadLabel(movement, units()) }),
+    el("span.set-col", { text: info.short }),
+    el("span.set-col", { text: "Role" }),
     el("span.set-col", { text: "✓" }),
   ]));
-  entry.sets.forEach((setData, si) => {
-    setsWrap.appendChild(setRow(entry, setData, si, draft, startWeight));
-  });
+  const ctx = { movement, measure, info, draft, entry, refreshRoles, badges, phWeight: startWeight, phAmount: startAmount };
+  entry.sets.forEach((setData, si) => setsWrap.appendChild(setRow(ctx, setData, si)));
   card.appendChild(setsWrap);
+  refreshRoles();
 
   // Barbell plate helper: live breakdown of what to load, off a 45 lb bar.
-  if (/barbell/i.test(displayName)) {
+  if (movement && movement.implement === "barbell") {
     const plateNote = el("div.plate-note");
     const draw = (w) => {
       const b = plateBreakdown(w, 45);
@@ -473,7 +551,7 @@ function exerciseCard(exDef, draft, idx) {
   // add/remove set + pain toggle
   card.appendChild(el("div.set-tools", {}, [
     el("button.btn.ghost.small", { text: "+ set", onclick: () => {
-      entry.sets.push({ weight: entry.sets.at(-1)?.weight ?? null, reps: null, done: false });
+      entry.sets.push({ weight: entry.sets.at(-1)?.weight ?? null, amount: null, role: "work", done: false });
       store.saveDraft(draft); navigate("session");
     }}),
     entry.sets.length > 1 ? el("button.btn.ghost.small", { text: "– set", onclick: () => {
@@ -496,19 +574,78 @@ function exerciseCard(exDef, draft, idx) {
   return card;
 }
 
-function setRow(entry, setData, si, draft, phWeight) {
+// Ramp-ups and back-offs are marked so a glance at a set list shows what was
+// actually work. Work sets carry no glyph — they're the common case.
+function roleGlyph(set) {
+  if (set && set.failed) return "✗";
+  const r = roleOf(set);
+  return r === "ramp" ? "↗" : r === "backoff" ? "↘" : "";
+}
+
+const ROLE_TITLES = {
+  ramp: "Ramp-up set — doesn't count toward progression",
+  work: "Working set — this is what the load suggestion reads",
+  backoff: "Back-off set — counted as fatigue, not as the working load",
+};
+
+function paintRoleBadge(badge, setData) {
+  const role = roleOf(setData);
+  badge.textContent = roleLabel(setData);
+  badge.dataset.role = setData && setData.failed ? "failed" : role;
+  badge.title = setData && setData.failed
+    ? "Failed opener — you started here and had to come down. Tap to change."
+    : ROLE_TITLES[role] + ". Tap to change.";
+  badge.classList.toggle("locked", !!(setData && setData.roleLocked));
+}
+
+function setRow(ctx, setData, si) {
+  const { movement, measure, info, draft, entry, refreshRoles, badges } = ctx;
   const row = el("div.set-row");
   row.appendChild(el("span.set-col.set-num", { text: String(si + 1) }));
+
   const wInput = el("input.set-input", {
-    type: "number", inputmode: "decimal", placeholder: phWeight != null ? String(phWeight) : "–", value: setData.weight ?? "",
-    oninput: (e) => { setData.weight = e.target.value === "" ? null : Number(e.target.value); store.saveDraft(draft); },
+    type: "number", inputmode: "decimal",
+    placeholder: ctx.phWeight != null ? String(ctx.phWeight) : "–",
+    value: setData.weight ?? "",
+    oninput: (e) => {
+      setData.weight = e.target.value === "" ? null : Number(e.target.value);
+      delete setData.confirmed;
+      store.saveDraft(draft);
+      refreshRoles();
+    },
   });
-  const rInput = el("input.set-input", {
-    type: "number", inputmode: "numeric", placeholder: "–", value: setData.reps ?? "",
-    oninput: (e) => { setData.reps = e.target.value === "" ? null : Number(e.target.value); store.saveDraft(draft); },
+  const aInput = el("input.set-input", {
+    type: "number", inputmode: info.inputmode,
+    placeholder: ctx.phAmount != null ? String(ctx.phAmount) : "–",
+    value: setAmount(setData) ?? "",
+    oninput: (e) => {
+      setData.amount = e.target.value === "" ? null : Number(e.target.value);
+      delete setData.confirmed;
+      store.saveDraft(draft);
+      refreshRoles();
+    },
   });
+  // Sanity-check on commit (blur/enter), never mid-keystroke: 140 × 120 is a
+  // typo worth catching, but "1" on the way to "12" is not (#4).
+  wInput.addEventListener("change", () => checkSet(ctx, setData, { weight: wInput, amount: aInput }));
+  aInput.addEventListener("change", () => checkSet(ctx, setData, { weight: wInput, amount: aInput }));
+
   row.appendChild(el("span.set-col", {}, [wInput]));
-  row.appendChild(el("span.set-col", {}, [rInput]));
+  row.appendChild(el("span.set-col", {}, [aInput]));
+
+  const badge = el("button.role-badge", {
+    onclick: () => {
+      setData.role = nextRole(roleOf(setData));
+      setData.roleLocked = true;
+      delete setData.failed;
+      store.saveDraft(draft);
+      paintRoleBadge(badge, setData);
+    },
+  });
+  badges[si] = badge;
+  paintRoleBadge(badge, setData);
+  row.appendChild(el("span.set-col", {}, [badge]));
+
   const check = el("button.set-check", { html: setData.done ? "✓" : "", "aria-label": "mark set done" });
   if (setData.done) check.classList.add("on");
   check.addEventListener("click", () => {
@@ -516,16 +653,40 @@ function setRow(entry, setData, si, draft, phWeight) {
     check.classList.toggle("on", setData.done);
     check.innerHTML = setData.done ? "✓" : "";
     // autofill blanks from placeholder-ish previous set
-    if (setData.done && setData.reps == null && si > 0) {
+    if (setData.done && setAmount(setData) == null && si > 0) {
       const prev = entry.sets[si - 1];
-      if (prev.reps != null) { setData.reps = prev.reps; rInput.value = prev.reps; }
+      const prevAmount = setAmount(prev);
+      if (prevAmount != null) { setData.amount = prevAmount; aInput.value = prevAmount; }
       if (setData.weight == null && prev.weight != null) { setData.weight = prev.weight; wInput.value = prev.weight; }
     }
     store.saveDraft(draft);
+    refreshRoles();
     if (setData.done) startRest();
   });
   row.appendChild(el("span.set-col", {}, [check]));
   return row;
+}
+
+// Warn, never block: the athlete is the authority on what he just did, so every
+// check is one tap from "yes, that's right".
+const WARNING_FIELDS = { "high-amount": "amount", "amount-jump": "amount", "high-weight": "weight", "load-jump": "weight" };
+
+async function checkSet(ctx, setData, inputs) {
+  if (setData.confirmed) return;
+  const warning = validateSet(ctx.movement, setData, store.movementBests(ctx.entry.movementId))[0];
+  if (!warning) { delete setData.suspect; return; }
+  const keep = await confirmDialog(warning.message, { okText: "Yes, that's right", cancelText: "Let me fix it" });
+  if (keep) {
+    setData.confirmed = true;
+    delete setData.suspect;
+  } else {
+    const field = WARNING_FIELDS[warning.code] || "amount";
+    setData[field] = null;
+    const input = inputs[field];
+    if (input) { input.value = ""; input.focus(); }
+  }
+  store.saveDraft(ctx.draft);
+  ctx.refreshRoles();
 }
 
 function warmItem(w) {
@@ -536,7 +697,7 @@ function warmItem(w) {
 }
 
 async function finishSession(draft, day) {
-  const logged = draft.entries.some((e) => e.sets.some((s) => s.weight != null || s.reps != null || s.done));
+  const logged = draft.entries.some((e) => e.sets.some((s) => isLogged(s) || s.done));
   if (!logged) {
     if (!(await confirmDialog("Nothing was logged yet. Save an empty session anyway?", { okText: "Save empty" }))) return;
   }
@@ -547,10 +708,32 @@ async function finishSession(draft, day) {
     dayName: draft.dayName,
     symptoms: draft.symptoms,
     metrics: draft.metrics || {},
-    entries: draft.entries.map((e) => ({
-      exerciseId: e.exerciseId, name: e.name, variant: e.variant || null, pain: e.pain, note: e.note,
-      sets: e.sets.filter((s) => s.weight != null || s.reps != null),
-    })),
+    entries: draft.entries.map((e) => {
+      const movementId = e.variant || e.movementId;
+      const mv = getMovement(movementId);
+      const sets = e.sets.filter(isLogged);
+      applyInferredRoles(sets);
+      // Anything still implausible and unconfirmed is flagged rather than
+      // silently kept — the history view offers a one-tap correction (#4).
+      const bests = store.movementBests(movementId);
+      sets.forEach((set) => {
+        if (set.confirmed) return;
+        const warning = validateSet(mv, set, bests)[0];
+        if (warning) set.suspect = warning.code; else delete set.suspect;
+      });
+      return {
+        exerciseId: e.exerciseId,
+        movementId,
+        name: e.name,
+        variant: e.variant || null,
+        variantName: e.variantName || null,
+        measure: (mv && mv.measure) || e.measure || "reps",
+        loadMode: (mv && mv.loadMode) || e.loadMode || "total",
+        pain: e.pain,
+        note: e.note,
+        sets,
+      };
+    }),
     notes: draft.notes,
   };
   store.addSession(session);
@@ -734,12 +917,14 @@ function programExercise(e, i) {
   if (e.why) card.appendChild(el("p.why", { text: e.why }));
   if (e.cues && e.cues.length) card.appendChild(el("ul.cues", {}, e.cues.map((c) => el("li", { text: c }))));
   if (e.techNote) card.appendChild(el("p.barbell-note.small", { text: "🎥 " + e.techNote }));
-  if (/barbell/i.test(e.name) && e.start != null) {
+  const progMv = getMovement(e.movement);
+  if (progMv && progMv.implement === "barbell" && e.start != null) {
     const b = plateBreakdown(e.start, 45);
     if (b) card.appendChild(el("div.plate-note", { text: `🏋️ Start ${e.start} lb → ${b.text}` }));
   }
   if (e.flags && e.flags.length) card.appendChild(el("div.flags", {}, e.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
-  if (e.alternatives && e.alternatives.length) card.appendChild(el("p.muted.small", { text: "Swaps: " + e.alternatives.join(" · ") }));
+  const altNames = alternativeNames(e);
+  if (altNames.length) card.appendChild(el("p.muted.small", { text: "Swaps: " + altNames.join(" · ") }));
   return card;
 }
 
@@ -759,25 +944,46 @@ route("history", () => {
     render(view); return;
   }
 
-  // Progress explorer (pick an exercise)
+  // Anything logged that can't be right gets surfaced here for correction,
+  // rather than quietly skewing the charts (#4).
+  const flagged = store.suspectSets();
+  if (flagged.length) view.appendChild(dataCheckCard(flagged));
+
+  // Progress explorer — one series per MOVEMENT, so the same lift performed in
+  // two different slots shares a single chart (#2).
   view.appendChild(sectionTitle("Exercise progress"));
-  const allEx = [];
-  const seen = new Set();
-  PROGRAM.days.forEach((d) => d.exercises.forEach((e) => { if (!seen.has(e.id)) { seen.add(e.id); allEx.push(e); } }));
-  const withData = allEx.filter((e) => store.exerciseHistory(e.id).length > 0);
+  const withData = store.loggedMovementIds().filter((id) => store.movementHistory(id).some((h) => h.sets > 0));
   const progressCard = el("div.card");
   if (withData.length) {
-    const select = el("select.input", {}, withData.map((e) => el("option", { value: e.id, text: e.name })));
+    const select = el("select.input", {}, withData.map((id) => el("option", { value: id, text: movementName(id, id) })));
     const chartHost = el("div.chart-host");
     const renderChart = () => {
       clear(chartHost);
-      const hist = store.exerciseHistory(select.value);
-      chartHost.appendChild(el("p.muted.small", { text: "Estimated 1-rep-max over time" }));
-      chartHost.appendChild(lineChart(hist.map((h) => ({ date: h.date, value: h.e1rm })), { color: "var(--accent)" }));
-      const latest = hist.at(-1), first = hist[0];
+      const hist = store.movementHistory(select.value).filter((h) => h.sets > 0);
+      const mv = getMovement(select.value);
+      const info = measureInfo(hist.length ? hist[0].measure : "reps");
+      // Epley only means something for loaded rep work below the rep ceiling.
+      // Carries, planks and assisted work chart what they actually measure.
+      const series = hist.some((h) => h.e1rm != null)
+        ? { key: "e1rm", label: "Estimated 1-rep-max over time (working sets)", unit: units() }
+        : hist[0] && hist[0].measure !== "reps"
+          ? { key: "bestAmount", label: `Best working set over time (${info.label.toLowerCase()})`, unit: info.unit }
+          : { key: "volume", label: "Working-set volume over time", unit: units() };
+      // A session can be missing the chosen series (all-high-rep work has no
+      // e1RM) — those are gaps in the line, not zeroes.
+      const points = hist.filter((h) => h[series.key] != null).map((h) => ({ date: h.date, value: h[series.key] }));
+      chartHost.appendChild(el("p.muted.small", { text: series.label }));
+      chartHost.appendChild(lineChart(points, { color: "var(--accent)" }));
+      const latest = hist.filter((h) => h[series.key] != null).at(-1), first = hist.filter((h) => h[series.key] != null)[0];
       if (latest && first) {
-        const delta = latest.e1rm - first.e1rm;
-        chartHost.appendChild(el("p.muted.small", { text: `${hist.length} data points · top set ${latest.topWeight}${units()} · est 1RM ${latest.e1rm}${units()} ${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)} since start` }));
+        const delta = latest[series.key] - first[series.key];
+        const top = latest.topWeight ? `top working set ${latest.topWeight}${units()} · ` : "";
+        chartHost.appendChild(el("p.muted.small", {
+          text: `${points.length} data point${points.length === 1 ? "" : "s"} · ${top}${Math.round(latest[series.key])}${series.unit} ${delta >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(delta))} since start`,
+        }));
+      }
+      if (mv && mv.measure !== "reps") {
+        chartHost.appendChild(el("p.muted.tiny", { text: `Measured in ${info.label.toLowerCase()} — no estimated 1RM for this one.` }));
       }
     };
     select.addEventListener("change", renderChart);
@@ -837,9 +1043,45 @@ route("history", () => {
   render(view);
 });
 
+// A logged number that almost certainly isn't real (140 × 120 reps) gets one
+// tap to correct and one tap to keep. Until it's resolved it stays out of the
+// charts, the bests, and the coach report.
+function dataCheckCard(flagged) {
+  const wrap = el("div.card.data-check");
+  wrap.appendChild(el("h3", { text: `⚠︎ ${flagged.length} logged set${flagged.length === 1 ? "" : "s"} to check` }));
+  wrap.appendChild(el("p.muted.small", { text: "These look like typos, so they're excluded from your charts and bests until you say otherwise." }));
+  flagged.forEach((f) => {
+    const info = measureInfo(f.measure);
+    const row = el("div.check-row", {}, [
+      el("div", {}, [
+        el("strong", { text: `${f.name} — ${f.text}` }),
+        el("p.muted.tiny", { text: `${fmtDate(f.date)} · set ${f.setIndex + 1}` }),
+      ]),
+      el("div.check-actions", {}, [
+        el("button.btn.ghost.small", { text: "Fix", onclick: async () => {
+          const v = await promptDialog(`What was the real number of ${info.short} for ${f.name}?`, {
+            value: "", inputmode: info.inputmode, suffix: info.short,
+          });
+          if (v == null) return;
+          store.fixSuspectSet(f.sessionId, f.entryIndex, f.setIndex, v);
+          toast("Corrected");
+          navigate("history");
+        }}),
+        el("button.btn.ghost.small", { text: "It's right", onclick: () => {
+          store.confirmSuspectSet(f.sessionId, f.entryIndex, f.setIndex);
+          toast("Kept as logged");
+          navigate("history");
+        }}),
+      ]),
+    ]);
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
 function sessionSummaryCard(s, withDelete) {
   const totalSets = (s.entries || []).reduce((n, e) => n + (e.sets || []).length, 0);
-  const vol = (s.entries || []).reduce((v, e) => v + (e.sets || []).reduce((vv, x) => vv + (Number(x.weight) || 0) * (Number(x.reps) || 0), 0), 0);
+  const vol = store.sessionVolume(s);
   const painFlags = (s.entries || []).filter((e) => e.pain).length;
   const card = el("div.card.session-card");
   const head = el("div.session-head", {}, [
@@ -859,9 +1101,10 @@ function sessionSummaryCard(s, withDelete) {
   det.appendChild(el("summary.muted.small", { text: "details" }));
   (s.entries || []).forEach((e) => {
     if (!e.sets || !e.sets.length) return;
-    det.appendChild(el("div.log-line", {}, [
-      el("span", { text: (e.variant || e.name) + (e.pain ? " ⚠︎" : "") }),
-      el("span.muted.small", { text: e.sets.map((x) => `${x.weight ?? "–"}×${x.reps ?? "–"}`).join(", ") }),
+    const mv = getMovement(e.movementId);
+    det.appendChild(el("div.log-line", { title: "↗ ramp-up · ↘ back-off · ✗ failed opener" }, [
+      el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") }),
+      el("span.muted.small", { text: e.sets.map((x) => formatSet(mv, x) + roleGlyph(x) + (x.suspect ? " ⚠︎" : "")).join(", ") }),
     ]));
   });
   if (s.metrics && WATCH_METRICS.some((m) => s.metrics[m.id] != null && s.metrics[m.id] !== "")) {

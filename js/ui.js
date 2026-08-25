@@ -175,3 +175,24 @@ export function confirmDialog(message, { okText = "OK", cancelText = "Cancel", d
     function done(v) { overlay.remove(); resolve(v); }
   });
 }
+
+// prompt dialog (promise) — resolves to the entered string, or null on cancel.
+export function promptDialog(message, { value = "", okText = "Save", cancelText = "Cancel", inputmode = "numeric", suffix = "" } = {}) {
+  return new Promise((resolve) => {
+    const input = el("input.input", { type: "number", inputmode, value: value == null ? "" : String(value) });
+    const overlay = el("div.modal-overlay", { onclick: (e) => { if (e.target === overlay) done(null); } });
+    const box = el("div.modal", {}, [
+      el("p.modal-msg", { text: message }),
+      el("div.modal-field", {}, [input, suffix ? el("span.muted.small", { text: suffix }) : null]),
+      el("div.modal-actions", {}, [
+        el("button.btn.ghost", { text: cancelText, onclick: () => done(null) }),
+        el("button.btn.primary", { text: okText, onclick: () => done(input.value === "" ? null : input.value) }),
+      ]),
+    ]);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    input.focus();
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") done(input.value === "" ? null : input.value); });
+    function done(v) { overlay.remove(); resolve(v); }
+  });
+}

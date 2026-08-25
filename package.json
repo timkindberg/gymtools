@@ -1,0 +1,9 @@
+{
+  "name": "gymtools",
+  "private": true,
+  "type": "module",
+  "description": "Static PWA \u2014 no build step. package.json exists so `node --test` can run the data-model unit tests as ES modules.",
+  "scripts": {
+    "test": "node --test 'test/**/*.test.js'"
+  }
+}

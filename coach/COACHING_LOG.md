@@ -5,6 +5,57 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-25 — Data model rebuilt for the progression engine (chunk 1)
+
+Issues #2, #3, #4 of the suggestion-engine rewrite (#13). No program content
+changed — this is the foundation the new engine gets built on.
+
+- **History keys on the movement, not the slot** (#2). New `js/movements.js`
+  registry: every exercise is a stable slug carrying `implement`, `loadMode`
+  (total / per-hand / per-side), `measure` and `pattern`. `js/program.js` slots
+  and their `alternatives` now reference slugs; entries persist `movementId`.
+  This kills the cross-implement quirk logged on 2026-08-19: his Barbell Incline
+  Press logged in the b3 slot no longer prescribes 135 for a per-dumbbell
+  Seated DB Shoulder Press, and the same holds for a3 (Barbell Row) and c6
+  (DB Skull-crusher). The b3 slot now correctly shows "first time on this one",
+  with a context line naming what he actually did in that slot last week.
+  Still open: he may prefer the incline press — it's a registry movement but
+  not a b3 alternative. Ask him before promoting it.
+- **Set roles: ramp / work / back-off** (#3). Inferred as he logs (sets below
+  the session's heaviest that precede it are ramps; those that follow are
+  back-offs), overridable with one tap on the set row, and never overwritten
+  once he sets one by hand. Progression, charts and e1RM read working sets only,
+  so his ramps (every barbell lift is one) stop counting as work. The failed
+  opener is detected too: c5's 30 / 25 / 25 now resolves to a working weight of
+  25 with the 30 flagged, instead of "repeat 30".
+- **Typed measures + validation** (#4). Movements declare reps / time /
+  distance, prescriptions are structural (`{measure, min, max, perSide}`) rather
+  than scraped out of "8–10/side", and the set row labels its columns (`lb`,
+  `lb/hand`, `lb/side` × `reps`, `sec`, `yd`). Suitcase Carry and Side Plank no
+  longer report an estimated 1RM — e1RM is gated to loaded rep work at or below
+  15 reps. Entry-time checks warn (never block, always one tap to override) on
+  30+ reps, 600+ lb, or a >3× jump on that movement's own history.
+- **The 140 × 120 hip thrust** is migrated as flagged, not silently kept. It's
+  excluded from charts, bests and the report until resolved; History shows a
+  "1 logged set to check" card with Fix / It's right. Worth doing on his phone.
+- **Migrations** are versioned (data v1 → v4), sequential and idempotent; the
+  in-flight draft upgrades too, so an app update mid-workout is safe. The
+  `(slot → movement)` map used to attribute old sessions is frozen in store.js
+  — never edit an existing line there, only append, or history gets re-pointed.
+- **Tests**: `npm test` (node's built-in runner, no deps) — 42 cases over the
+  registry, role inference, measures and the migrations, run against a v1 backup
+  fixture rebuilt from the evidence tables in #2/#3/#4. His real 2026-08-25
+  export becomes the fixture for the engine itself (#7). CI runs them on push.
+
+Note for cloud sync: the stored blob is now v4. An older installed copy of the
+app pulling it would misread sets (the `reps` key is now `amount`); the service
+worker force-reloads stale clients, so in practice update the app on any device
+before logging on it.
+
+NEXT (chunk 2, #5/#6): capture RPE per set and per-side logging. The suggestion
+heuristic itself is still the old flat +5/+10 — deliberately untouched here, and
+replaced in #7.
+
 ## 2026-08-20 — Cloud sync live (Supabase)
 
 Shipped optional Supabase cloud sync and Tim confirmed sign-in + sync works.
