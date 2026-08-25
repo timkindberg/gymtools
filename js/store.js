@@ -6,7 +6,7 @@
 import { getMovement, resolveMovementId, movementName } from "./movements.js";
 import {
   setAmount, setLoad, isLogged, estimate1RM, setVolume,
-  formatSet, staticWarnings, measureInfo,
+  formatSet, staticWarnings, measureInfo, prescriptionFor,
 } from "./measures.js";
 import { applyInferredRoles, workingSets, rampSets, topWorkingLoad, failedSets } from "./sets.js";
 import { allExercises } from "./program.js";
@@ -16,7 +16,7 @@ const DRAFT_KEY = "gymtools.draft.v1";
 
 // Bump when the shape of a stored session changes, and add a step to
 // MIGRATIONS. Steps run in order, are idempotent, and never drop data.
-export const DATA_VERSION = 4;
+export const DATA_VERSION = 5;
 
 const DEFAULT_DATA = {
   version: DATA_VERSION,
@@ -98,10 +98,21 @@ function migrateEntriesToMovements(data) {
   }
 }
 
+// What was asked of this entry. Sessions record their own prescription from
+// here on; older ones fall back to what the slot prescribes today, which is the
+// best available reading of a range nobody wrote down at the time.
+export function entryPrescription(entry) {
+  if (entry && entry.prescription && entry.prescription.measure) return entry.prescription;
+  const slot = allExercises().find((e) => e.id === (entry && entry.exerciseId)) || null;
+  return prescriptionFor(slot, getMovement(entry && entry.movementId));
+}
+
 // v2 → v3: classify each logged set as ramp-up / working / back-off (issue #3).
 function migrateSetRoles(data) {
   for (const session of data.sessions || []) {
-    for (const entry of session.entries || []) applyInferredRoles(entry.sets || []);
+    for (const entry of session.entries || []) {
+      applyInferredRoles(entry.sets || [], entryPrescription(entry));
+    }
   }
 }
 
@@ -125,10 +136,24 @@ function migrateTypedMeasures(data) {
   }
 }
 
+// v4 → v5: record what was prescribed, and re-read the set roles with it.
+// Knowing the rep range is what separates a top set he FAILED out of from one
+// he finished before deliberately dropping the weight — a distinction the load
+// sequence alone can't make once there's a ramp in front of it.
+function migrateStampPrescriptions(data) {
+  for (const session of data.sessions || []) {
+    for (const entry of session.entries || []) {
+      entry.prescription = entryPrescription(entry);
+      applyInferredRoles(entry.sets || [], entry.prescription);
+    }
+  }
+}
+
 const MIGRATIONS = [
   migrateEntriesToMovements, // → 2
   migrateSetRoles,           // → 3
   migrateTypedMeasures,      // → 4
+  migrateStampPrescriptions, // → 5
 ];
 
 // Denormalize how the entry was measured onto the entry itself, so a session
@@ -180,7 +205,11 @@ function migrateDraft(draft, program) {
       if (set.amount == null && set.reps != null) set.amount = Number(set.reps);
       delete set.reps;
     }
-    applyInferredRoles(entry.sets || []);
+    if (!entry.prescription) {
+      const slot = program && program.find((e) => e.id === entry.exerciseId);
+      entry.prescription = prescriptionFor(slot || null, getMovement(entry.movementId));
+    }
+    applyInferredRoles(entry.sets || [], entry.prescription);
   }
   return draft;
 }
@@ -461,7 +490,7 @@ export function fixSuspectSet(sessionId, entryIndex, setIndex, amount) {
   return withSuspectSet(sessionId, entryIndex, setIndex, (set, entry) => {
     set.amount = Number(amount);
     delete set.suspect;
-    applyInferredRoles(entry.sets || []);
+    applyInferredRoles(entry.sets || [], entryPrescription(entry));
   });
 }
 
@@ -494,7 +523,7 @@ export function suggestion(movementId, prescription) {
   const hitTarget = work.every((s) => (setAmount(s) || 0) >= target);
   const basis = `Counted ${work.length} working set${work.length === 1 ? "" : "s"}` +
     (ramps ? `, ignored ${ramps} ramp-up set${ramps === 1 ? "" : "s"}` : "") +
-    (failed.length ? `, and skipped a failed opener at ${setLoad(failed[0])} ${getProfile().units}` : "") + ".";
+    (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + ".";
 
   const topWeight = topWorkingLoad(logged);
 
@@ -515,10 +544,13 @@ export function suggestion(movementId, prescription) {
   }
 
   if (failed.length) {
-    const opener = setLoad(failed[0]);
+    const missed = Math.max(...failed.map((s) => setLoad(s) || 0));
+    const onTheOpener = logged.indexOf(failed[0]) === 0;
     return {
       action: "repeat", weight: topWeight, amount: target, basis,
-      note: `You opened at ${opener} last time and backed off to ${topWeight} — repeat ${topWeight} and own all ${target} ${info.short}.`,
+      note: onTheOpener
+        ? `You opened at ${missed} last time and backed off to ${topWeight} — repeat ${topWeight} and own all ${target} ${info.short}.`
+        : `You worked up to ${missed} last time and had to come back to ${topWeight} — repeat ${topWeight} and own all ${target} ${info.short}.`,
     };
   }
 

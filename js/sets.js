@@ -51,29 +51,53 @@ function loggedIndices(sets) {
 
 // Returns [{ index, role, failed }] for the sets it can classify. Sets with no
 // load (bodyweight, time work) are all "work" — there is no ramp to detect.
-export function inferSetRoles(sets = []) {
+//
+// `prescription` is optional. With it, we can tell a FAILED top set from a
+// planned back-off by asking whether the top set made the bottom of its
+// prescribed range; without it we fall back to the shape of the load sequence
+// alone. (RPE, when it lands in #5, is the sharper version of the same
+// question — this reads what the reps already say.)
+export function inferSetRoles(sets = [], prescription = null) {
   const idxs = loggedIndices(sets);
   const result = sets.map((_, index) => ({ index, role: "work", failed: false }));
   if (idxs.length < 2) return result;
 
   const loadAt = (i) => setLoad(sets[i]);
-  const loads = idxs.map(loadAt);
-  const top = Math.max(...loads);
-  const firstTop = idxs.find((i) => loadAt(i) === top);
-  const lastTop = idxs.filter((i) => loadAt(i) === top).pop();
+  const amountAt = (i) => setAmount(sets[i]);
+  const top = Math.max(...idxs.map(loadAt));
+  const topIdxs = idxs.filter((i) => loadAt(i) === top);
+  const firstTop = topIdxs[0];
+  const lastTop = topIdxs[topIdxs.length - 1];
+  const after = idxs.filter((i) => i > lastTop);
 
-  // Failed opener: he led with the heaviest set, then everything after it was
-  // lighter. That is a regression, not a ramp and not a planned back-off — the
-  // opener was too heavy, and the weight he settled at is the working weight.
-  const after = idxs.filter((i) => i > firstTop);
-  const openerFailed =
-    firstTop === idxs[0] && firstTop === lastTop && after.length >= 2 && after.every((i) => loadAt(i) < top);
+  // Did the heaviest set do its job? Two independent readings, because they
+  // catch different failures:
+  const floor = prescription && Number(prescription.min) > 0 ? Number(prescription.min) : null;
+  const ceiling = prescription && Number(prescription.max) > 0 ? Number(prescription.max) : null;
+  const bestAtTop = Math.max(...topIdxs.map(amountAt));
+  const cameUpShort = floor != null && bestAtTop < floor;   // missed the range outright
+  const finishedTheJob = ceiling != null && bestAtTop >= ceiling; // topped the range
 
-  if (openerFailed) {
+  //   1. The rep count: the top set missed the bottom of its prescribed range
+  //      and he came down afterwards. This fires anywhere in the sequence —
+  //      including after a ramp, which is how every barbell lift here is
+  //      logged, and where reading the shape alone would miss it.
+  //   2. The shape: he opened with his single heaviest set and spent the rest
+  //      of the exercise underneath it. In range or not, that is a retreat —
+  //      unless he actually topped the range on it, which makes dropping the
+  //      weight afterwards look like a deliberate back-off instead.
+  const retreatedFromOpener =
+    firstTop === idxs[0] && firstTop === lastTop && after.length >= 2 && !finishedTheJob;
+
+  const failedTop = after.length > 0 && after.every((i) => loadAt(i) < top) &&
+    (cameUpShort || retreatedFromOpener);
+
+  if (failedTop) {
     const settled = Math.max(...after.map(loadAt));
-    result[firstTop] = { index: firstTop, role: "backoff", failed: true };
-    for (const i of after) {
-      result[i] = { index: i, role: loadAt(i) === settled ? "work" : "backoff", failed: false };
+    for (const i of idxs) {
+      if (i < firstTop) result[i] = { index: i, role: "ramp", failed: false };
+      else if (loadAt(i) === top) result[i] = { index: i, role: "backoff", failed: true };
+      else result[i] = { index: i, role: loadAt(i) === settled ? "work" : "backoff", failed: false };
     }
     return result;
   }
@@ -89,8 +113,8 @@ export function inferSetRoles(sets = []) {
 
 // Fill in roles in place, leaving anything the athlete set by hand alone.
 // Returns the same array so it composes.
-export function applyInferredRoles(sets = []) {
-  const inferred = inferSetRoles(sets);
+export function applyInferredRoles(sets = [], prescription = null) {
+  const inferred = inferSetRoles(sets, prescription);
   sets.forEach((s, i) => {
     if (!s || s.roleLocked) return;
     s.role = inferred[i].role;

@@ -25,9 +25,19 @@ changed — this is the foundation the new engine gets built on.
   the session's heaviest that precede it are ramps; those that follow are
   back-offs), overridable with one tap on the set row, and never overwritten
   once he sets one by hand. Progression, charts and e1RM read working sets only,
-  so his ramps (every barbell lift is one) stop counting as work. The failed
-  opener is detected too: c5's 30 / 25 / 25 now resolves to a working weight of
-  25 with the 30 flagged, instead of "repeat 30".
+  so his ramps (every barbell lift is one) stop counting as work.
+- **Failed top sets** are detected on two independent signals, so the rule holds
+  up past the one case in the issue. (1) The reps: the top set missed the BOTTOM
+  of its prescribed range and he came down afterwards — this catches a failure
+  anywhere in the sequence, including after a ramp, which is the shape most of
+  his barbell lifts are logged in. (2) The shape: he opened with his single
+  heaviest set and spent the rest of the exercise underneath it — unless he
+  topped the range on it, which makes dropping the weight afterwards read as a
+  deliberate back-off instead. c5's 30 / 25 / 25 resolves to a working weight of
+  25 either way; a ramp-then-miss (95, 135×3, 115, 115) now resolves to 115
+  instead of "repeat 135". A planned top-set-then-back-off is left alone.
+  Sessions now record the prescription they were held to, so a later program
+  change can't retroactively reinterpret an old session's roles.
 - **Typed measures + validation** (#4). Movements declare reps / time /
   distance, prescriptions are structural (`{measure, min, max, perSide}`) rather
   than scraped out of "8–10/side", and the set row labels its columns (`lb`,
@@ -38,11 +48,11 @@ changed — this is the foundation the new engine gets built on.
 - **The 140 × 120 hip thrust** is migrated as flagged, not silently kept. It's
   excluded from charts, bests and the report until resolved; History shows a
   "1 logged set to check" card with Fix / It's right. Worth doing on his phone.
-- **Migrations** are versioned (data v1 → v4), sequential and idempotent; the
+- **Migrations** are versioned (data v1 → v5), sequential and idempotent; the
   in-flight draft upgrades too, so an app update mid-workout is safe. The
   `(slot → movement)` map used to attribute old sessions is frozen in store.js
   — never edit an existing line there, only append, or history gets re-pointed.
-- **Tests**: `npm test` (node's built-in runner, no deps) — 42 cases over the
+- **Tests**: `npm test` (node's built-in runner, no deps) — 52 cases over the
   registry, role inference, measures and the migrations, run against a v1 backup
   fixture rebuilt from the evidence tables in #2/#3/#4. His real 2026-08-25
   export becomes the fixture for the engine itself (#7). CI runs them on push.
@@ -51,6 +61,11 @@ Note for cloud sync: the stored blob is now v4. An older installed copy of the
 app pulling it would misread sets (the `reps` key is now `amount`); the service
 worker force-reloads stale clients, so in practice update the app on any device
 before logging on it.
+
+Still not readable from the numbers alone: a set ground out at the same weight
+(135×8, 135×3, 135×2). Those classify correctly as three working sets and the
+suggestion refuses to add load, but nothing marks how close to failure it was —
+that needs RPE (#5), which is the point of chunk 2.
 
 NEXT (chunk 2, #5/#6): capture RPE per set and per-side logging. The suggestion
 heuristic itself is still the old flat +5/+10 — deliberately untouched here, and

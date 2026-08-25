@@ -120,7 +120,7 @@ test("a failed opener resolves to the settled weight, not the weight he failed",
   assert.equal(sugg.action, "repeat");
   assert.equal(sugg.weight, 25);
   assert.match(sugg.note, /opened at 30/);
-  assert.match(sugg.basis, /failed opener at 30/);
+  assert.match(sugg.basis, /failed set at 30/);
   const sets = store.lastPerformance("incline-db-curl").sets;
   assert.equal(sets[0].failed, true);
   assert.equal(sets[0].role, "backoff");
@@ -140,6 +140,54 @@ test("every suggestion says which sets it counted", () => {
     const sugg = store.suggestion(id, { measure: "reps", min: 8, max: 10, perSide: false });
     if (sugg) assert.match(sugg.basis, /Counted \d+ working set/);
   }
+});
+
+test("a top set failed AFTER a ramp is caught too, not just a failed opener", () => {
+  // The shape every barbell lift here is logged in: ramp, miss the range on the
+  // top set, come back down. Reading the load sequence alone would call the 135
+  // a working set and tell him to repeat it.
+  const data = fixture();
+  data.sessions[2].entries[1] = {
+    exerciseId: "a2", name: "Barbell Bench Press", variant: null, pain: false, note: "",
+    sets: [{ weight: 95, reps: 8 }, { weight: 135, reps: 3 }, { weight: 115, reps: 8 }, { weight: 115, reps: 8 }],
+  };
+  store.importData(data);
+  const sets = store.lastPerformance("barbell-bench-press").sets;
+  assert.deepEqual(sets.map((s) => s.role), ["ramp", "backoff", "work", "work"]);
+  assert.equal(sets[1].failed, true);              // the 135, not the 95
+  const sugg = suggestFor("a2");
+  assert.equal(sugg.weight, 115);
+  assert.match(sugg.note, /worked up to 135/);     // not "opened at"
+});
+
+test("a top set that finished its range is a back-off, not a failure", () => {
+  // Same shape, but he hit the top of 5–8 on the 135 before dropping down.
+  const data = fixture();
+  data.sessions[2].entries[1] = {
+    exerciseId: "a2", name: "Barbell Bench Press", variant: null, pain: false, note: "",
+    sets: [{ weight: 135, reps: 8 }, { weight: 115, reps: 10 }, { weight: 115, reps: 10 }],
+  };
+  store.importData(data);
+  const sets = store.lastPerformance("barbell-bench-press").sets;
+  assert.deepEqual(sets.map((s) => s.role), ["work", "backoff", "backoff"]);
+  assert.equal(sets.some((s) => s.failed), false);
+  // The 135 topped a 5–8 range, so this is progress, not a retreat.
+  const sugg = suggestFor("a2");
+  assert.equal(sugg.action, "increase");
+  assert.equal(sugg.weight, 145);
+  assert.doesNotMatch(sugg.note, /come back|backed off/);
+});
+
+test("sessions record the range they were held to", () => {
+  fresh();
+  for (const s of store.load().sessions) {
+    for (const e of s.entries) {
+      assert.ok(e.prescription && e.prescription.measure, `${e.exerciseId} has no prescription`);
+    }
+  }
+  const carry = store.getSessions().find((s) => s.id === "s1").entries.find((e) => e.exerciseId === "b7");
+  assert.equal(carry.prescription.measure, "distance");
+  assert.equal(carry.prescription.max, 40);
 });
 
 // ---- #4 typed measures + validation ----------------------------------------

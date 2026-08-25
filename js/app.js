@@ -3,7 +3,7 @@
 // =============================================================================
 import {
   PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS,
-  dayForDate, alternativeNames,
+  dayForDate, alternativeNames, findExercise,
 } from "./program.js";
 import { getMovement, movementName, loadLabel } from "./movements.js";
 import {
@@ -519,7 +519,7 @@ function exerciseCard(exDef, draft, idx) {
   // Set rows
   const badges = [];
   const refreshRoles = () => {
-    applyInferredRoles(entry.sets);
+    applyInferredRoles(entry.sets, prescription);
     badges.forEach((b, i) => paintRoleBadge(b, entry.sets[i]));
   };
   const setsWrap = el("div.sets");
@@ -711,8 +711,9 @@ async function finishSession(draft, day) {
     entries: draft.entries.map((e) => {
       const movementId = e.variant || e.movementId;
       const mv = getMovement(movementId);
+      const prescription = prescriptionFor(findExercise(e.exerciseId), mv);
       const sets = e.sets.filter(isLogged);
-      applyInferredRoles(sets);
+      applyInferredRoles(sets, prescription);
       // Anything still implausible and unconfirmed is flagged rather than
       // silently kept — the history view offers a one-tap correction (#4).
       const bests = store.movementBests(movementId);
@@ -727,6 +728,7 @@ async function finishSession(draft, day) {
         name: e.name,
         variant: e.variant || null,
         variantName: e.variantName || null,
+        prescription,
         measure: (mv && mv.measure) || e.measure || "reps",
         loadMode: (mv && mv.loadMode) || e.loadMode || "total",
         pain: e.pain,

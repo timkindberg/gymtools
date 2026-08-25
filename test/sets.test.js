@@ -36,6 +36,63 @@ test("a failed opener is flagged, and the settled weight is the working weight",
   assert.equal(topWorkingLoad(s), 25);
 });
 
+const BENCH = { measure: "reps", min: 5, max: 8 };
+
+test("a top set that misses its rep range and is followed by lighter ones is a failure", () => {
+  // Ramp first — which is how the program tells him to lift — then fail. The
+  // opener shape can't see this one; the rep count can.
+  const s = sets([[95, 8], [135, 3], [115, 8], [115, 8]]);
+  applyInferredRoles(s, BENCH);
+  assert.deepEqual(s.map((x) => x.role), ["ramp", "backoff", "work", "work"]);
+  assert.equal(s[1].failed, true);
+  assert.equal(topWorkingLoad(s), 115);
+});
+
+test("one lighter set is enough when the top set missed the range outright", () => {
+  const s = sets([[95, 8], [135, 3], [115, 8]]);
+  applyInferredRoles(s, BENCH);
+  assert.equal(s[1].failed, true);
+  assert.equal(topWorkingLoad(s), 115);
+});
+
+test("a top set that finished its range is a planned back-off, not a failure", () => {
+  const s = sets([[135, 8], [115, 10], [115, 10]]);
+  applyInferredRoles(s, BENCH);
+  assert.deepEqual(s.map((x) => x.role), ["work", "backoff", "backoff"]);
+  assert.equal(s.some((x) => x.failed), false);
+  assert.equal(topWorkingLoad(s), 135);
+});
+
+test("in-range but retreating from the opener still reads as a failure", () => {
+  // c5's curl: 30×10 is inside a 10–12 range, but he spent the rest of the
+  // exercise underneath it. With no prescription at all, same answer.
+  const curl = { measure: "reps", min: 10, max: 12 };
+  const withRange = sets([[30, 10], [25, 10], [25, 10]]);
+  applyInferredRoles(withRange, curl);
+  assert.equal(withRange[0].failed, true);
+  assert.equal(topWorkingLoad(withRange), 25);
+
+  const without = sets([[30, 10], [25, 10], [25, 10]]);
+  applyInferredRoles(without);
+  assert.equal(without[0].failed, true);
+});
+
+test("a clean ramp to a top set is never a failure", () => {
+  const s = sets([[105, 8], [145, 8], [145, 8], [165, 8]]);
+  applyInferredRoles(s, BENCH);
+  assert.equal(s.some((x) => x.failed), false);
+  assert.equal(topWorkingLoad(s), 165);
+});
+
+test("reps collapsing at one weight is three working sets, not a failure", () => {
+  // Nothing was backed off from, so there's no lighter working weight to find.
+  // The suggestion handles it by refusing to add load.
+  const s = sets([[135, 8], [135, 3], [135, 2]]);
+  applyInferredRoles(s, BENCH);
+  assert.deepEqual(s.map((x) => x.role), ["work", "work", "work"]);
+  assert.equal(s.some((x) => x.failed), false);
+});
+
 test("a single lighter set after the top set is an ordinary back-off", () => {
   assert.deepEqual(roles([[30, 10], [25, 10]]), ["work", "backoff"]);
   assert.deepEqual(roles([[25, 10], [30, 10], [25, 10]]), ["ramp", "work", "backoff"]);
