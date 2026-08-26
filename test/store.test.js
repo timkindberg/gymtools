@@ -297,3 +297,32 @@ test("merging an old export brings its sessions forward too", () => {
   for (const s of merged) for (const e of s.entries) assert.ok(e.movementId, `${e.exerciseId} unattributed`);
   assert.equal(store.suggestion("incline-db-curl", findExercise("c5").prescription).weight, 25);
 });
+
+test("a renamed slot keeps the movement its entries were logged under", () => {
+  // b3 was "Neutral-Grip DB Incline Press" on 2026-08-19 and is a Seated DB
+  // Shoulder Press today. A session logged under the old default must stay an
+  // incline press — the name the entry recorded is what he actually did, and
+  // the slot map is only a fallback for names that no longer resolve.
+  const data = fixture();
+  data.sessions[0].entries[2] = {
+    exerciseId: "b3", name: "Neutral-Grip DB Incline Press", variant: null, pain: false, note: "",
+    sets: [{ weight: 45, reps: 10 }, { weight: 45, reps: 10 }],
+  };
+  store.importData(data);
+  const entry = store.getSessions().find((s) => s.id === "s1").entries.find((e) => e.exerciseId === "b3");
+  assert.equal(entry.movementId, "db-incline-press-neutral");
+  // …and the shoulder press slot still has no history to inherit from it.
+  assert.equal(store.lastPerformance("db-shoulder-press-seated"), null);
+  assert.equal(suggestFor("b3"), null);
+});
+
+test("an unrecognisable entry name still lands on the slot's movement", () => {
+  const data = fixture();
+  data.sessions[0].entries[1] = {
+    exerciseId: "b2", name: "Some Long-Retired Exercise Name", variant: null, pain: false, note: "",
+    sets: [{ weight: 140, reps: 10 }],
+  };
+  store.importData(data);
+  const entry = store.getSessions().find((s) => s.id === "s1").entries.find((e) => e.exerciseId === "b2");
+  assert.equal(entry.movementId, "lat-pulldown");
+});

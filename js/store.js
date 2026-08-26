@@ -84,8 +84,13 @@ function migrateEntriesToMovements(data) {
   for (const session of data.sessions || []) {
     for (const entry of session.entries || []) {
       if (entry.movementId) continue;
+      // Order matters. An explicit swap wins; after that the name the entry
+      // recorded beats the slot map, because THAT is what the app showed him on
+      // the day. Slots get re-pointed at new movements over time — b3 has been
+      // an incline press and a shoulder press — so the map is only the last
+      // resort, for entries whose recorded name no longer resolves.
       const fromVariant = resolveMovementId(entry.variant);
-      const slug = fromVariant || LEGACY_SLOT_MOVEMENTS[entry.exerciseId] || resolveMovementId(entry.name);
+      const slug = fromVariant || resolveMovementId(entry.name) || LEGACY_SLOT_MOVEMENTS[entry.exerciseId];
       entry.movementId = slug || null;
       // `variant` becomes a slug too. Anything we can't place keeps its
       // original text in variantName so nothing is silently lost.

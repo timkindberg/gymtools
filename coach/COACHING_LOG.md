@@ -19,8 +19,13 @@ changed — this is the foundation the new engine gets built on.
   Seated DB Shoulder Press, and the same holds for a3 (Barbell Row) and c6
   (DB Skull-crusher). The b3 slot now correctly shows "first time on this one",
   with a context line naming what he actually did in that slot last week.
-  Still open: he may prefer the incline press — it's a registry movement but
-  not a b3 alternative. Ask him before promoting it.
+  Resolved 2026-08-26: he confirmed a barbell incline CHEST press does not
+  belong in a shoulder-press slot, so it stays a registry movement (for history)
+  and out of b3's swap list. The reason it was ever offered: on 2026-08-19 the
+  b3 slot itself was "Neutral-Grip DB Incline Press", which listed Barbell
+  Incline Press as an alternative, and his phone was on that cached build.
+  NOTE: b3 still offers Neutral-Grip DB Incline Press as a swap, which is the
+  same objection one notch weaker. Ask whether he wants it dropped too.
 - **Set roles: ramp / work / back-off** (#3). Inferred as he logs (sets below
   the session's heaviest that precede it are ramps; those that follow are
   back-offs), overridable with one tap on the set row, and never overwritten
@@ -49,9 +54,12 @@ changed — this is the foundation the new engine gets built on.
   excluded from charts, bests and the report until resolved; History shows a
   "1 logged set to check" card with Fix / It's right. Worth doing on his phone.
 - **Migrations** are versioned (data v1 → v5), sequential and idempotent; the
-  in-flight draft upgrades too, so an app update mid-workout is safe. The
-  `(slot → movement)` map used to attribute old sessions is frozen in store.js
-  — never edit an existing line there, only append, or history gets re-pointed.
+  in-flight draft upgrades too, so an app update mid-workout is safe.
+  Attribution order for old entries: explicit `variant` → the `name` the entry
+  recorded → the frozen `(slot → movement)` map in store.js. The recorded name
+  beats the map on purpose: b3 has been a Neutral-Grip DB Incline Press AND a
+  Seated DB Shoulder Press, so the slot map is a guess where the stored name is
+  a fact. Never edit an existing line in that map, only append.
 - **Tests**: `npm test` (node's built-in runner, no deps) — 52 cases over the
   registry, role inference, measures and the migrations, run against a v1 backup
   fixture rebuilt from the evidence tables in #2/#3/#4. His real 2026-08-25
