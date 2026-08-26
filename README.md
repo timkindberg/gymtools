@@ -98,10 +98,23 @@ This is a plain static site — no build step.
 
 ## Tech
 
-Vanilla JS (ES modules), no framework, no dependencies. Data in `localStorage`.
-Offline via a service worker (`sw.js`) that precaches the app shell. Injury-aware
-program + coaching content lives in [`js/program.js`](js/program.js) — that's the
-file to edit when it's time to change the program.
+Vanilla JS (ES modules), no framework, no runtime dependencies. Data in
+`localStorage`. Offline via a service worker (`sw.js`) that precaches the app
+shell. Injury-aware program + coaching content lives in
+[`js/program.js`](js/program.js) — that's the file to edit when it's time to
+change the program.
+
+The data model underneath it:
+
+| file | what it owns |
+|---|---|
+| [`js/movements.js`](js/movements.js) | the movement registry — every exercise as a stable slug with its implement, load mode (total / per-hand / per-side), measure and pattern. **History keys on the movement, not the program slot**, so a 🎲 swap never hands one implement's weight to another. |
+| [`js/measures.js`](js/measures.js) | what the second column counts (reps / seconds / yards), structured prescriptions, the estimated-1RM guard, and the entry-time sanity checks. |
+| [`js/sets.js`](js/sets.js) | set roles — ramp-up, working, back-off — inferred as you log and overridable with a tap. Load suggestions read working sets only. |
+| [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, and the coach report. |
+
+These three are pure modules — no DOM, no storage — which is what makes them
+testable, and what the progression engine will be built on.
 
 ## Running locally
 
@@ -110,6 +123,16 @@ file to edit when it's time to change the program.
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
+
+## Tests
+
+```bash
+npm test   # node --test, no dependencies to install
+```
+
+Unit tests cover the data model against a checked-in backup fixture
+(`test/fixtures/`): movement attribution, set-role inference, typed measures,
+and the migrations that bring an old export forward.
 
 ## Backups
 

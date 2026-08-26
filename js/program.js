@@ -31,6 +31,9 @@
 //   working set at target RPE -> add load next time. Push the top sets.
 // =============================================================================
 
+import { getMovement, movementName, resolveMovementId } from "./movements.js";
+import { repRange, timeRange, distanceRange, formatPrescription } from "./measures.js";
+
 export const DISCLAIMER =
   "This app is a personal training aid, not medical advice. It was built " +
   "around the injuries you described, but it can't examine you. If anything " +
@@ -48,10 +51,21 @@ export const PRINCIPLES = [
 ];
 
 // Small helper so exercise objects stay readable.
-const ex = (o) => ({
-  sets: 3, reps: "8–10", rpe: "8", rest: "90s", tempo: "controlled",
-  alternatives: [], why: "", cues: [], flags: [], ...o,
-});
+//
+// Every exercise is a SLOT: `movement` (and each entry in `alternatives`) is a
+// slug into the movement registry, not a display string, so history follows the
+// movement you actually performed rather than the slot it was performed in.
+// `prescription` is structural — the "8–10/side" you read on screen is derived
+// from it, never parsed back out of it.
+const ex = (o) => {
+  const e = {
+    sets: 3, prescription: repRange(8, 10), rpe: "8", rest: "90s", tempo: "controlled",
+    alternatives: [], why: "", cues: [], flags: [], ...o,
+  };
+  e.movement = e.movement || resolveMovementId(e.name);
+  e.reps = formatPrescription(e.prescription); // display only
+  return e;
+};
 
 // ---- Warm-ups / cool-downs (leg-length forward) ----------------------------
 const PRIMER = [
@@ -100,48 +114,48 @@ export const PROGRAM = {
       warmup: PRIMER,
       exercises: [
         ex({
-          id: "a1", name: "Barbell Box Squat", target: "Quads / glutes", start: 95,
-          sets: 4, reps: "5–8", rpe: "8", rest: "2–3 min", flags: ["knee"], learn: true,
+          id: "a1", movement: "barbell-box-squat", name: "Barbell Box Squat", target: "Quads / glutes", start: 95,
+          sets: 4, prescription: repRange(5, 8), rpe: "8", rest: "2–3 min", flags: ["knee"], learn: true,
           why: "The box gives you a consistent depth target (keeping the knee out of the deep range it hates) and is the friendliest way to learn to squat under a bar. Load it up above the box.",
           cues: ["Set the box to just-above-parallel", "Sit back to the box under control, stay tight (don't flop)", "Knees track over toes", "Drive up through mid-foot, exhale"],
           techNote: "New to bar squats? Start with just the bar for 1–2 sessions to own the groove, then add weight. Use the rack's safety pins.",
-          alternatives: ["Goblet Box Squat", "Leg Press (limited ROM)", "Hack Squat (partial)", "Safety-Bar Box Squat"],
+          alternatives: ["goblet-box-squat", "leg-press", "hack-squat", "safety-bar-box-squat"],
         }),
         ex({
-          id: "a2", name: "Barbell Bench Press", target: "Chest / triceps / shoulders", start: 135,
-          sets: 4, reps: "5–8", rpe: "8", rest: "2 min", flags: ["shoulder"], ss: "S1", learn: true,
+          id: "a2", movement: "barbell-bench-press", name: "Barbell Bench Press", target: "Chest / triceps / shoulders", start: 135,
+          sets: 4, prescription: repRange(5, 8), rpe: "8", rest: "2 min", flags: ["shoulder"], ss: "S1", learn: true,
           why: "The classic upper-body strength builder, and the bar lets you load heavier than dumbbells. We keep the shoulder happy with grip width and bar path, not by avoiding the lift.",
           cues: ["Grip so forearms are vertical at the bottom", "Elbows ~45–75°, not flared to 90°", "Touch the lower chest, drive up", "Shoulder blades pinned back and down"],
           techNote: "Use a spotter or the rack safeties. If the shoulder's cranky that day, 🎲 swap to the neutral-grip DB bench.",
-          alternatives: ["Neutral-Grip DB Bench Press", "Machine Chest Press", "Floor Press"],
+          alternatives: ["db-bench-press-neutral", "machine-chest-press", "floor-press"],
         }),
         ex({
-          id: "a3", name: "Chest-Supported DB Row", target: "Mid-back / posture", start: 50,
-          sets: 3, reps: "8–12", rpe: "9", rest: "75s", flags: ["posture", "shoulder"], ss: "S1",
+          id: "a3", movement: "chest-supported-db-row", name: "Chest-Supported DB Row", target: "Mid-back / posture", start: 50,
+          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "75s", flags: ["posture", "shoulder"], ss: "S1",
           why: "The chest pad takes your low back out of it so you can pull hard into the muscles that fix rounded posture. Great non-competing superset partner for bench.",
           cues: ["Pull elbows toward your hips", "Squeeze the blades together, pause", "Don't shrug toward your ears"],
-          alternatives: ["Barbell Row", "Seated Cable Row (neutral)", "Machine Row"],
+          alternatives: ["barbell-row", "seated-cable-row", "machine-row"],
         }),
         ex({
-          id: "a4", name: "DB Reverse Lunge", target: "Unilateral legs", start: 30,
-          sets: 3, reps: "8–10/side", rpe: "8", rest: "75s", flags: ["knee", "leglength"],
+          id: "a4", movement: "db-reverse-lunge", name: "DB Reverse Lunge", target: "Unilateral legs", start: 30,
+          sets: 3, prescription: repRange(8, 10, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
           why: "Reverse lunges are gentler on the knee than forward ones, and single-leg work is your #1 tool against the leg-length imbalance.",
           cues: ["Step straight back, drop down", "Front shin near vertical", "Push through the front heel", "No twisting at the bottom"],
-          alternatives: ["Bulgarian Split Squat", "DB Step-up (low box)", "Walking Lunge"],
+          alternatives: ["bulgarian-split-squat", "db-step-up", "walking-lunge"],
         }),
         ex({
-          id: "a5", name: "Face Pull", target: "Rear delts / cuff / posture", start: 40,
-          sets: 3, reps: "15–20", rpe: "9", rest: "60s", flags: ["shoulder", "posture", "neck"], ss: "S2",
+          id: "a5", movement: "face-pull", name: "Face Pull", target: "Rear delts / cuff / posture", start: 40,
+          sets: 3, prescription: repRange(15, 20), rpe: "9", rest: "60s", flags: ["shoulder", "posture", "neck"], ss: "S2",
           why: "The best insurance for your shoulder and posture. High reps, take it near failure — it's low-risk.",
           cues: ["Pull the rope to eyes/forehead", "Thumbs point back (external rotation)", "Elbows high, don't shrug the traps"],
-          alternatives: ["Band Face Pull", "Reverse Pec-Deck"],
+          alternatives: ["band-face-pull", "reverse-pec-deck"],
         }),
         ex({
-          id: "a6", name: "Half-Kneeling Pallof Press", target: "Anti-rotation core",
-          sets: 3, reps: "10/side", rpe: "8", rest: "45s", flags: ["posture", "leglength"], ss: "S2",
+          id: "a6", movement: "pallof-press-half-kneeling", name: "Half-Kneeling Pallof Press", target: "Anti-rotation core",
+          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"], ss: "S2",
           why: "Half-kneeling stretches the down-leg hip flexor while you train the core to resist twisting — a two-for-one for your posture and pelvis.",
           cues: ["Hips square, ribs down", "Press straight out, resist the rotation", "Breathe normally"],
-          alternatives: ["Standing Pallof", "Cable Chop", "Bird Dog"],
+          alternatives: ["pallof-press-standing", "cable-chop", "bird-dog"],
         }),
       ],
       cooldown: RIGHT_SIDE_COOLDOWN,
@@ -156,55 +170,55 @@ export const PROGRAM = {
       warmup: PRIMER,
       exercises: [
         ex({
-          id: "b1", name: "Barbell Romanian Deadlift", target: "Hamstrings / glutes / back", start: 135,
-          sets: 4, reps: "6–8", rpe: "8", rest: "2–3 min", flags: ["hamstring", "leglength"], learn: true,
+          id: "b1", movement: "barbell-rdl", name: "Barbell Romanian Deadlift", target: "Hamstrings / glutes / back", start: 135,
+          sets: 4, prescription: repRange(6, 8), rpe: "8", rest: "2–3 min", flags: ["hamstring", "leglength"], learn: true,
           why: "The big posterior-chain builder and a fantastic hinge to learn. Keeping the hips level here is direct anti-tightening work for your right side.",
           cues: ["Soft knees, push the hips back", "Bar drags close to the legs", "Hips stay square — don't hike the right", "Flat back; stop when hamstrings tension, before the back rounds"],
           techNote: "Start moderate and own the hinge before chasing load — this is where form matters most. 🎲 DB RDL is a fine substitute.",
-          alternatives: ["DB Romanian Deadlift", "45° Back Extension", "Cable Pull-Through"],
+          alternatives: ["db-rdl", "back-extension-45", "cable-pull-through"],
         }),
         ex({
-          id: "b2", name: "Pull-up / Lat Pulldown", target: "Lats / upper back", start: 120,
-          sets: 4, reps: "6–10", rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1",
+          id: "b2", movement: "lat-pulldown", name: "Pull-up / Lat Pulldown", target: "Lats / upper back", start: 120,
+          sets: 4, prescription: repRange(6, 10), rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1",
           why: "Vertical pulling for a wide back — always to the FRONT, never behind the neck. Use assisted or the pulldown to hit the rep range cleanly.",
           cues: ["Full hang, pull the collarbone to the bar", "Drive the elbows down", "Control the way up", "Neutral or shoulder-width grip"],
-          alternatives: ["Neutral-Grip Lat Pulldown", "Assisted Pull-up", "Weighted Pull-up"],
+          alternatives: ["lat-pulldown-neutral", "assisted-pull-up", "weighted-pull-up"],
         }),
         ex({
-          id: "b3", name: "Seated DB Shoulder Press", target: "Shoulders / triceps",
-          sets: 3, reps: "8–10", rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1", start: 35,
+          id: "b3", movement: "db-shoulder-press-seated", name: "Seated DB Shoulder Press", target: "Shoulders / triceps",
+          sets: 3, prescription: repRange(8, 10), rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1", start: 35,
           why: "Overhead pressing is back on the menu — you cleared it. This builds the delts and balances the horizontal bench on Day A. (The upright row is the move we skip, not this.)",
           cues: ["Warm the cuff + a face-pull set first", "Press up, don't let the elbows flare way back", "Ribs down, don't overarch", "Stop just short of any pinch"],
           techNote: "Your press strength fades fast when the shoulder's tired — on a rough day, 🎲 swap to the incline press instead of grinding.",
-          alternatives: ["Neutral-Grip DB Incline Press", "Machine Shoulder Press", "Barbell Overhead Press"],
+          alternatives: ["db-incline-press-neutral", "machine-shoulder-press", "barbell-overhead-press"],
         }),
         ex({
-          id: "b4", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad / glute", start: 100,
-          sets: 3, reps: "10–12/side", rpe: "8", rest: "75s", flags: ["knee", "leglength"],
+          id: "b4", movement: "single-leg-leg-press", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad / glute", start: 100,
+          sets: 3, prescription: repRange(10, 12, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
           why: "One leg at a time forces your weaker/tighter side to pull its weight, and the machine keeps the meniscus on a safe, guided track — the convenient, sit-down way to hammer the asymmetry hard.",
           cues: ["Don't let the knee cave inward", "Stop before the knee bends past ~90°", "Push through the whole foot", "Match reps and effort side to side"],
-          alternatives: ["Bulgarian Split Squat", "DB Step-up (low box)", "Split Squat to box"],
+          alternatives: ["bulgarian-split-squat", "db-step-up", "split-squat-to-box"],
         }),
         ex({
-          id: "b5", name: "Seated Leg Curl", target: "Hamstrings",
-          sets: 3, reps: "10–12", rpe: "9", rest: "60s", flags: ["hamstring"], ss: "S2", start: 150,
+          id: "b5", movement: "seated-leg-curl", name: "Seated Leg Curl", target: "Hamstrings",
+          sets: 3, prescription: repRange(10, 12), rpe: "9", rest: "60s", flags: ["hamstring"], ss: "S2", start: 150,
           why: "Direct hamstring strength supports the knee and balances all the quad work. Take these close to failure.",
           cues: ["Smooth down, controlled up", "No jerking with the low back", "Full but pain-free range"],
-          alternatives: ["Lying Leg Curl", "Nordic Curl (negatives)"],
+          alternatives: ["lying-leg-curl", "nordic-curl"],
         }),
         ex({
-          id: "b6", name: "Cable External Rotation", target: "Rotator cuff (right shoulder)", start: 10,
-          sets: 3, reps: "12–15/side", rpe: "8", rest: "45s", flags: ["shoulder"], ss: "S2",
+          id: "b6", movement: "cable-external-rotation", name: "Cable External Rotation", target: "Rotator cuff (right shoulder)", start: 10,
+          sets: 3, prescription: repRange(12, 15, { perSide: true }), rpe: "8", rest: "45s", flags: ["shoulder"], ss: "S2",
           why: "Direct rotator-cuff strength — the daily insurance that keeps heavy pressing pain-free.",
           cues: ["Elbow glued to your ribs, bent 90°", "Rotate the forearm out slowly", "Small range, no momentum"],
-          alternatives: ["Side-Lying DB External Rotation", "Band External Rotation"],
+          alternatives: ["db-external-rotation-side-lying", "band-external-rotation"],
         }),
         ex({
-          id: "b7", name: "Suitcase Carry (optional if time)", target: "Anti-lateral-flexion core", start: 50,
-          sets: 2, reps: "40 yd/side", rpe: "8", rest: "60s", flags: ["leglength", "posture"],
+          id: "b7", movement: "suitcase-carry", name: "Suitcase Carry (optional if time)", target: "Anti-lateral-flexion core", start: 50,
+          sets: 2, prescription: distanceRange(40, 40, { perSide: true }), rpe: "8", rest: "60s", flags: ["leglength", "posture"],
           why: "Loading one side forces your trunk to stay level — the exact frontal-plane control your uneven pelvis needs. Go heavy.",
           cues: ["Stand tall, shoulders level", "Don't lean away from the weight", "Slow, even steps"],
-          alternatives: ["Suitcase Hold (isometric)", "Side Plank"],
+          alternatives: ["suitcase-hold", "side-plank"],
         }),
       ],
       cooldown: RIGHT_SIDE_COOLDOWN,
@@ -221,54 +235,54 @@ export const PROGRAM = {
       warmup: PRIMER,
       exercises: [
         ex({
-          id: "c1", name: "Barbell Hip Thrust", target: "Glutes", start: 135,
-          sets: 3, reps: "8–12", rpe: "9", rest: "90s", flags: ["knee", "posture"], learn: true,
+          id: "c1", movement: "barbell-hip-thrust", name: "Barbell Hip Thrust", target: "Glutes", start: 135,
+          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "90s", flags: ["knee", "posture"], learn: true,
           why: "The most knee- and back-friendly way to build powerful glutes — which protect your knee and pull your posture tall. Load it heavy.",
           cues: ["Upper back on the bench, pad the bar", "Chin tucked, ribs down", "Drive through the heels, squeeze at the top", "Don't hyperextend the low back"],
           techNote: "Get the bench height and bar pad set before loading. 🎲 machine or DB hip thrust works too.",
-          alternatives: ["Machine Hip Thrust", "DB Hip Thrust", "Glute Bridge"],
+          alternatives: ["machine-hip-thrust", "db-hip-thrust", "glute-bridge"],
         }),
         ex({
-          id: "c2", name: "DB Lateral Lunge", target: "Adductors / frontal plane", start: 25,
-          sets: 3, reps: "8/side", rpe: "8", rest: "75s", flags: ["knee", "leglength"],
+          id: "c2", movement: "db-lateral-lunge", name: "DB Lateral Lunge", target: "Adductors / frontal plane", start: 25,
+          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
           why: "Side-to-side loading trains the inner hip and frontal-plane control that a leg-length difference neglects. Stay in a pain-free depth.",
           cues: ["Sit into the bending hip, keep the other leg straight", "Only as deep as stays pain-free", "Push back to center through the heel"],
-          alternatives: ["Adductor Machine + Hip Abduction Machine", "Cossack Squat (shallow)"],
+          alternatives: ["adductor-abductor-machine", "cossack-squat"],
         }),
         ex({
-          id: "c3", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
-          sets: 3, reps: "10/side", rpe: "9", rest: "60s", flags: ["posture", "leglength"],
+          id: "c3", movement: "db-row-single-arm", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
+          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "9", rest: "60s", flags: ["posture", "leglength"],
           why: "Evens out left/right back strength and reinforces posture. Braced on a bench so the low back stays safe.",
           cues: ["Flat back, brace a hand on the bench", "Pull to the hip", "Don't rotate the torso to cheat"],
-          alternatives: ["Chest-Supported Row", "Seated Cable Row"],
+          alternatives: ["chest-supported-db-row", "seated-cable-row"],
         }),
         ex({
-          id: "c4", name: "Single-Leg DB RDL", target: "Unilateral hinge / balance", start: 35,
-          sets: 3, reps: "8/side", rpe: "8", rest: "60s", flags: ["hamstring", "leglength"],
+          id: "c4", movement: "single-leg-db-rdl", name: "Single-Leg DB RDL", target: "Unilateral hinge / balance", start: 35,
+          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "60s", flags: ["hamstring", "leglength"],
           why: "Loaded stretching for the right hamstring and glute plus a big balance and hip-control demand — a direct hit on the asymmetry.",
           cues: ["Hinge on one leg, back leg reaches behind", "Hips stay level (don't let them open)", "Control beats load here"],
-          alternatives: ["B-Stance RDL", "45° Back Extension"],
+          alternatives: ["b-stance-rdl", "back-extension-45"],
         }),
         ex({
-          id: "c5", name: "Incline DB Curl", target: "Biceps", start: 30,
-          sets: 3, reps: "10–12", rpe: "10", rest: "60s", ss: "S1",
+          id: "c5", movement: "incline-db-curl", name: "Incline DB Curl", target: "Biceps", start: 30,
+          sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1",
           why: "Arms — the stretched position is joint-friendly. Take them to failure, supersetted with pushdowns.",
           cues: ["Slow negative", "No swinging"],
-          alternatives: ["Cable Curl", "Hammer Curl", "Barbell Curl"],
+          alternatives: ["cable-curl", "hammer-curl", "barbell-curl"],
         }),
         ex({
-          id: "c6", name: "Triceps Rope Pushdown", target: "Triceps", start: 40,
-          sets: 3, reps: "12–15", rpe: "10", rest: "60s", ss: "S1",
+          id: "c6", movement: "triceps-rope-pushdown", name: "Triceps Rope Pushdown", target: "Triceps", start: 40,
+          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", ss: "S1",
           why: "Rounds out arm work, shoulder-friendly. Failure is fine here.",
           cues: ["Elbows pinned to your sides", "Full lockout, slow return"],
-          alternatives: ["DB Skull-crusher", "Overhead Rope (if pain-free)", "Dips (assisted)"],
+          alternatives: ["db-skullcrusher", "overhead-rope-extension", "dips-assisted"],
         }),
         ex({
-          id: "c7", name: "Side Plank", target: "Anti-lateral-flexion core",
-          sets: 2, reps: "30–45s/side", rpe: "8", rest: "45s", flags: ["leglength", "posture"],
+          id: "c7", movement: "side-plank", name: "Side Plank", target: "Anti-lateral-flexion core",
+          sets: 2, prescription: timeRange(30, 45, { perSide: true }), rpe: "8", rest: "45s", flags: ["leglength", "posture"],
           why: "Trains the side of the trunk to hold you level — frontal-plane core that supports the pelvis.",
           cues: ["Straight line head to heels", "Hips up, don't sag", "Breathe"],
-          alternatives: ["Suitcase Hold", "Copenhagen Plank"],
+          alternatives: ["suitcase-hold", "copenhagen-plank"],
         }),
       ],
       cooldown: [
@@ -315,4 +329,43 @@ export function dayForDate(date, sessions) {
   if (byDow) return byDow;
   const n = sessions ? sessions.length : 0;
   return PROGRAM.days[n % PROGRAM.days.length];
+}
+
+// ---- Slot helpers -----------------------------------------------------------
+
+// Every slot in the program, flat and de-duplicated by slot id.
+export function allExercises() {
+  const seen = new Set();
+  const out = [];
+  PROGRAM.days.forEach((d) => d.exercises.forEach((e) => {
+    if (!seen.has(e.id)) { seen.add(e.id); out.push(e); }
+  }));
+  return out;
+}
+
+export function findExercise(id) {
+  return allExercises().find((e) => e.id === id) || null;
+}
+
+// Display names for the 🎲 swap list (the program stores slugs).
+export function alternativeNames(exDef) {
+  return (exDef.alternatives || []).map((slug) => movementName(slug, slug));
+}
+
+// Guard-rail for the program ↔ registry seam. A mistyped slug would silently
+// orphan a lift's history, so the tests assert this comes back empty.
+export function validateProgram() {
+  const problems = [];
+  allExercises().forEach((e) => {
+    if (!getMovement(e.movement)) problems.push(`${e.id} (${e.name}): unknown movement "${e.movement}"`);
+    if (!e.prescription || !e.prescription.measure) problems.push(`${e.id}: missing prescription`);
+    (e.alternatives || []).forEach((slug) => {
+      if (!getMovement(slug)) problems.push(`${e.id} (${e.name}): unknown alternative "${slug}"`);
+    });
+    const mv = getMovement(e.movement);
+    if (mv && e.prescription && mv.measure !== e.prescription.measure) {
+      problems.push(`${e.id}: prescription measure "${e.prescription.measure}" ≠ movement measure "${mv.measure}"`);
+    }
+  });
+  return problems;
 }

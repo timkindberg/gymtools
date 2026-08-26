@@ -1,0 +1,86 @@
+{
+  "_comment": [
+    "A v1 (pre-movement-registry) backup, reconstructed from the evidence tables",
+    "in issues #2, #3 and #4 — every weight, rep count and note below is quoted",
+    "from one of them. It exists so the migration and the history rewrite can be",
+    "tested against the exact failures they were opened for.",
+    "Tim's real 2026-08-25 export becomes the fixture for the engine itself (#7)."
+  ],
+  "version": 1,
+  "profile": { "name": "Tim", "units": "lb", "createdAt": "2026-08-17T12:00:00.000Z" },
+  "bodyweight": [{ "date": "2026-08-19T12:00:00.000Z", "weight": 235 }],
+  "settings": { "restTimerDefault": 90, "sound": true },
+  "sessions": [
+    {
+      "id": "s1",
+      "date": "2026-08-19T17:00:00.000Z",
+      "dayId": "B",
+      "dayName": "Day B — Pull + Legs",
+      "symptoms": { "knee": 0, "tightness": 2, "shoulder": 1, "neck": 0, "energy": 7, "sleep": 7 },
+      "causedMigraine": false,
+      "notes": "First real workout. Beat the seeded weights on most things.",
+      "entries": [
+        { "exerciseId": "b1", "name": "Barbell Romanian Deadlift", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":138,"reps":8}, {"weight":165,"reps":8}, {"weight":165,"reps":8}, {"weight":165,"reps":8} ] },
+        { "exerciseId": "b2", "name": "Pull-up / Lat Pulldown", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":140,"reps":10}, {"weight":160,"reps":10}, {"weight":160,"reps":8} ] },
+        { "exerciseId": "b3", "name": "Seated DB Shoulder Press", "variant": "Barbell Incline Press", "pain": false, "note": "Swapped via 🎲 — might prefer incline.",
+          "sets": [ {"weight":125,"reps":8}, {"weight":135,"reps":8}, {"weight":135,"reps":6} ] },
+        { "exerciseId": "b4", "name": "Single-Leg Leg Press (limited ROM)", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":130,"reps":12}, {"weight":130,"reps":12}, {"weight":130,"reps":10} ] },
+        { "exerciseId": "b5", "name": "Seated Leg Curl", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":150,"reps":12}, {"weight":150,"reps":12}, {"weight":150,"reps":10} ] },
+        { "exerciseId": "b6", "name": "Cable External Rotation", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":12.5,"reps":15}, {"weight":12.5,"reps":15}, {"weight":12.5,"reps":15} ] },
+        { "exerciseId": "b7", "name": "Suitcase Carry (optional if time)", "variant": null, "pain": false, "note": "I wrote reps as yards",
+          "sets": [ {"weight":60,"reps":30}, {"weight":60,"reps":40} ] }
+      ]
+    },
+    {
+      "id": "s2",
+      "date": "2026-08-21T17:00:00.000Z",
+      "dayId": "C",
+      "dayName": "Day C — Bonus: Mobility, Single-Leg & Arms",
+      "symptoms": { "knee": 1, "tightness": 3, "shoulder": 1, "neck": 1, "energy": 6, "sleep": 6 },
+      "notes": "",
+      "entries": [
+        { "exerciseId": "c1", "name": "Barbell Hip Thrust", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":135,"reps":12}, {"weight":140,"reps":12}, {"weight":140,"reps":12}, {"weight":140,"reps":120} ] },
+        { "exerciseId": "c2", "name": "DB Lateral Lunge", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":25,"reps":8}, {"weight":25,"reps":8}, {"weight":25,"reps":8} ] },
+        { "exerciseId": "c3", "name": "Single-Arm DB Row", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":55,"reps":10}, {"weight":55,"reps":10}, {"weight":55,"reps":10} ] },
+        { "exerciseId": "c4", "name": "Single-Leg DB RDL", "variant": null, "pain": false, "note": "Using 2 dumbbells",
+          "sets": [ {"weight":25,"reps":8}, {"weight":25,"reps":8}, {"weight":25,"reps":8} ] },
+        { "exerciseId": "c5", "name": "Incline DB Curl", "variant": null, "pain": false, "note": "3rd last couple were super hard",
+          "sets": [ {"weight":30,"reps":10}, {"weight":25,"reps":10}, {"weight":25,"reps":10} ] },
+        { "exerciseId": "c6", "name": "Triceps Rope Pushdown", "variant": "DB Skull-crusher", "pain": false, "note": "",
+          "sets": [ {"weight":30,"reps":15}, {"weight":30,"reps":15}, {"weight":30,"reps":8} ] },
+        { "exerciseId": "c7", "name": "Side Plank", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":null,"reps":45}, {"weight":null,"reps":45} ] }
+      ]
+    },
+    {
+      "id": "s3",
+      "date": "2026-08-24T17:00:00.000Z",
+      "dayId": "A",
+      "dayName": "Day A — Push + Legs",
+      "symptoms": { "knee": 1, "tightness": 4, "shoulder": 2, "neck": 0, "energy": 7, "sleep": 6 },
+      "notes": "",
+      "entries": [
+        { "exerciseId": "a1", "name": "Barbell Box Squat", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":105,"reps":8}, {"weight":145,"reps":8}, {"weight":145,"reps":8}, {"weight":165,"reps":8} ] },
+        { "exerciseId": "a2", "name": "Barbell Bench Press", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":95,"reps":8}, {"weight":135,"reps":8}, {"weight":135,"reps":7}, {"weight":135,"reps":6} ] },
+        { "exerciseId": "a3", "name": "Chest-Supported DB Row", "variant": "Barbell Row", "pain": false, "note": "",
+          "sets": [ {"weight":115,"reps":12}, {"weight":125,"reps":12}, {"weight":125,"reps":12} ] },
+        { "exerciseId": "a4", "name": "DB Reverse Lunge", "variant": null, "pain": false, "note": "Could add 5 per hand",
+          "sets": [ {"weight":30,"reps":8}, {"weight":30,"reps":8}, {"weight":30,"reps":12} ] },
+        { "exerciseId": "a5", "name": "Face Pull", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":40,"reps":20}, {"weight":40,"reps":20}, {"weight":40,"reps":18} ] },
+        { "exerciseId": "a6", "name": "Half-Kneeling Pallof Press", "variant": null, "pain": false, "note": "",
+          "sets": [ {"weight":22.5,"reps":12}, {"weight":32.5,"reps":12}, {"weight":37.5,"reps":12} ] }
+      ]
+    }
+  ]
+}
