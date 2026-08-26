@@ -137,6 +137,44 @@ export const MOVEMENTS = Object.freeze(
 
 export const MOVEMENT_SLUGS = Object.keys(MOVEMENTS);
 
+// ---- Swap groups ------------------------------------------------------------
+// `pattern` describes the mechanics, which the progression engine will want at
+// full resolution (a hip thrust and an RDL are not the same lift). A SWAP is a
+// coarser question — "does this train the same thing?" — because an alternative
+// has to be able to fill the slot's job for the week.
+//
+// Tim's rule, 2026-08-26: every alternative in a slot works the same muscle
+// group as the slot. An incline press is a chest press and does not belong in
+// a shoulder-press slot, however conveniently it sits next to one.
+const SWAP_GROUPS = {
+  squat: "knee-dominant",
+  lunge: "knee-dominant",
+  "lunge-frontal": "frontal-plane-hips",
+  adduction: "frontal-plane-hips",
+  hinge: "posterior-chain",
+  "hip-extension": "posterior-chain",
+  "knee-flexion": "hamstrings",
+  "horizontal-push": "chest-press",
+  "incline-push": "chest-press",
+  "vertical-push": "shoulder-press",
+  "horizontal-pull": "horizontal-pull",
+  "vertical-pull": "vertical-pull",
+  "rear-delt": "rear-delt",
+  "shoulder-external-rotation": "rotator-cuff",
+  "elbow-flexion": "biceps",
+  "elbow-extension": "triceps",
+  "anti-rotation": "anti-rotation",
+  "anti-lateral-flexion": "lateral-core",
+  carry: "lateral-core",
+};
+
+// What a movement can stand in for. Two movements are swappable when they
+// share this.
+export function swapGroup(movement) {
+  if (!movement) return null;
+  return SWAP_GROUPS[movement.pattern] || movement.pattern;
+}
+
 // ---- Lookup ----------------------------------------------------------------
 
 // Display names logged before the registry existed, plus the shorthand the

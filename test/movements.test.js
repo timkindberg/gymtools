@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { MOVEMENTS, MOVEMENT_SLUGS, getMovement, resolveMovementId, loadLabel } from "../js/movements.js";
+import { MOVEMENTS, MOVEMENT_SLUGS, getMovement, resolveMovementId, loadLabel, swapGroup } from "../js/movements.js";
 import { validateProgram, allExercises, alternativeNames, findExercise } from "../js/program.js";
 
 test("every movement declares the facts the engine needs", () => {
@@ -17,6 +17,31 @@ test("every movement declares the facts the engine needs", () => {
 
 test("the program only references movements that exist", () => {
   assert.deepEqual(validateProgram(), []);
+});
+
+test("every 🎲 alternative trains what its slot is there to train", () => {
+  // Tim's rule: an alternative has to work the same muscle group as the slot.
+  // validateProgram() enforces it, so this asserts the rule has teeth rather
+  // than only that the program currently happens to pass.
+  for (const e of allExercises()) {
+    const group = swapGroup(getMovement(e.movement));
+    for (const slug of e.alternatives) {
+      assert.equal(swapGroup(getMovement(slug)), group, `${e.id}: ${slug} does not belong in a ${group} slot`);
+    }
+  }
+  // An incline press is a chest press, wherever it is convenient to put it.
+  assert.equal(swapGroup(getMovement("db-incline-press-neutral")), "chest-press");
+  assert.equal(swapGroup(getMovement("db-shoulder-press-seated")), "shoulder-press");
+  assert.ok(!findExercise("b3").alternatives.includes("db-incline-press-neutral"));
+  assert.ok(findExercise("a2").alternatives.includes("db-incline-press-neutral"));
+});
+
+test("unilateral leg work and lateral core still swap freely", () => {
+  // The rule is about muscle group, not about my pattern labels: a split squat
+  // can stand in for a single-leg press, and a side plank for a carry.
+  assert.equal(swapGroup(getMovement("single-leg-leg-press")), swapGroup(getMovement("bulgarian-split-squat")));
+  assert.equal(swapGroup(getMovement("suitcase-carry")), swapGroup(getMovement("side-plank")));
+  assert.equal(swapGroup(getMovement("db-lateral-lunge")), swapGroup(getMovement("adductor-abductor-machine")));
 });
 
 test("every slot and alternative resolves to a movement", () => {

@@ -5,6 +5,36 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-26 — Swap lists must match the muscle group
+
+Tim's rule, from finding an incline barbell press offered in the shoulder-press
+slot: **every alternative in a slot works the same muscle group as the slot.**
+Audited all 20 slots against it — 16 already passed.
+
+- **b3 Seated DB Shoulder Press**: dropped Neutral-Grip DB Incline Press (a
+  chest press). Now swaps to Machine Shoulder Press or Barbell Overhead Press.
+- **a2 Barbell Bench Press**: gained the DB incline press, where it belongs.
+- **c6 Triceps Rope Pushdown**: dropped Dips (assisted) — a compound chest and
+  triceps press, not an elbow-extension isolation, and it loads his right
+  shoulder in a stretched position. Now swaps to DB Skull-crusher or Overhead
+  Rope.
+- Not changed, because they only violated my pattern LABELS and not his rule:
+  b4's split squats standing in for a single-leg press (all unilateral
+  knee-dominant), b7/c7 trading a carry for a side plank (both anti-lateral-
+  flexion core), c2's adductor machine under the lateral lunge (both adductors
+  / frontal plane).
+- Enforced rather than re-audited by hand: `swapGroup()` in movements.js maps
+  the fine-grained `pattern` onto the coarser "does this train the same thing"
+  question, `validateProgram()` fails on any mismatch, and a test asserts it.
+  Adding a swap that doesn't fit the slot now breaks the build.
+
+b3 and c6 are down to two alternatives each, which is thin for a program whose
+whole pitch is variety. Candidates to add if he wants them: b3 — Landmine Press
+(shoulder-friendly) or Half-Kneeling Single-Arm DB Press (doubles as core /
+leg-length work); c6 — Overhead DB Extension or Single-Arm Cable Pushdown.
+Dips could move to a2 as a chest alternative on the same reasoning. Not added —
+these are program-content calls and he hasn't asked for them.
+
 ## 2026-08-25 — Data model rebuilt for the progression engine (chunk 1)
 
 Issues #2, #3, #4 of the suggestion-engine rewrite (#13). No program content
@@ -24,8 +54,8 @@ changed — this is the foundation the new engine gets built on.
   and out of b3's swap list. The reason it was ever offered: on 2026-08-19 the
   b3 slot itself was "Neutral-Grip DB Incline Press", which listed Barbell
   Incline Press as an alternative, and his phone was on that cached build.
-  NOTE: b3 still offers Neutral-Grip DB Incline Press as a swap, which is the
-  same objection one notch weaker. Ask whether he wants it dropped too.
+  The DB incline press was dropped from b3 for the same reason on 2026-08-26 —
+  see the entry above.
 - **Set roles: ramp / work / back-off** (#3). Inferred as he logs (sets below
   the session's heaviest that precede it are ramps; those that follow are
   back-offs), overridable with one tap on the set row, and never overwritten

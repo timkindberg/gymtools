@@ -31,7 +31,7 @@
 //   working set at target RPE -> add load next time. Push the top sets.
 // =============================================================================
 
-import { getMovement, movementName, resolveMovementId } from "./movements.js";
+import { getMovement, movementName, resolveMovementId, swapGroup } from "./movements.js";
 import { repRange, timeRange, distanceRange, formatPrescription } from "./measures.js";
 
 export const DISCLAIMER =
@@ -127,7 +127,7 @@ export const PROGRAM = {
           why: "The classic upper-body strength builder, and the bar lets you load heavier than dumbbells. We keep the shoulder happy with grip width and bar path, not by avoiding the lift.",
           cues: ["Grip so forearms are vertical at the bottom", "Elbows ~45–75°, not flared to 90°", "Touch the lower chest, drive up", "Shoulder blades pinned back and down"],
           techNote: "Use a spotter or the rack safeties. If the shoulder's cranky that day, 🎲 swap to the neutral-grip DB bench.",
-          alternatives: ["db-bench-press-neutral", "machine-chest-press", "floor-press"],
+          alternatives: ["db-bench-press-neutral", "machine-chest-press", "db-incline-press-neutral", "floor-press"],
         }),
         ex({
           id: "a3", movement: "chest-supported-db-row", name: "Chest-Supported DB Row", target: "Mid-back / posture", start: 50,
@@ -190,7 +190,7 @@ export const PROGRAM = {
           why: "Overhead pressing is back on the menu — you cleared it. This builds the delts and balances the horizontal bench on Day A. (The upright row is the move we skip, not this.)",
           cues: ["Warm the cuff + a face-pull set first", "Press up, don't let the elbows flare way back", "Ribs down, don't overarch", "Stop just short of any pinch"],
           techNote: "Your press strength fades fast when the shoulder's tired — on a rough day, 🎲 swap to the incline press instead of grinding.",
-          alternatives: ["db-incline-press-neutral", "machine-shoulder-press", "barbell-overhead-press"],
+          alternatives: ["machine-shoulder-press", "barbell-overhead-press"],
         }),
         ex({
           id: "b4", movement: "single-leg-leg-press", name: "Single-Leg Leg Press (limited ROM)", target: "Unilateral quad / glute", start: 100,
@@ -275,7 +275,7 @@ export const PROGRAM = {
           sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", ss: "S1",
           why: "Rounds out arm work, shoulder-friendly. Failure is fine here.",
           cues: ["Elbows pinned to your sides", "Full lockout, slow return"],
-          alternatives: ["db-skullcrusher", "overhead-rope-extension", "dips-assisted"],
+          alternatives: ["db-skullcrusher", "overhead-rope-extension"],
         }),
         ex({
           id: "c7", movement: "side-plank", name: "Side Plank", target: "Anti-lateral-flexion core",
@@ -359,8 +359,14 @@ export function validateProgram() {
   allExercises().forEach((e) => {
     if (!getMovement(e.movement)) problems.push(`${e.id} (${e.name}): unknown movement "${e.movement}"`);
     if (!e.prescription || !e.prescription.measure) problems.push(`${e.id}: missing prescription`);
+    const group = swapGroup(getMovement(e.movement));
     (e.alternatives || []).forEach((slug) => {
-      if (!getMovement(slug)) problems.push(`${e.id} (${e.name}): unknown alternative "${slug}"`);
+      const alt = getMovement(slug);
+      if (!alt) { problems.push(`${e.id} (${e.name}): unknown alternative "${slug}"`); return; }
+      // Every 🎲 option has to train what the slot is there to train.
+      if (swapGroup(alt) !== group) {
+        problems.push(`${e.id} (${e.name}, ${group}): alternative "${alt.name}" trains ${swapGroup(alt)}`);
+      }
     });
     const mv = getMovement(e.movement);
     if (mv && e.prescription && mv.measure !== e.prescription.measure) {
