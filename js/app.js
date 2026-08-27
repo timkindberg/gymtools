@@ -10,7 +10,12 @@ import {
   measureInfo, prescriptionFor, formatPrescription, formatSet, setAmount,
   isLogged, validateSet,
 } from "./measures.js";
-import { applyInferredRoles, roleLabel, roleOf, nextRole } from "./sets.js";
+import { applyInferredRoles, roleLabel, roleOf, nextRole, lastWorkingIndex } from "./sets.js";
+import {
+  RIR_CHOICES, RIR_LABELS, RIR_HINTS, setRir, hasEffort, recordEffort,
+  effortLabel, effortGlyph, targetRir,
+  HARDER_SIDES, SIDE_LABELS, harderSide, harderSideLabel, recordHarderSide,
+} from "./effort.js";
 import * as store from "./store.js";
 import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
@@ -173,24 +178,7 @@ function startOrResume(day) {
       symptoms: {},
       symptomsDone: false,
       metrics: {},
-      // An entry records BOTH the slot it filled and the movement performed in
-      // it. The movement is what history keys on; the slot only says what was
-      // programmed today. measure/loadMode are denormalized so an old session
-      // still reads correctly if the registry later changes.
-      entries: day.exercises.map((e) => {
-        const mv = getMovement(e.movement);
-        return {
-          exerciseId: e.id,
-          movementId: e.movement,
-          name: e.name,
-          variant: null,
-          measure: mv ? mv.measure : "reps",
-          loadMode: mv ? mv.loadMode : "total",
-          sets: Array.from({ length: e.sets }, () => ({ weight: null, amount: null, role: "work", done: false })),
-          pain: false,
-          note: "",
-        };
-      }),
+      entries: day.exercises.map(blankEntry),
       notes: "",
     };
     store.saveDraft(newDraft);
@@ -381,22 +369,30 @@ function symptomAlerts(symptoms) {
 function entryForSlot(draft, exDef) {
   let entry = draft.entries.find((e) => e.exerciseId === exDef.id);
   if (!entry) {
-    const mv = getMovement(exDef.movement);
-    entry = {
-      exerciseId: exDef.id,
-      movementId: exDef.movement,
-      name: exDef.name,
-      variant: null,
-      measure: mv ? mv.measure : "reps",
-      loadMode: mv ? mv.loadMode : "total",
-      sets: Array.from({ length: exDef.sets }, () => ({ weight: null, amount: null, role: "work", done: false })),
-      pain: false,
-      note: "",
-    };
+    entry = blankEntry(exDef);
     draft.entries.push(entry);
     store.saveDraft(draft);
   }
   return entry;
+}
+
+// An entry records BOTH the slot it filled and the movement performed in it.
+// The movement is what history keys on; the slot only says what was programmed
+// today. measure/loadMode are denormalized so an old session still reads
+// correctly if the registry later changes.
+function blankEntry(exDef) {
+  const mv = getMovement(exDef.movement);
+  return {
+    exerciseId: exDef.id,
+    movementId: exDef.movement,
+    name: exDef.name,
+    variant: null,
+    measure: mv ? mv.measure : "reps",
+    loadMode: mv ? mv.loadMode : "total",
+    sets: Array.from({ length: exDef.sets }, () => ({ weight: null, amount: null, role: "work", done: false })),
+    pain: false,
+    note: "",
+  };
 }
 
 function exerciseCard(exDef, draft, idx) {
@@ -437,6 +433,8 @@ function exerciseCard(exDef, draft, idx) {
     entry.variantName = null;
     const mv = getMovement(next);
     if (mv) { entry.measure = mv.measure; entry.loadMode = mv.loadMode; }
+    // Swapping to a two-limbs-at-once movement retires the harder-side tap.
+    if (!(mv && mv.unilateral)) recordHarderSide(entry, null);
     store.saveDraft(draft);
     navigate("session");
   };
@@ -489,9 +487,12 @@ function exerciseCard(exDef, draft, idx) {
 
   // Last time / suggestion
   if (last) {
-    const setStr = store.loggedSets(last.sets).map((s) => formatSet(movement, s) + roleGlyph(s)).join(", ");
+    const setStr = store.loggedSets(last.sets).map((s) => setText(movement, s)).join(", ");
+    // Which side gave out last time (#6) — only when he flagged one.
+    const lastHarder = harderSide(last.entry);
     card.appendChild(el("div.lasttime", {}, [
       el("span.muted.small", { text: `Last (${relDay(last.date)}): ${setStr || "—"}` }),
+      lastHarder ? el("span.balance", { text: `⇄ ${harderSideLabel(lastHarder)} side was the harder one last time` }) : null,
       sugg ? el("span.sugg", { text: "🎯 " + sugg.note }) : null,
       sugg && sugg.basis ? el("span.muted.tiny", { text: sugg.basis }) : null,
     ]));
@@ -510,7 +511,7 @@ function exerciseCard(exDef, draft, idx) {
       const prevMv = getMovement(slotLast.movementId);
       box.appendChild(el("span.muted.tiny", {
         text: `In this slot ${relDay(slotLast.date)} you did ${movementName(slotLast.movementId, slotLast.entry.name)} ` +
-          `(${store.loggedSets(slotLast.sets).map((x) => formatSet(prevMv, x)).join(", ")}) — different movement, so that weight isn't carried over.`,
+          `(${store.loggedSets(slotLast.sets).map((x) => setText(prevMv, x)).join(", ")}) — different movement, so that weight isn't carried over.`,
       }));
     }
     card.appendChild(box);
@@ -518,10 +519,19 @@ function exerciseCard(exDef, draft, idx) {
 
   // Set rows
   const badges = [];
-  const refreshRoles = () => {
+  const effortHost = el("div.effort");
+  const ctx = {
+    exDef, movement, measure, info, draft, entry, badges,
+    unilateral: !!(movement && movement.unilateral),
+    phWeight: startWeight, phAmount: startAmount,
+    refreshRoles: () => {},
+  };
+  ctx.refreshRoles = () => {
     applyInferredRoles(entry.sets, prescription);
     badges.forEach((b, i) => paintRoleBadge(b, entry.sets[i]));
+    renderEffort(effortHost, ctx);
   };
+
   const setsWrap = el("div.sets");
   setsWrap.appendChild(el("div.set-row.set-header", {}, [
     el("span.set-col", { text: "Set" }),
@@ -530,10 +540,10 @@ function exerciseCard(exDef, draft, idx) {
     el("span.set-col", { text: "Role" }),
     el("span.set-col", { text: "✓" }),
   ]));
-  const ctx = { movement, measure, info, draft, entry, refreshRoles, badges, phWeight: startWeight, phAmount: startAmount };
   entry.sets.forEach((setData, si) => setsWrap.appendChild(setRow(ctx, setData, si)));
   card.appendChild(setsWrap);
-  refreshRoles();
+  card.appendChild(effortHost);
+  ctx.refreshRoles();
 
   // Barbell plate helper: live breakdown of what to load, off a 45 lb bar.
   if (movement && movement.implement === "barbell") {
@@ -548,7 +558,7 @@ function exerciseCard(exDef, draft, idx) {
     card.insertBefore(plateNote, setsWrap);
   }
 
-  // add/remove set + pain toggle
+  // add/remove set + L/R + pain toggle
   card.appendChild(el("div.set-tools", {}, [
     el("button.btn.ghost.small", { text: "+ set", onclick: () => {
       entry.sets.push({ weight: entry.sets.at(-1)?.weight ?? null, amount: null, role: "work", done: false });
@@ -572,6 +582,12 @@ function exerciseCard(exDef, draft, idx) {
   card.appendChild(noteBox);
 
   return card;
+}
+
+// How one logged set reads in a list: "165×8↗", "L 50×10 · R 55×10 @9".
+// Sides only appear when they were logged apart; the RPE only when it was given.
+function setText(movement, set) {
+  return formatSet(movement, set) + roleGlyph(set) + effortGlyph(set);
 }
 
 // Ramp-ups and back-offs are marked so a glance at a set list shows what was
@@ -599,36 +615,33 @@ function paintRoleBadge(badge, setData) {
 }
 
 function setRow(ctx, setData, si) {
-  const { movement, measure, info, draft, entry, refreshRoles, badges } = ctx;
+  const { info, draft, entry, badges } = ctx;
   const row = el("div.set-row");
   row.appendChild(el("span.set-col.set-num", { text: String(si + 1) }));
 
+  const write = (patch) => {
+    Object.assign(setData, patch);
+    delete setData.confirmed;
+    store.saveDraft(draft);
+    ctx.refreshRoles();
+  };
   const wInput = el("input.set-input", {
     type: "number", inputmode: "decimal",
     placeholder: ctx.phWeight != null ? String(ctx.phWeight) : "–",
     value: setData.weight ?? "",
-    oninput: (e) => {
-      setData.weight = e.target.value === "" ? null : Number(e.target.value);
-      delete setData.confirmed;
-      store.saveDraft(draft);
-      refreshRoles();
-    },
+    oninput: (e) => write({ weight: e.target.value === "" ? null : Number(e.target.value) }),
   });
   const aInput = el("input.set-input", {
     type: "number", inputmode: info.inputmode,
     placeholder: ctx.phAmount != null ? String(ctx.phAmount) : "–",
     value: setAmount(setData) ?? "",
-    oninput: (e) => {
-      setData.amount = e.target.value === "" ? null : Number(e.target.value);
-      delete setData.confirmed;
-      store.saveDraft(draft);
-      refreshRoles();
-    },
+    oninput: (e) => write({ amount: e.target.value === "" ? null : Number(e.target.value) }),
   });
   // Sanity-check on commit (blur/enter), never mid-keystroke: 140 × 120 is a
   // typo worth catching, but "1" on the way to "12" is not (#4).
-  wInput.addEventListener("change", () => checkSet(ctx, setData, { weight: wInput, amount: aInput }));
-  aInput.addEventListener("change", () => checkSet(ctx, setData, { weight: wInput, amount: aInput }));
+  const recheck = () => checkSet(ctx, setData, { weight: wInput, amount: aInput });
+  wInput.addEventListener("change", recheck);
+  aInput.addEventListener("change", recheck);
 
   row.appendChild(el("span.set-col", {}, [wInput]));
   row.appendChild(el("span.set-col", {}, [aInput]));
@@ -660,11 +673,90 @@ function setRow(ctx, setData, si) {
       if (setData.weight == null && prev.weight != null) { setData.weight = prev.weight; wInput.value = prev.weight; }
     }
     store.saveDraft(draft);
-    refreshRoles();
+    ctx.refreshRoles();
     if (setData.done) startRest();
   });
   row.appendChild(el("span.set-col", {}, [check]));
   return row;
+}
+
+// ---- Effort (#5) ------------------------------------------------------------
+// One tap, on the last working set only — that's where the signal is, and a
+// 50-minute session can't afford a question after every set. Re-rendered
+// whenever roles change, so the chips follow the set that is currently "last
+// working" as you log.
+function renderEffort(host, ctx) {
+  clear(host);
+  const { entry, exDef } = ctx;
+  const lastWork = lastWorkingIndex(entry.sets);
+  const indices = entry.sets
+    .map((s, i) => i)
+    .filter((i) => i === lastWork || hasEffort(entry.sets[i]));
+  if (!indices.length) return;
+  indices.forEach((i) => host.appendChild(effortRow(ctx, i, i === lastWork)));
+  if (ctx.unilateral) host.appendChild(harderSideRow(ctx));
+  const wanted = targetRir(exDef && exDef.rpe);
+  host.appendChild(el("p.muted.tiny", {
+    text: wanted != null
+      ? `Optional. Programmed RPE ${exDef.rpe} ≈ ${wanted} left in the tank — logging it is what lets the app tell "too light" from "at your limit".`
+      : "Optional — how many more reps you could have done on that set.",
+  }));
+}
+
+// The one left/right question worth a tap (#6): which side gave out first.
+// Not per-side weights and reps — you load both sides the same and match the
+// reps to the weaker one, so those numbers would read identical every session.
+// Which side was the hard one is the part that actually moves.
+function harderSideRow(ctx) {
+  const { entry, draft } = ctx;
+  const current = harderSide(entry);
+  const chips = el("div.effort-chips", {}, HARDER_SIDES.map((side) => el("button", {
+    class: "chip" + (current === side ? " on" : ""),
+    text: side, title: `The ${SIDE_LABELS[side]} side was the harder one — tap again to clear`,
+    onclick: () => {
+      recordHarderSide(entry, current === side ? null : side);
+      store.saveDraft(draft);
+      ctx.refreshRoles();
+    },
+  })));
+  return el("div.effort-row", {}, [
+    el("div.effort-head", {}, [
+      el("span.effort-label", { text: "Harder side" }),
+      el("span.muted.tiny", { text: "if one gave out first" }),
+    ]),
+    chips,
+    el("span.effort-read", { text: current ? `${harderSideLabel(current)} was harder` : "sides felt even" }),
+  ]);
+}
+
+function effortRow(ctx, si, isLastWorking) {
+  const { entry, draft } = ctx;
+  const setData = entry.sets[si];
+  const current = setRir(setData);
+  const readout = el("span.effort-read", { text: current == null ? "not logged" : effortLabel(setData) });
+
+  const chips = el("div.effort-chips", {}, RIR_CHOICES.map((rir) => el("button", {
+    class: "chip" + (current === rir ? " on" : ""),
+    text: RIR_LABELS[rir], title: RIR_HINTS[rir],
+    onclick: () => {
+      // Tapping the chip that's already on clears it — nothing is ever stuck.
+      recordEffort(setData, current === rir ? null : rir);
+      store.saveDraft(draft);
+      ctx.refreshRoles();
+    },
+  })));
+
+  // "Reps left in the tank" is the plain-language version of RPE. On a timed or
+  // measured hold there are no reps to leave, so ask how much more he had.
+  const question = ctx.measure === "reps" ? "reps left in the tank" : "how much more you had in you";
+  return el("div.effort-row", {}, [
+    el("div.effort-head", {}, [
+      el("span.effort-label", { text: `Set ${si + 1} — ${question}` }),
+      isLastWorking ? el("span.muted.tiny", { text: "last working set" }) : null,
+    ]),
+    chips,
+    readout,
+  ]);
 }
 
 // Warn, never block: the athlete is the authority on what he just did, so every
@@ -731,6 +823,7 @@ async function finishSession(draft, day) {
         prescription,
         measure: (mv && mv.measure) || e.measure || "reps",
         loadMode: (mv && mv.loadMode) || e.loadMode || "total",
+        harderSide: harderSide(e),
         pain: e.pain,
         note: e.note,
         sets,
@@ -1104,9 +1197,9 @@ function sessionSummaryCard(s, withDelete) {
   (s.entries || []).forEach((e) => {
     if (!e.sets || !e.sets.length) return;
     const mv = getMovement(e.movementId);
-    det.appendChild(el("div.log-line", { title: "↗ ramp-up · ↘ back-off · ✗ failed opener" }, [
-      el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") }),
-      el("span.muted.small", { text: e.sets.map((x) => formatSet(mv, x) + roleGlyph(x) + (x.suspect ? " ⚠︎" : "")).join(", ") }),
+    det.appendChild(el("div.log-line", { title: "↗ ramp-up · ↘ back-off · ✗ failed opener · @n RPE" }, [
+      el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") + (harderSide(e) ? ` (${harderSide(e)} harder)` : "") }),
+      el("span.muted.small", { text: e.sets.map((x) => setText(mv, x) + (x.suspect ? " ⚠︎" : "")).join(", ") }),
     ]));
   });
   if (s.metrics && WATCH_METRICS.some((m) => s.metrics[m.id] != null && s.metrics[m.id] !== "")) {

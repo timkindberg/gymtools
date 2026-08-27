@@ -9,6 +9,7 @@ import {
   formatSet, staticWarnings, measureInfo, prescriptionFor,
 } from "./measures.js";
 import { applyInferredRoles, workingSets, rampSets, topWorkingLoad, failedSets } from "./sets.js";
+import { workingEffort, effortVerdict, effortLabel, rirFromRpe, harderSideLabel } from "./effort.js";
 import { allExercises } from "./program.js";
 
 const KEY = "gymtools.v1";
@@ -396,12 +397,14 @@ export function movementHistory(movementId) {
   const out = [];
   for (const s of getSessions().slice().reverse()) {
     let vol = 0, bestE1rm = 0, topWeight = 0, bestAmount = 0, sets = 0, flagged = 0;
+    const counted = [];
     for (const entry of entriesFor(s, movementId)) {
       for (const set of workingSets(loggedSets(entry.sets))) {
         // A set flagged as a probable typo stays out of the trend until it is
         // either corrected or confirmed — one 140 × 120 ruins the whole line.
         if (set.suspect) { flagged++; continue; }
         sets++;
+        counted.push(set);
         vol += setVolume(mv, set);
         const w = setLoad(set) || 0, a = setAmount(set) || 0;
         if (w > topWeight) topWeight = w;
@@ -410,7 +413,9 @@ export function movementHistory(movementId) {
         if (e1 && e1 > bestE1rm) bestE1rm = e1;
       }
     }
-    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, measure: (mv && mv.measure) || "reps" }); continue; }
+    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, rpe: null, measure: (mv && mv.measure) || "reps" }); continue; }
+    // How hard it was (#5) — optional, and null until he logs it.
+    const effort = workingEffort(counted);
     out.push({
       date: s.date,
       sets,
@@ -419,7 +424,34 @@ export function movementHistory(movementId) {
       topWeight,
       bestAmount,
       e1rm: bestE1rm ? Math.round(bestE1rm) : null,
+      rpe: effort ? effort.rpe : null,
       measure: (mv && mv.measure) || "reps",
+    });
+  }
+  return out;
+}
+
+// ---- Harder side (#6) -------------------------------------------------------
+// One tap per exercise: which side gave out first. Per movement, how often each
+// side was flagged and out of how many sessions — a side flagged once is a bad
+// day, a side flagged every time is the asymmetry the program exists to fix.
+export function harderSideReport() {
+  const out = [];
+  for (const id of loggedMovementIds()) {
+    let L = 0, R = 0, total = 0, date = null;
+    for (const s of getSessions().slice().reverse()) {
+      for (const entry of entriesFor(s, id)) {
+        if (!loggedSets(entry.sets).length) continue;
+        total++;
+        if (entry.harderSide === "L") { L++; date = s.date; }
+        else if (entry.harderSide === "R") { R++; date = s.date; }
+      }
+    }
+    if (!L && !R) continue;
+    const side = L >= R ? "L" : "R";
+    out.push({
+      movementId: id, name: movementName(id, id), side,
+      flagged: Math.max(L, R), total, date, mixed: L > 0 && R > 0,
     });
   }
   return out;
@@ -508,10 +540,13 @@ export function confirmSuspectSet(sessionId, entryIndex, setIndex) {
 }
 
 // ---- Suggestion -------------------------------------------------------------
-// Double progression, now reading only the sets that were actually work.
-// This is still the interim heuristic — the real engine (flat +5/+10 increments,
-// RPE, stalls, deloads) is issue #7. What it no longer does is count ramp-up
-// sets as work or read a failed opener as the working weight.
+// Double progression, reading only the sets that were actually work, and now
+// reading how hard they were (#5) and which side did them (#6).
+// This is still the interim heuristic — the real engine (implement-aware
+// increments, stalls, deloads) is issue #7. What it no longer does is count
+// ramp-up sets as work, read a failed opener as the working weight, tell you to
+// repeat a load you had five reps left in, or tell you to grind out more reps at
+// a weight you already took to failure.
 export function suggestion(movementId, prescription) {
   const last = lastPerformance(movementId);
   if (!last) return null;
@@ -526,25 +561,36 @@ export function suggestion(movementId, prescription) {
   const ramps = rampSets(logged).length;
   const failed = failedSets(logged);
   const hitTarget = work.every((s) => (setAmount(s) || 0) >= target);
+
+  // How hard the last working set was, if he said. Absent → reps-only, exactly
+  // as before (#5: an omitted RPE never produces a worse suggestion).
+  const effort = workingEffort(work);
+  const verdict = effortVerdict({ rir: effort ? effort.rir : null, hitTarget });
+
   const basis = `Counted ${work.length} working set${work.length === 1 ? "" : "s"}` +
     (ramps ? `, ignored ${ramps} ramp-up set${ramps === 1 ? "" : "s"}` : "") +
-    (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + ".";
+    (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + "." +
+    (effort ? ` Last working set at ${effortLabel(effort.set)}.` : "");
 
   const topWeight = topWorkingLoad(logged);
 
   // Unloaded work (planks, bodyweight) progresses on the measure itself.
   if (topWeight == null) {
     const best = Math.max(...work.map((s) => setAmount(s) || 0));
-    const step = measure === "reps" ? 1 : 5;
-    if (hitTarget) {
+    const step = (measure === "reps" ? 1 : 5) * Math.max(1, verdict.steps);
+    if (verdict.steps > 0) {
       return {
         action: "increase", weight: null, amount: best + step, basis,
-        note: `You held ${best}${info.unit} everywhere last time — push for ${best + step}${info.unit}.`,
+        note: verdict.code === "too-light"
+          ? `You held ${best}${info.unit} with ${verdict.rir}+ left in the tank — go for ${best + step}${info.unit}.`
+          : `You held ${best}${info.unit} everywhere last time — push for ${best + step}${info.unit}.`,
       };
     }
     return {
       action: "repeat", weight: null, amount: target, basis,
-      note: `Work back up to ${target}${info.unit} before adding anything.`,
+      note: verdict.code === "at-failure"
+        ? `You went to failure at ${best}${info.unit} — hold there until it stops being a fight.`
+        : `Work back up to ${target}${info.unit} before adding anything.`,
     };
   }
 
@@ -559,20 +605,53 @@ export function suggestion(movementId, prescription) {
     };
   }
 
-  if (hitTarget) {
-    // TODO(#7): implement-aware increments. A flat +5 is 40% on a 12.5 lb cable.
-    const inc = topWeight >= 100 ? 10 : 5;
+  // TODO(#7): implement-aware increments. A flat +5 is 40% on a 12.5 lb cable.
+  const inc = topWeight >= 100 ? 10 : 5;
+  const next = topWeight + inc * verdict.steps;
+
+  if (verdict.steps > 0) {
     return {
-      action: "increase", weight: topWeight + inc, amount: target, basis,
-      note: `You hit the top of the range on every working set — try ${topWeight + inc}.`,
+      action: "increase", weight: next, amount: target, basis,
+      note: suggestionNote(verdict, { topWeight, next, inc, target, info, measure }),
     };
   }
   return {
     action: "repeat", weight: topWeight, amount: target, basis,
-    note: measure === "reps"
-      ? `Aim to add reps at ${topWeight} before adding weight.`
-      : `Stay at ${topWeight} and build to ${target}${info.unit} before adding weight.`,
+    note: suggestionNote(verdict, { topWeight, next, inc, target, info, measure }),
   };
+}
+
+// The sentence attached to the number. Effort is what makes these different
+// from each other — same reps, same weight, opposite advice.
+function suggestionNote(verdict, { topWeight, next, inc, target, info, measure }) {
+  const holdForReps = measure === "reps"
+    ? `Aim to add reps at ${topWeight} before adding weight.`
+    : `Stay at ${topWeight} and build to ${target}${info.unit} before adding weight.`;
+
+  switch (verdict.code) {
+    case "too-light":
+      return verdict.hitTarget
+        ? `You topped the range with ${verdict.rir}+ ${info.short} still in the tank — that was too light. Go to ${next}.`
+        : `You stopped short of the range with ${verdict.rir}+ ${info.short} still in the tank — the load was the limiter, ` +
+          `not the ${info.short}. Try ${next}, and ${next + inc} if that still leaves ${verdict.rir}+ in the tank.`;
+    case "near-failure":
+      return verdict.hitTarget
+        ? `You topped the range with one left — a clean step up to ${next}.`
+        : holdForReps;
+    case "at-failure":
+      return verdict.hitTarget
+        ? `You topped the range, but that last set was to failure — repeat ${topWeight} and let it feel like an 8 before adding.`
+        : `You were already at failure short of ${target} ${info.short} — repeat ${topWeight}. The extra ${info.short} come from ` +
+          `getting stronger at this weight, not from grinding.`;
+    case "on-target":
+      return verdict.hitTarget
+        ? `You hit the top of the range at RPE ${10 - verdict.rir} — try ${next}.`
+        : holdForReps;
+    default: // reps-only — the pre-RPE behaviour, unchanged
+      return verdict.hitTarget
+        ? `You hit the top of the range on every working set — try ${next}.`
+        : holdForReps;
+  }
 }
 
 // ---- Symptom trend ---------------------------------------------------------
@@ -626,13 +705,18 @@ export function coachReport() {
     const mv = getMovement(id);
     const label = movementName(id, id);
     const f = h[0], l = h[h.length - 1];
+    // What the last top set actually cost him (#5). Without this a stall and a
+    // set left with three reps in the tank look identical on paper.
+    const effortTag = l.rpe != null
+      ? ` · last working set RPE ${l.rpe} (${rirFromRpe(l.rpe)} left)`
+      : "";
     if (l.e1rm != null && f.e1rm != null) {
       let tag = "";
       if (h.length >= 3) {
         const prev = h[h.length - 3];
         tag = l.e1rm > prev.e1rm ? " — progressing ↑" : " — ⚠️ STALLED (no e1RM gain in 3 sessions)";
       }
-      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${tag}`);
+      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${effortTag}${tag}`);
     } else {
       // No meaningful e1RM here — report what the movement actually measures,
       // and say why there's no 1RM so the coach doesn't go looking for one.
@@ -643,7 +727,7 @@ export function coachReport() {
         : "high-rep work";
       const load = l.topWeight ? `${l.topWeight}${p.units} × ` : "";
       const was = f.topWeight ? `${f.topWeight}${p.units} × ` : "";
-      L.push(`- **${label}**: best working set ${load}${l.bestAmount}${info.unit} (was ${was}${f.bestAmount}${info.unit}) over ${sessionCount(h)} — no est 1RM (${reason})`);
+      L.push(`- **${label}**: best working set ${load}${l.bestAmount}${info.unit} (was ${was}${f.bestAmount}${info.unit}) over ${sessionCount(h)} — no est 1RM (${reason})${effortTag}`);
     }
   });
   if (!any) L.push("- (not enough logged sets yet)");
@@ -651,6 +735,24 @@ export function coachReport() {
   if (flagged.length) {
     L.push(`- ⚠️ ${flagged.length} logged set${flagged.length === 1 ? "" : "s"} flagged as a possible typo and excluded from bests: ` +
       flagged.map((f) => `${f.name} ${f.text} (${f.date.slice(0, 10)})`).join("; "));
+  }
+  L.push("");
+
+  // Which side gave out first (#6). Deliberately qualitative: he uses the same
+  // dumbbell on both sides and matches reps to the weaker one, so per-side
+  // numbers would read identical forever. What he DOES notice — "right side
+  // could have done more, left had a harder time" — is one tap, and it's the
+  // only left/right signal in here that can actually change.
+  L.push("## Harder side");
+  const harder = harderSideReport();
+  if (harder.length) {
+    harder.forEach((h) => {
+      L.push(`- **${h.name}**: ${harderSideLabel(h.side)} side harder in ${h.flagged} of ${h.total} session${h.total === 1 ? "" : "s"}` +
+        ` (latest ${h.date.slice(0, 10)})${h.mixed ? " — mixed; the other side was flagged too" : ""}`);
+    });
+    L.push("- Qualitative, not load data: it says which side gave out first, not how much weaker it is.");
+  } else {
+    L.push("- Nothing flagged — on a unilateral lift, tap L or R when one side gives out first.");
   }
   L.push("");
 

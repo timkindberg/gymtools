@@ -5,6 +5,53 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-27 — Capturing the two signals we were throwing away (chunk 2)
+
+Issues #5 and #6 of the suggestion-engine rewrite (#13). No program content
+changed; the app now collects two things it was prescribing but never recording.
+
+- **RPE / reps in reserve** (#5). New `js/effort.js`. The last working set of
+  each exercise gets a one-tap chip row — `0 · 1 · 2 · 3 · 4+ left` — asked as
+  "reps left in the tank" and stored as `rpe` on the set (Zourdos RIR scale:
+  10 = failure, 9 = one left, 8 = two). It's optional and it never blocks
+  saving; with no RPE the engine falls back to exactly its old reps-only
+  behaviour. The chips appear only once a set has something in it, so an RPE
+  can't be parked on a blank row and dropped at save.
+  - The three misses from the issue's evidence table are now right:
+    **a4 Reverse Lunge 30×8** with "could maybe handle 5 more on each side"
+    goes from *repeat 30* to **35, and 40 if that's still easy**;
+    **b2 Lat Pulldown 160×8** at failure stops being told to *add reps at 160*
+    and is told to hold it; **a1 165×8** at RPE 8 adds load as before, but at
+    RPE 10 holds instead.
+  - Effort now rides along in the coach report ("last working set RPE 8
+    (2 left)"), in the session log (`165×8 @8`), and in the suggestion's basis
+    line, so a stall and a set with three reps in the tank stop looking alike.
+- **Which side gave out first** (#6, cut down). Tim pushed back on full per-side
+  logging and he's right: he loads both sides the same and matches reps to the
+  weaker one, so per-side weights and reps would read identical every session —
+  a metric that can only ever say "level". I built it, then took it out
+  (`js/sides.js`, split rows, the asymmetry index, and a roll-up that quietly
+  redefined `set.weight` as the weaker side's number — a permanent tax on the
+  data model for a toggle he'd never switch on).
+  - What replaced it: **one optional tap per unilateral exercise, L or R, for
+    the side that gave out first** — the observation he actually makes ("right
+    side could have done more, left had a harder time"). It rides next to the
+    RPE chips, shows on the exercise card ("left side was the harder one last
+    time"), tags the session log, and gets a **Harder side** section in the
+    report counting how often each side is flagged out of how many sessions.
+  - It is deliberately qualitative and touches no numbers: no suggestion
+    changes because of it. If a side gets flagged session after session, that's
+    my cue to look at it in a review — which is the right place for that call,
+    not the load engine.
+  - Issue #6 stays open with this reasoning. If a rehab block ever calls for
+    genuinely different loads per side, the full version is in the PR history.
+- No data migration needed: both fields are optional and additive, so the store
+  stays at version 5. 78 unit tests, plus a browser pass over the whole flow —
+  log sets, rate one, flag a side, save, read it back in history and the report.
+
+For the next report: I'm looking for RPE on the top sets. Without it, #7's real
+engine is still guessing on every "should he add weight or add reps" call.
+
 ## 2026-08-26 — Swap lists must match the muscle group
 
 Tim's rule, from finding an incline barbell press offered in the shoulder-press

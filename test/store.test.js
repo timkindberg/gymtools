@@ -1,4 +1,4 @@
-// The acceptance criteria of issues #2, #3 and #4, run against a v1 backup.
+// The acceptance criteria of issues #2–#6, run against a v1 backup.
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -8,6 +8,7 @@ installBrowserGlobals();
 const store = await import("../js/store.js");
 const { findExercise } = await import("../js/program.js");
 const { getMovement } = await import("../js/movements.js");
+const { harderSide, harderSideLabel } = await import("../js/effort.js");
 
 const fixture = () => readFixture("sessions-v1.json");
 const fresh = () => { store.importData(fixture()); return store; };
@@ -314,6 +315,152 @@ test("a renamed slot keeps the movement its entries were logged under", () => {
   // …and the shoulder press slot still has no history to inherit from it.
   assert.equal(store.lastPerformance("db-shoulder-press-seated"), null);
   assert.equal(suggestFor("b3"), null);
+});
+
+// ---- #5 RPE / reps in reserve -----------------------------------------------
+// Every case below is a row from the issue's evidence table: a note he actually
+// wrote, and the suggestion the reps-only engine gave him for it.
+
+// Put an RPE on the last working set of a slot's entry, the way one tap in the
+// app would.
+const withEffort = (sessionIndex, slot, rir, data = fixture()) => {
+  const entry = data.sessions[sessionIndex].entries.find((e) => e.exerciseId === slot);
+  entry.sets[entry.sets.length - 1].rpe = 10 - rir;
+  store.importData(data);
+  return entry;
+};
+
+test("an RPE survives the import and reads back on the set", () => {
+  withEffort(2, "a4", 4);
+  const sets = store.lastPerformance("db-reverse-lunge").sets;
+  assert.equal(sets.at(-1).rpe, 6);
+  assert.equal(store.movementHistory("db-reverse-lunge").at(-1).rpe, 6);
+});
+
+test("'could have done 5 more on each side' stops meaning 'repeat 30'", () => {
+  // a4 DB Reverse Lunge 30×8 — the clearest miss in the issue: he wrote that he
+  // could add 5 lb per hand and the app told him to do it all again.
+  fresh();
+  const before = suggestFor("a4");
+  assert.equal(before.action, "repeat");
+  assert.equal(before.weight, 30);
+
+  withEffort(2, "a4", 4);
+  const after = suggestFor("a4");
+  assert.equal(after.action, "increase");
+  assert.equal(after.weight, 35);
+  assert.match(after.note, /40/, "and says where to go next if 35 is still easy");
+  assert.match(after.basis, /RPE 6 · 4\+ left/);
+});
+
+test("'wouldn't have been able to do a 7th' stops meaning 'add reps'", () => {
+  // b2 Lat Pulldown 160×8 of a 6–10 range, at failure. Today: "aim to add reps
+  // at 160" — telling a man at his limit to grind two more.
+  assert.match(suggestFor("b2").note, /Aim to add reps/);
+
+  withEffort(0, "b2", 0);
+  const after = suggestFor("b2");
+  assert.equal(after.action, "repeat");
+  assert.equal(after.weight, 160);
+  assert.match(after.note, /already at failure/);
+  assert.doesNotMatch(after.note, /Aim to add reps/);
+});
+
+test("topping the range at RPE 8 still adds load; at RPE 10 it holds", () => {
+  // a1 Barbell Box Squat 165×8, top of a 5–8 range.
+  withEffort(2, "a1", 2);
+  const easy = suggestFor("a1");
+  assert.equal(easy.action, "increase");
+  assert.equal(easy.weight, 175);
+
+  withEffort(2, "a1", 0);
+  const maxed = suggestFor("a1");
+  assert.equal(maxed.action, "repeat");
+  assert.equal(maxed.weight, 165);
+  assert.match(maxed.note, /to failure/);
+});
+
+test("topping the range with 4+ left is worth two increments", () => {
+  withEffort(2, "a1", 4);
+  assert.equal(suggestFor("a1").weight, 185);
+});
+
+test("an omitted RPE never produces a worse suggestion than before", () => {
+  fresh();
+  const plain = store.loggedMovementIds().map((id) => JSON.stringify(store.suggestion(id, findExercise("a1").prescription)));
+  // Same data, re-imported: nothing about the effort work changes a suggestion
+  // that has no effort logged.
+  store.importData(fixture());
+  const again = store.loggedMovementIds().map((id) => JSON.stringify(store.suggestion(id, findExercise("a1").prescription)));
+  assert.deepEqual(again, plain);
+  assert.doesNotMatch(suggestFor("a1").basis, /RPE/);
+});
+
+test("the coach report carries the effort of the last working set", () => {
+  withEffort(2, "a1", 2);
+  const report = store.coachReport();
+  assert.match(report, /Barbell Box Squat.*RPE 8 \(2 left\)/);
+});
+
+// ---- #6 which side gave out first ------------------------------------------
+// Deliberately qualitative. Per-side weights and reps would read identical
+// every session (same dumbbell both sides, reps matched to the weaker one);
+// which side was the hard one is the part that varies.
+
+// c3's Single-Arm DB Row carries the note "Right side could have done more,
+// left had a harder time". This is that note, as one tap.
+const withHarderSide = (side, sessionIndex = 1, slot = "c3", data = fixture()) => {
+  const entry = data.sessions[sessionIndex].entries.find((e) => e.exerciseId === slot);
+  entry.harderSide = side;
+  store.importData(data);
+  return entry;
+};
+
+test("the harder side survives the import and reads back on the entry", () => {
+  withHarderSide("L");
+  const entry = store.getSessions().find((s) => s.id === "s2").entries.find((e) => e.exerciseId === "c3");
+  assert.equal(entry.harderSide, "L");
+  assert.equal(harderSide(entry), "L");
+  assert.equal(harderSideLabel(harderSide(entry)), "left");
+});
+
+test("it never touches the numbers, so no suggestion changes because of it", () => {
+  fresh();
+  const before = JSON.stringify(suggestFor("c3"));
+  withHarderSide("L");
+  assert.equal(JSON.stringify(suggestFor("c3")), before);
+});
+
+test("the coach report counts how often each side is flagged", () => {
+  withHarderSide("L");
+  const report = store.coachReport();
+  assert.match(report, /## Harder side/);
+  assert.match(report, /Single-Arm DB Row.*left side harder in 1 of 1 session/);
+  assert.match(report, /Qualitative, not load data/);
+});
+
+test("a side flagged on both sides over time is reported as mixed", () => {
+  const data = fixture();
+  data.sessions[1].entries.find((e) => e.exerciseId === "c3").harderSide = "L";
+  // A second Day C session with the same movement, flagged the other way.
+  const second = JSON.parse(JSON.stringify(data.sessions[1]));
+  second.id = "s4";
+  second.date = "2026-08-28T17:00:00.000Z";
+  second.entries.find((e) => e.exerciseId === "c3").harderSide = "R";
+  data.sessions.push(second);
+  store.importData(data);
+
+  const [row] = store.harderSideReport().filter((h) => h.movementId === "db-row-single-arm");
+  assert.equal(row.total, 2);
+  assert.equal(row.flagged, 1);
+  assert.equal(row.mixed, true);
+  assert.match(store.coachReport(), /mixed; the other side was flagged too/);
+});
+
+test("with nothing flagged the report says so rather than inventing a balance", () => {
+  fresh();
+  assert.deepEqual(store.harderSideReport(), []);
+  assert.match(store.coachReport(), /Nothing flagged — on a unilateral lift/);
 });
 
 test("an unrecognisable entry name still lands on the slot's movement", () => {
