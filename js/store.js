@@ -9,14 +9,16 @@ import {
   formatSet, staticWarnings, measureInfo, prescriptionFor,
 } from "./measures.js";
 import { applyInferredRoles, workingSets, rampSets, topWorkingLoad, failedSets } from "./sets.js";
-import { allExercises } from "./program.js";
+import { workingEffort, effortVerdict, effortLabel, rirFromRpe } from "./effort.js";
+import { tracksSides, rollUp, sideTotals, asymmetryLabel, SIDE_LABELS } from "./sides.js";
+import { allExercises, flaggedMovements } from "./program.js";
 
 const KEY = "gymtools.v1";
 const DRAFT_KEY = "gymtools.draft.v1";
 
 // Bump when the shape of a stored session changes, and add a step to
 // MIGRATIONS. Steps run in order, are idempotent, and never drop data.
-export const DATA_VERSION = 5;
+export const DATA_VERSION = 6;
 
 const DEFAULT_DATA = {
   version: DATA_VERSION,
@@ -154,11 +156,26 @@ function migrateStampPrescriptions(data) {
   }
 }
 
+// v5 → v6: sides (issue #6). Nothing to backfill — no session was ever logged
+// with a side — but entries learn whether the movement they recorded is
+// unilateral, so a movement later reclassified in the registry can't rewrite
+// what an old session is allowed to mean. Any set that DOES carry sides (a
+// backup from a newer app, a cloud pull) gets its roll-up recomputed.
+function migrateSideAwareness(data) {
+  for (const session of data.sessions || []) {
+    for (const entry of session.entries || []) {
+      stampEntryMeasure(entry);
+      for (const set of entry.sets || []) rollUp(set);
+    }
+  }
+}
+
 const MIGRATIONS = [
   migrateEntriesToMovements, // → 2
   migrateSetRoles,           // → 3
   migrateTypedMeasures,      // → 4
   migrateStampPrescriptions, // → 5
+  migrateSideAwareness,      // → 6
 ];
 
 // Denormalize how the entry was measured onto the entry itself, so a session
@@ -168,7 +185,16 @@ function stampEntryMeasure(entry) {
   if (!mv) return entry;
   if (!entry.measure) entry.measure = mv.measure;
   if (!entry.loadMode) entry.loadMode = mv.loadMode;
+  if (entry.unilateral == null) entry.unilateral = mv.unilateral;
   return entry;
+}
+
+// Can this entry be logged left/right? The stamped answer wins over today's
+// registry, for the same reason `measure` is stamped.
+export function entryTracksSides(entry) {
+  if (!entry) return false;
+  if (entry.unilateral != null) return !!entry.unilateral;
+  return tracksSides(getMovement(entry.movementId));
 }
 
 function migrate(data) {
@@ -209,6 +235,7 @@ function migrateDraft(draft, program) {
     for (const set of entry.sets || []) {
       if (set.amount == null && set.reps != null) set.amount = Number(set.reps);
       delete set.reps;
+      rollUp(set);
     }
     if (!entry.prescription) {
       const slot = program && program.find((e) => e.id === entry.exerciseId);
@@ -396,12 +423,14 @@ export function movementHistory(movementId) {
   const out = [];
   for (const s of getSessions().slice().reverse()) {
     let vol = 0, bestE1rm = 0, topWeight = 0, bestAmount = 0, sets = 0, flagged = 0;
+    const counted = [];
     for (const entry of entriesFor(s, movementId)) {
       for (const set of workingSets(loggedSets(entry.sets))) {
         // A set flagged as a probable typo stays out of the trend until it is
         // either corrected or confirmed — one 140 × 120 ruins the whole line.
         if (set.suspect) { flagged++; continue; }
         sets++;
+        counted.push(set);
         vol += setVolume(mv, set);
         const w = setLoad(set) || 0, a = setAmount(set) || 0;
         if (w > topWeight) topWeight = w;
@@ -410,7 +439,11 @@ export function movementHistory(movementId) {
         if (e1 && e1 > bestE1rm) bestE1rm = e1;
       }
     }
-    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, measure: (mv && mv.measure) || "reps" }); continue; }
+    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, rpe: null, sides: null, asymmetry: null, measure: (mv && mv.measure) || "reps" }); continue; }
+    // How hard it was (#5) and how evenly it was shared (#6) — both optional,
+    // both null until he logs them.
+    const effort = workingEffort(counted);
+    const sides = sideTotals(counted);
     out.push({
       date: s.date,
       sets,
@@ -419,10 +452,58 @@ export function movementHistory(movementId) {
       topWeight,
       bestAmount,
       e1rm: bestE1rm ? Math.round(bestE1rm) : null,
+      rpe: effort ? effort.rpe : null,
+      sides,
+      asymmetry: sides ? sides.index : null,
       measure: (mv && mv.measure) || "reps",
     });
   }
   return out;
+}
+
+// ---- Asymmetry (#6) ---------------------------------------------------------
+// One number per session per movement: right-side work ÷ left-side work, from
+// the sets he actually logged by side. 1.0 is level.
+
+export function movementAsymmetry(movementId) {
+  return movementHistory(movementId)
+    .filter((h) => h.asymmetry != null)
+    .map((h) => ({ date: h.date, index: h.asymmetry, left: h.sides.left, right: h.sides.right, sets: h.sides.sets }));
+}
+
+// Was this movement performed one limb at a time, as its entries recorded it?
+// (A leg-length-flagged slot isn't necessarily unilateral — the barbell RDL is
+// flagged because keeping the hips square is the point, but there is no left
+// set and right set to compare.)
+function loggedAsUnilateral(movementId) {
+  for (const s of getSessions()) {
+    for (const entry of entriesFor(s, movementId)) {
+      if (loggedSets(entry.sets).length) return entryTracksSides(entry);
+    }
+  }
+  return false;
+}
+
+// Every movement with per-side data, newest first, plus the leg-length-flagged
+// unilateral movements that have none yet — the gap is itself worth reporting,
+// since closing that asymmetry is the point of the program.
+export function asymmetryOverview() {
+  const tracked = [], missing = [];
+  const flagged = flaggedMovements("leglength");
+  for (const id of loggedMovementIds()) {
+    const points = movementAsymmetry(id);
+    if (points.length) {
+      const latest = points[points.length - 1];
+      tracked.push({
+        movementId: id, name: movementName(id, id), points,
+        index: latest.index, date: latest.date, sessions: points.length,
+        flagged: flagged.includes(id),
+      });
+    } else if (flagged.includes(id) && loggedAsUnilateral(id)) {
+      missing.push({ movementId: id, name: movementName(id, id) });
+    }
+  }
+  return { tracked, missing };
 }
 
 // Every movement with logged history, newest activity first.
@@ -508,10 +589,13 @@ export function confirmSuspectSet(sessionId, entryIndex, setIndex) {
 }
 
 // ---- Suggestion -------------------------------------------------------------
-// Double progression, now reading only the sets that were actually work.
-// This is still the interim heuristic — the real engine (flat +5/+10 increments,
-// RPE, stalls, deloads) is issue #7. What it no longer does is count ramp-up
-// sets as work or read a failed opener as the working weight.
+// Double progression, reading only the sets that were actually work, and now
+// reading how hard they were (#5) and which side did them (#6).
+// This is still the interim heuristic — the real engine (implement-aware
+// increments, stalls, deloads) is issue #7. What it no longer does is count
+// ramp-up sets as work, read a failed opener as the working weight, tell you to
+// repeat a load you had five reps left in, or tell you to grind out more reps at
+// a weight you already took to failure.
 export function suggestion(movementId, prescription) {
   const last = lastPerformance(movementId);
   if (!last) return null;
@@ -526,25 +610,43 @@ export function suggestion(movementId, prescription) {
   const ramps = rampSets(logged).length;
   const failed = failedSets(logged);
   const hitTarget = work.every((s) => (setAmount(s) || 0) >= target);
+
+  // How hard the last working set was, if he said. Absent → reps-only, exactly
+  // as before (#5: an omitted RPE never produces a worse suggestion).
+  const effort = workingEffort(work);
+  const verdict = effortVerdict({ rir: effort ? effort.rir : null, hitTarget });
+
+  // Unilateral work reads off the weaker side — the set's own numbers already
+  // do (sides.js rolls a split set up to its weaker half), so this is only for
+  // saying so out loud (#6).
+  const totals = sideTotals(work);
+  const weak = totals && totals.index !== 1 ? (totals.index < 1 ? "R" : "L") : null;
+
   const basis = `Counted ${work.length} working set${work.length === 1 ? "" : "s"}` +
     (ramps ? `, ignored ${ramps} ramp-up set${ramps === 1 ? "" : "s"}` : "") +
-    (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + ".";
+    (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + "." +
+    (effort ? ` Last working set at ${effortLabel(effort.set)}.` : "") +
+    (weak ? ` Load follows your weaker side (${SIDE_LABELS[weak]}).` : "");
 
   const topWeight = topWorkingLoad(logged);
 
   // Unloaded work (planks, bodyweight) progresses on the measure itself.
   if (topWeight == null) {
     const best = Math.max(...work.map((s) => setAmount(s) || 0));
-    const step = measure === "reps" ? 1 : 5;
-    if (hitTarget) {
+    const step = (measure === "reps" ? 1 : 5) * Math.max(1, verdict.steps);
+    if (verdict.steps > 0) {
       return {
         action: "increase", weight: null, amount: best + step, basis,
-        note: `You held ${best}${info.unit} everywhere last time — push for ${best + step}${info.unit}.`,
+        note: verdict.code === "too-light"
+          ? `You held ${best}${info.unit} with ${verdict.rir}+ left in the tank — go for ${best + step}${info.unit}.`
+          : `You held ${best}${info.unit} everywhere last time — push for ${best + step}${info.unit}.`,
       };
     }
     return {
       action: "repeat", weight: null, amount: target, basis,
-      note: `Work back up to ${target}${info.unit} before adding anything.`,
+      note: verdict.code === "at-failure"
+        ? `You went to failure at ${best}${info.unit} — hold there until it stops being a fight.`
+        : `Work back up to ${target}${info.unit} before adding anything.`,
     };
   }
 
@@ -559,20 +661,53 @@ export function suggestion(movementId, prescription) {
     };
   }
 
-  if (hitTarget) {
-    // TODO(#7): implement-aware increments. A flat +5 is 40% on a 12.5 lb cable.
-    const inc = topWeight >= 100 ? 10 : 5;
+  // TODO(#7): implement-aware increments. A flat +5 is 40% on a 12.5 lb cable.
+  const inc = topWeight >= 100 ? 10 : 5;
+  const next = topWeight + inc * verdict.steps;
+
+  if (verdict.steps > 0) {
     return {
-      action: "increase", weight: topWeight + inc, amount: target, basis,
-      note: `You hit the top of the range on every working set — try ${topWeight + inc}.`,
+      action: "increase", weight: next, amount: target, basis,
+      note: suggestionNote(verdict, { topWeight, next, inc, target, info, measure }),
     };
   }
   return {
     action: "repeat", weight: topWeight, amount: target, basis,
-    note: measure === "reps"
-      ? `Aim to add reps at ${topWeight} before adding weight.`
-      : `Stay at ${topWeight} and build to ${target}${info.unit} before adding weight.`,
+    note: suggestionNote(verdict, { topWeight, next, inc, target, info, measure }),
   };
+}
+
+// The sentence attached to the number. Effort is what makes these different
+// from each other — same reps, same weight, opposite advice.
+function suggestionNote(verdict, { topWeight, next, inc, target, info, measure }) {
+  const holdForReps = measure === "reps"
+    ? `Aim to add reps at ${topWeight} before adding weight.`
+    : `Stay at ${topWeight} and build to ${target}${info.unit} before adding weight.`;
+
+  switch (verdict.code) {
+    case "too-light":
+      return verdict.hitTarget
+        ? `You topped the range with ${verdict.rir}+ ${info.short} still in the tank — that was too light. Go to ${next}.`
+        : `You stopped short of the range with ${verdict.rir}+ ${info.short} still in the tank — the load was the limiter, ` +
+          `not the ${info.short}. Try ${next}, and ${next + inc} if that still leaves ${verdict.rir}+ in the tank.`;
+    case "near-failure":
+      return verdict.hitTarget
+        ? `You topped the range with one left — a clean step up to ${next}.`
+        : holdForReps;
+    case "at-failure":
+      return verdict.hitTarget
+        ? `You topped the range, but that last set was to failure — repeat ${topWeight} and let it feel like an 8 before adding.`
+        : `You were already at failure short of ${target} ${info.short} — repeat ${topWeight}. The extra ${info.short} come from ` +
+          `getting stronger at this weight, not from grinding.`;
+    case "on-target":
+      return verdict.hitTarget
+        ? `You hit the top of the range at RPE ${10 - verdict.rir} — try ${next}.`
+        : holdForReps;
+    default: // reps-only — the pre-RPE behaviour, unchanged
+      return verdict.hitTarget
+        ? `You hit the top of the range on every working set — try ${next}.`
+        : holdForReps;
+  }
 }
 
 // ---- Symptom trend ---------------------------------------------------------
@@ -626,13 +761,18 @@ export function coachReport() {
     const mv = getMovement(id);
     const label = movementName(id, id);
     const f = h[0], l = h[h.length - 1];
+    // What the last top set actually cost him (#5). Without this a stall and a
+    // set left with three reps in the tank look identical on paper.
+    const effortTag = l.rpe != null
+      ? ` · last working set RPE ${l.rpe} (${rirFromRpe(l.rpe)} left)`
+      : "";
     if (l.e1rm != null && f.e1rm != null) {
       let tag = "";
       if (h.length >= 3) {
         const prev = h[h.length - 3];
         tag = l.e1rm > prev.e1rm ? " — progressing ↑" : " — ⚠️ STALLED (no e1RM gain in 3 sessions)";
       }
-      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${tag}`);
+      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${effortTag}${tag}`);
     } else {
       // No meaningful e1RM here — report what the movement actually measures,
       // and say why there's no 1RM so the coach doesn't go looking for one.
@@ -643,7 +783,7 @@ export function coachReport() {
         : "high-rep work";
       const load = l.topWeight ? `${l.topWeight}${p.units} × ` : "";
       const was = f.topWeight ? `${f.topWeight}${p.units} × ` : "";
-      L.push(`- **${label}**: best working set ${load}${l.bestAmount}${info.unit} (was ${was}${f.bestAmount}${info.unit}) over ${sessionCount(h)} — no est 1RM (${reason})`);
+      L.push(`- **${label}**: best working set ${load}${l.bestAmount}${info.unit} (was ${was}${f.bestAmount}${info.unit}) over ${sessionCount(h)} — no est 1RM (${reason})${effortTag}`);
     }
   });
   if (!any) L.push("- (not enough logged sets yet)");
@@ -651,6 +791,27 @@ export function coachReport() {
   if (flagged.length) {
     L.push(`- ⚠️ ${flagged.length} logged set${flagged.length === 1 ? "" : "s"} flagged as a possible typo and excluded from bests: ` +
       flagged.map((f) => `${f.name} ${f.text} (${f.date.slice(0, 10)})`).join("; "));
+  }
+  L.push("");
+
+  // left vs right — the whole point of the leg-length work, finally measurable
+  L.push("## Left/right balance");
+  const asym = asymmetryOverview();
+  if (asym.tracked.length) {
+    asym.tracked.forEach((a) => {
+      const first = a.points[0];
+      const trend = a.points.length >= 2
+        ? ` (was ${asymmetryLabel(first.index)} on ${first.date.slice(0, 10)})`
+        : "";
+      L.push(`- **${a.name}**${a.flagged ? " 🦵" : ""}: R/L index ${a.index.toFixed(2)} — ${asymmetryLabel(a.index)}` +
+        ` across ${sessionCount(a.points)}${trend}`);
+    });
+    L.push("- Load suggestions for these follow the WEAKER side, so the stronger one can't drag the prescription up.");
+  } else {
+    L.push("- No sets logged left/right yet — turn on ⇄ L/R on a unilateral exercise to start measuring the gap.");
+  }
+  if (asym.missing.length) {
+    L.push(`- Leg-length-flagged movements still logged as one number: ${asym.missing.map((m) => m.name).join(", ")}.`);
   }
   L.push("");
 

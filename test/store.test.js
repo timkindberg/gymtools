@@ -1,4 +1,4 @@
-// The acceptance criteria of issues #2, #3 and #4, run against a v1 backup.
+// The acceptance criteria of issues #2–#6, run against a v1 backup.
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -314,6 +314,163 @@ test("a renamed slot keeps the movement its entries were logged under", () => {
   // …and the shoulder press slot still has no history to inherit from it.
   assert.equal(store.lastPerformance("db-shoulder-press-seated"), null);
   assert.equal(suggestFor("b3"), null);
+});
+
+// ---- #5 RPE / reps in reserve -----------------------------------------------
+// Every case below is a row from the issue's evidence table: a note he actually
+// wrote, and the suggestion the reps-only engine gave him for it.
+
+// Put an RPE on the last working set of a slot's entry, the way one tap in the
+// app would.
+const withEffort = (sessionIndex, slot, rir, data = fixture()) => {
+  const entry = data.sessions[sessionIndex].entries.find((e) => e.exerciseId === slot);
+  entry.sets[entry.sets.length - 1].rpe = 10 - rir;
+  store.importData(data);
+  return entry;
+};
+
+test("an RPE survives the import and reads back on the set", () => {
+  withEffort(2, "a4", 4);
+  const sets = store.lastPerformance("db-reverse-lunge").sets;
+  assert.equal(sets.at(-1).rpe, 6);
+  assert.equal(store.movementHistory("db-reverse-lunge").at(-1).rpe, 6);
+});
+
+test("'could have done 5 more on each side' stops meaning 'repeat 30'", () => {
+  // a4 DB Reverse Lunge 30×8 — the clearest miss in the issue: he wrote that he
+  // could add 5 lb per hand and the app told him to do it all again.
+  fresh();
+  const before = suggestFor("a4");
+  assert.equal(before.action, "repeat");
+  assert.equal(before.weight, 30);
+
+  withEffort(2, "a4", 4);
+  const after = suggestFor("a4");
+  assert.equal(after.action, "increase");
+  assert.equal(after.weight, 35);
+  assert.match(after.note, /40/, "and says where to go next if 35 is still easy");
+  assert.match(after.basis, /RPE 6 · 4\+ left/);
+});
+
+test("'wouldn't have been able to do a 7th' stops meaning 'add reps'", () => {
+  // b2 Lat Pulldown 160×8 of a 6–10 range, at failure. Today: "aim to add reps
+  // at 160" — telling a man at his limit to grind two more.
+  assert.match(suggestFor("b2").note, /Aim to add reps/);
+
+  withEffort(0, "b2", 0);
+  const after = suggestFor("b2");
+  assert.equal(after.action, "repeat");
+  assert.equal(after.weight, 160);
+  assert.match(after.note, /already at failure/);
+  assert.doesNotMatch(after.note, /Aim to add reps/);
+});
+
+test("topping the range at RPE 8 still adds load; at RPE 10 it holds", () => {
+  // a1 Barbell Box Squat 165×8, top of a 5–8 range.
+  withEffort(2, "a1", 2);
+  const easy = suggestFor("a1");
+  assert.equal(easy.action, "increase");
+  assert.equal(easy.weight, 175);
+
+  withEffort(2, "a1", 0);
+  const maxed = suggestFor("a1");
+  assert.equal(maxed.action, "repeat");
+  assert.equal(maxed.weight, 165);
+  assert.match(maxed.note, /to failure/);
+});
+
+test("topping the range with 4+ left is worth two increments", () => {
+  withEffort(2, "a1", 4);
+  assert.equal(suggestFor("a1").weight, 185);
+});
+
+test("an omitted RPE never produces a worse suggestion than before", () => {
+  fresh();
+  const plain = store.loggedMovementIds().map((id) => JSON.stringify(store.suggestion(id, findExercise("a1").prescription)));
+  // Same data, re-imported: nothing about the effort work changes a suggestion
+  // that has no effort logged.
+  store.importData(fixture());
+  const again = store.loggedMovementIds().map((id) => JSON.stringify(store.suggestion(id, findExercise("a1").prescription)));
+  assert.deepEqual(again, plain);
+  assert.doesNotMatch(suggestFor("a1").basis, /RPE/);
+});
+
+test("the coach report carries the effort of the last working set", () => {
+  withEffort(2, "a1", 2);
+  const report = store.coachReport();
+  assert.match(report, /Barbell Box Squat.*RPE 8 \(2 left\)/);
+});
+
+// ---- #6 per-side logging + asymmetry ----------------------------------------
+
+// Log c3's Single-Arm DB Row by side: the note on that entry is "Right side
+// could have done more, left had a harder time".
+const withSides = (data = fixture()) => {
+  const entry = data.sessions[1].entries.find((e) => e.exerciseId === "c3");
+  entry.sets = [
+    { weight: 55, reps: 10, sides: { L: { weight: 50, amount: 10 }, R: { weight: 55, amount: 10 } } },
+    { weight: 55, reps: 10, sides: { L: { weight: 50, amount: 10 }, R: { weight: 55, amount: 10 } } },
+    { weight: 55, reps: 10, sides: { L: { weight: 50, amount: 8 }, R: { weight: 55, amount: 10 } } },
+  ];
+  store.importData(data);
+  return entry;
+};
+
+test("a set logged by side rolls up to the weaker side", () => {
+  withSides();
+  const sets = store.lastPerformance("db-row-single-arm").sets;
+  assert.deepEqual(sets.map((s) => s.weight), [50, 50, 50]);
+  assert.deepEqual(sets.map((s) => s.amount), [10, 10, 8]);
+  // …and the stronger side is still there, not averaged away.
+  assert.equal(sets[0].sides.R.weight, 55);
+});
+
+test("load suggestions for unilateral work are driven by the weaker side", () => {
+  withSides();
+  const sugg = suggestFor("c3");
+  assert.equal(sugg.weight, 50, "not the 55 the right arm managed");
+  assert.match(sugg.basis, /weaker side \(left\)/);
+});
+
+test("the asymmetry index charts over time per movement", () => {
+  withSides();
+  const points = store.movementAsymmetry("db-row-single-arm");
+  assert.equal(points.length, 1);
+  const p = points[0];
+  assert.equal(p.left, 50 * 10 + 50 * 10 + 50 * 8);
+  assert.equal(p.right, 55 * 10 * 3);
+  assert.ok(p.index > 1.1 && p.index < 1.2, `right side ahead: ${p.index}`);
+  // A movement he logs as one number has no index at all.
+  assert.deepEqual(store.movementAsymmetry("barbell-box-squat"), []);
+});
+
+test("the coach report has an asymmetry section, and names what isn't measured yet", () => {
+  withSides();
+  const report = store.coachReport();
+  assert.match(report, /## Left\/right balance/);
+  assert.match(report, /Single-Arm DB Row.*R\/L index 1\.1\d — right 1\d(\.\d)?% ahead/);
+  assert.match(report, /follow the WEAKER side/);
+  // c3 is a leg-length-flagged slot; the other flagged movements he logged that
+  // session are still one number, and the coach should know that.
+  assert.match(report, /still logged as one number: .*Single-Leg DB RDL/);
+  // …but the barbell RDL is flagged for keeping the hips square, not because
+  // it has a left set and a right set. There is nothing to log by side there.
+  assert.doesNotMatch(report, /still logged as one number: .*Barbell Romanian/);
+});
+
+test("with no per-side data the report says so instead of inventing a balance", () => {
+  fresh();
+  const report = store.coachReport();
+  assert.match(report, /## Left\/right balance/);
+  assert.match(report, /No sets logged left\/right yet/);
+});
+
+test("old sessions learn whether their movement is unilateral", () => {
+  fresh();
+  const dayC = store.getSessions().find((s) => s.id === "s2");
+  assert.equal(dayC.entries.find((e) => e.exerciseId === "c3").unilateral, true);
+  assert.equal(dayC.entries.find((e) => e.exerciseId === "c1").unilateral, false);
+  assert.equal(store.entryTracksSides(dayC.entries.find((e) => e.exerciseId === "c4")), true);
 });
 
 test("an unrecognisable entry name still lands on the slot's movement", () => {

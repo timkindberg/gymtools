@@ -347,6 +347,21 @@ export function findExercise(id) {
   return allExercises().find((e) => e.id === id) || null;
 }
 
+// Every movement that can land in a slot carrying this flag — the slot's own
+// movement and everything 🎲 can swap to. Flags live on the SLOT (it's the slot
+// that exists to fight the leg-length asymmetry), but the coach report reasons
+// in movements, so this is the bridge.
+export function flaggedMovements(flag) {
+  const out = [];
+  allExercises().forEach((e) => {
+    if (!(e.flags || []).includes(flag)) return;
+    [e.movement, ...(e.alternatives || [])].forEach((slug) => {
+      if (slug && !out.includes(slug)) out.push(slug);
+    });
+  });
+  return out;
+}
+
 // Display names for the 🎲 swap list (the program stores slugs).
 export function alternativeNames(exDef) {
   return (exDef.alternatives || []).map((slug) => movementName(slug, slug));

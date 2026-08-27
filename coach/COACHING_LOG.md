@@ -5,6 +5,50 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-27 — Capturing the two signals we were throwing away (chunk 2)
+
+Issues #5 and #6 of the suggestion-engine rewrite (#13). No program content
+changed; the app now collects two things it was prescribing but never recording.
+
+- **RPE / reps in reserve** (#5). New `js/effort.js`. The last working set of
+  each exercise gets a one-tap chip row — `0 · 1 · 2 · 3 · 4+ left` — asked as
+  "reps left in the tank" and stored as `rpe` on the set (Zourdos RIR scale:
+  10 = failure, 9 = one left, 8 = two). It's optional and it never blocks
+  saving; with no RPE the engine falls back to exactly its old reps-only
+  behaviour. The chips appear only once a set has something in it, so an RPE
+  can't be parked on a blank row and dropped at save.
+  - The three misses from the issue's evidence table are now right:
+    **a4 Reverse Lunge 30×8** with "could maybe handle 5 more on each side"
+    goes from *repeat 30* to **35, and 40 if that's still easy**;
+    **b2 Lat Pulldown 160×8** at failure stops being told to *add reps at 160*
+    and is told to hold it; **a1 165×8** at RPE 8 adds load as before, but at
+    RPE 10 holds instead.
+  - Effort now rides along in the coach report ("last working set RPE 8
+    (2 left)"), in the session log (`165×8 @8`), and in the suggestion's basis
+    line, so a stall and a set with three reps in the tank stop looking alike.
+- **Per-side logging + asymmetry** (#6). New `js/sides.js`. Any *unilateral*
+  movement (not just `per-side` load mode — a single-leg press is one leg at a
+  time whatever the stack says) can be logged **⇄ L/R**: one toggle per
+  exercise, off by default, and splitting mirrors the numbers already typed, so
+  the symmetric case still costs no extra taps.
+  - **The set's own `weight`/`amount` roll up to the weaker side.** That one
+    decision makes "progression follows the weaker side" true everywhere at
+    once — e1RM, charts, bests and the suggestion engine all read those fields
+    and none of them had to learn about sides. The stronger side can no longer
+    drag the prescription up and widen the gap.
+  - Asymmetry index (right work ÷ left work) charts per movement on Progress,
+    shows as an ⇄ line on the exercise card, and gets its own **Left/right
+    balance** section in the coach report — including which `leglength`-flagged
+    movements are *still* being logged as one number, so I can see whether the
+    thing we care most about is actually being measured.
+- Data version 5 → 6 (additive; old entries just learn whether their movement
+  is unilateral). 89 unit tests, plus a browser pass over the whole flow —
+  log sets, rate one, split L/R, save, read it back in history and the report.
+
+For the next report: I'm looking for RPE on the top sets and at least one
+unilateral lift logged L/R. Without those two, #7's real engine is still
+guessing.
+
 ## 2026-08-26 — Swap lists must match the muscle group
 
 Tim's rule, from finding an incline barbell press offered in the shoulder-press

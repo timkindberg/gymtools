@@ -16,7 +16,7 @@
 // Pure module: no DOM, no storage.
 // =============================================================================
 
-import { setAmount, setLoad } from "./measures.js";
+import { setAmount, setLoad, isLogged } from "./measures.js";
 
 export const ROLES = ["ramp", "work", "backoff"];
 
@@ -55,8 +55,9 @@ function loggedIndices(sets) {
 // `prescription` is optional. With it, we can tell a FAILED top set from a
 // planned back-off by asking whether the top set made the bottom of its
 // prescribed range; without it we fall back to the shape of the load sequence
-// alone. (RPE, when it lands in #5, is the sharper version of the same
-// question — this reads what the reps already say.)
+// alone. (RPE — #5, effort.js — answers the sharper version of the same
+// question, but it is optional and often absent; this reads what the reps
+// already say, so classification never depends on it.)
 export function inferSetRoles(sets = [], prescription = null) {
   const idxs = loggedIndices(sets);
   const result = sets.map((_, index) => ({ index, role: "work", failed: false }));
@@ -137,6 +138,18 @@ export function backoffSets(sets = []) {
 }
 export function failedSets(sets = []) {
   return sets.filter((s) => s && s.failed);
+}
+
+// Where the RPE question goes (#5). The last working set is the one that
+// carries the signal — a ramp-up's effort tells you nothing, and asking on
+// every set costs too many taps in a 50-minute session. It has to be a set with
+// something IN it: a blank row waiting at the bottom of the exercise is not a
+// set you can rate, and an RPE parked there would be dropped on save.
+export function lastWorkingIndex(sets = []) {
+  for (let i = sets.length - 1; i >= 0; i--) {
+    if (sets[i] && roleOf(sets[i]) === "work" && isLogged(sets[i])) return i;
+  }
+  return -1;
 }
 
 // The load progression decisions are made against: the heaviest WORKING set.
