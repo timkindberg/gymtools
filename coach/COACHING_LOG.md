@@ -5,6 +5,67 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-27 — The progression engine (chunk 3)
+
+Issues #7, #8 and #9 of the rewrite (#13). `suggestion()`'s fifteen lines are
+gone; `js/engine.js` is a pure function — `nextPrescription({ movement,
+prescription, history, symptoms, flags, scheduledDeload })` — with no DOM, no
+storage and no clock, unit-tested against the backup fixture with an expected
+answer written down for **all 20 movements**.
+
+- **Increments are a percentage of the working load** (#7), rounded to the
+  smallest step that lift can actually take: 5–10% on a lower-body barbell or
+  machine, 2.5–5% on everything upper-body, dumbbell and cable; 5 lb on a bar
+  or a dumbbell, 2.5 on the cable stack. Nothing may add more than 10% in one
+  session.
+  - **When the smallest step in the gym is bigger than the target percentage,
+    reps come first.** That single rule kills the +40% jump on the 12.5 lb cuff
+    cable and the +17–20% jumps on the dumbbell lunges, without special-casing
+    any of them. The rep range stretches (12–15 becomes 17), and the load step
+    waits until it's spent — at which point the reps reset to the bottom of the
+    range to absorb it. That reset is the *only* licensed exception to the 10%
+    cap, because 30×12 → 35×8 is the same work rearranged, not an overload.
+  - **RPE gates the step** (from #5). Four-plus left at the top of the range
+    jumps two increments (capped); at failure it holds. No RPE degrades to the
+    reps-only reading, never to anything worse.
+  - **Pain and symptoms finally do something.** `entry.pain` was stored and
+    never read: one flag holds the load, two in a row suggests a 🎲 swap. A
+    check-in score over threshold on a joint the lift leans on (knee ≥ 4,
+    shoulder ≥ 4, tightness ≥ 5) holds it for the day, as does an empty tank
+    (energy or sleep ≤ 3). Keep the pattern, skip the PR.
+  - **Training max ceiling** (5/3/1's idea, as a guard rail): never ask for a
+    load past what his best set demonstrates for the prescribed reps, plus one
+    increment. Stops a lift he ramps to a single top set running away.
+- **There is now an exit from "repeat"** (#8). A stall is *reps and load*, not
+  e1RM: consecutive sessions with no gain, at RIR ≤ 1, not counting a session
+  that topped its range (that's a completed range waiting for load) or one he
+  left reps in. One stall prompts; two deload to ~90% and rebuild. The report
+  and the engine now share that one definition — the old `STALLED` tag read
+  e1RM, which drifts on high-rep work and doesn't exist for a carry or a plank.
+  - **Scheduled deloads**: every 4 consecutive *trained* weeks (configurable in
+    Settings, 0 = off, with a rolling trigger if knee/tightness/shoulder average
+    ≥ 5 across a week). Counted in weeks he actually trained, so a skipped week
+    is its own rest — right for a man whose Friday is explicitly optional. The
+    deload week drops ~10% and takes a set off each card, and is **recorded on
+    the entry**, so the chart and the report call it a planned reset instead of
+    a regression.
+- **Everything that isn't loaded reps got a comparator** (#9). Side Plank
+  (45s + 45s at the ceiling) finally produces "take it to 55s, or add a
+  dumbbell". Carries progress distance to target, then load, and never report an
+  estimated 1RM. Assist stacks invert — progress is a *smaller* number on the
+  pin, and the engine reads a drop in assistance as progress, not a regression.
+- **Program change:** added **c8 Dead Hang** (2 × 20–45s) to Friday. He was
+  already doing them off-program ("Dead hang for 25 seconds. I need more
+  callouses.", 2026-08-24) with nowhere to log them; grip is what his carries
+  and rows run out of first, and the shoulder likes the hang.
+
+102 unit tests, plus a browser pass: a symptom flare holding the squat, a
+four-week deload week banner, the trimmed set, and the deload flag reading back
+off the saved session.
+
+For the next report: the engine is only as good as the RPE. Tap the chip on the
+top set — that's what separates "too light" from "that was your limit".
+
 ## 2026-08-27 — Capturing the two signals we were throwing away (chunk 2)
 
 Issues #5 and #6 of the suggestion-engine rewrite (#13). No program content

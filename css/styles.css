@@ -261,6 +261,11 @@ textarea.input { resize: vertical; }
 .alert { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 8%, var(--card)); }
 .alert ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
 .alert li { margin: 4px 0; }
+.alert p { margin: 6px 0 0; font-size: 14px; }
+/* A deload is a planned week, not a warning — blue, so it doesn't read as
+   something going wrong. */
+.alert.deload { border-color: var(--accent2); background: color-mix(in srgb, var(--accent2) 8%, var(--card)); }
+.warn-text { color: var(--warn); font-weight: 600; }
 
 /* ---- Collapsibles / lists ---- */
 .collapsible summary, .principles summary { cursor: pointer; font-weight: 700; }

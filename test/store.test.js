@@ -58,7 +58,9 @@ test("the other two cross-implement slots are clean too", () => {
   assert.equal(suggestFor("a3"), null); // Chest-Supported DB Row — never logged
   assert.equal(suggestFor("c6"), null); // Triceps Rope Pushdown — never logged
   // …and the barbell row he actually did keeps its own, correct suggestion.
-  assert.equal(store.suggestion("barbell-row", findExercise("a3").prescription).weight, 135);
+  // 125 topped an 8–12 range: +5 on an upper-body bar is 4%, inside the band.
+  // (The old flat "+10 over 100" made this 135 — an 8% jump on a row.)
+  assert.equal(store.suggestion("barbell-row", findExercise("a3").prescription).weight, 130);
 });
 
 test("the slot still remembers what happened in it — as context, not as a load", () => {
@@ -172,10 +174,12 @@ test("a top set that finished its range is a back-off, not a failure", () => {
   const sets = store.lastPerformance("barbell-bench-press").sets;
   assert.deepEqual(sets.map((s) => s.role), ["work", "backoff", "backoff"]);
   assert.equal(sets.some((s) => s.failed), false);
-  // The 135 topped a 5–8 range, so this is progress, not a retreat.
+  // The 135 topped a 5–8 range, so this is progress, not a retreat. An
+  // upper-body barbell moves 2.5–5% a session (#7), so +5, not the old flat +10.
   const sugg = suggestFor("a2");
   assert.equal(sugg.action, "increase");
-  assert.equal(sugg.weight, 145);
+  assert.equal(sugg.weight, 140);
+  assert.equal(sugg.amount, 5, "and drops to the bottom of the range to absorb it");
   assert.doesNotMatch(sugg.note, /come back|backed off/);
 });
 
@@ -349,6 +353,7 @@ test("'could have done 5 more on each side' stops meaning 'repeat 30'", () => {
   const after = suggestFor("a4");
   assert.equal(after.action, "increase");
   assert.equal(after.weight, 35);
+  assert.equal(after.amount, 8, "the reps reset to the bottom of the range to absorb a 17% jump");
   assert.match(after.note, /40/, "and says where to go next if 35 is still easy");
   assert.match(after.basis, /RPE 6 · 4\+ left/);
 });
@@ -356,14 +361,14 @@ test("'could have done 5 more on each side' stops meaning 'repeat 30'", () => {
 test("'wouldn't have been able to do a 7th' stops meaning 'add reps'", () => {
   // b2 Lat Pulldown 160×8 of a 6–10 range, at failure. Today: "aim to add reps
   // at 160" — telling a man at his limit to grind two more.
-  assert.match(suggestFor("b2").note, /Aim to add reps/);
+  assert.match(suggestFor("b2").note, /get every working set to 10 reps/);
 
   withEffort(0, "b2", 0);
   const after = suggestFor("b2");
   assert.equal(after.action, "repeat");
   assert.equal(after.weight, 160);
   assert.match(after.note, /already at failure/);
-  assert.doesNotMatch(after.note, /Aim to add reps/);
+  assert.doesNotMatch(after.note, /get every working set to 10 reps/);
 });
 
 test("topping the range at RPE 8 still adds load; at RPE 10 it holds", () => {
@@ -380,9 +385,13 @@ test("topping the range at RPE 8 still adds load; at RPE 10 it holds", () => {
   assert.match(maxed.note, /to failure/);
 });
 
-test("topping the range with 4+ left is worth two increments", () => {
+test("topping the range with 4+ left is worth two increments — up to the cap", () => {
+  // Two 10 lb steps on a 165 lb squat would be +12%. The engine takes the
+  // biggest jump that stays inside 10% of the working load (#7) — 180.
   withEffort(2, "a1", 4);
-  assert.equal(suggestFor("a1").weight, 185);
+  const sugg = suggestFor("a1");
+  assert.equal(sugg.weight, 180);
+  assert.ok((sugg.weight - 165) / 165 <= 0.10);
 });
 
 test("an omitted RPE never produces a worse suggestion than before", () => {
