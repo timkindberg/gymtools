@@ -8,6 +8,7 @@ installBrowserGlobals();
 const store = await import("../js/store.js");
 const { findExercise } = await import("../js/program.js");
 const { getMovement } = await import("../js/movements.js");
+const { harderSide, harderSideLabel } = await import("../js/effort.js");
 
 const fixture = () => readFixture("sessions-v1.json");
 const fresh = () => { store.importData(fixture()); return store; };
@@ -401,76 +402,65 @@ test("the coach report carries the effort of the last working set", () => {
   assert.match(report, /Barbell Box Squat.*RPE 8 \(2 left\)/);
 });
 
-// ---- #6 per-side logging + asymmetry ----------------------------------------
+// ---- #6 which side gave out first ------------------------------------------
+// Deliberately qualitative. Per-side weights and reps would read identical
+// every session (same dumbbell both sides, reps matched to the weaker one);
+// which side was the hard one is the part that varies.
 
-// Log c3's Single-Arm DB Row by side: the note on that entry is "Right side
-// could have done more, left had a harder time".
-const withSides = (data = fixture()) => {
-  const entry = data.sessions[1].entries.find((e) => e.exerciseId === "c3");
-  entry.sets = [
-    { weight: 55, reps: 10, sides: { L: { weight: 50, amount: 10 }, R: { weight: 55, amount: 10 } } },
-    { weight: 55, reps: 10, sides: { L: { weight: 50, amount: 10 }, R: { weight: 55, amount: 10 } } },
-    { weight: 55, reps: 10, sides: { L: { weight: 50, amount: 8 }, R: { weight: 55, amount: 10 } } },
-  ];
+// c3's Single-Arm DB Row carries the note "Right side could have done more,
+// left had a harder time". This is that note, as one tap.
+const withHarderSide = (side, sessionIndex = 1, slot = "c3", data = fixture()) => {
+  const entry = data.sessions[sessionIndex].entries.find((e) => e.exerciseId === slot);
+  entry.harderSide = side;
   store.importData(data);
   return entry;
 };
 
-test("a set logged by side rolls up to the weaker side", () => {
-  withSides();
-  const sets = store.lastPerformance("db-row-single-arm").sets;
-  assert.deepEqual(sets.map((s) => s.weight), [50, 50, 50]);
-  assert.deepEqual(sets.map((s) => s.amount), [10, 10, 8]);
-  // …and the stronger side is still there, not averaged away.
-  assert.equal(sets[0].sides.R.weight, 55);
+test("the harder side survives the import and reads back on the entry", () => {
+  withHarderSide("L");
+  const entry = store.getSessions().find((s) => s.id === "s2").entries.find((e) => e.exerciseId === "c3");
+  assert.equal(entry.harderSide, "L");
+  assert.equal(harderSide(entry), "L");
+  assert.equal(harderSideLabel(harderSide(entry)), "left");
 });
 
-test("load suggestions for unilateral work are driven by the weaker side", () => {
-  withSides();
-  const sugg = suggestFor("c3");
-  assert.equal(sugg.weight, 50, "not the 55 the right arm managed");
-  assert.match(sugg.basis, /weaker side \(left\)/);
-});
-
-test("the asymmetry index charts over time per movement", () => {
-  withSides();
-  const points = store.movementAsymmetry("db-row-single-arm");
-  assert.equal(points.length, 1);
-  const p = points[0];
-  assert.equal(p.left, 50 * 10 + 50 * 10 + 50 * 8);
-  assert.equal(p.right, 55 * 10 * 3);
-  assert.ok(p.index > 1.1 && p.index < 1.2, `right side ahead: ${p.index}`);
-  // A movement he logs as one number has no index at all.
-  assert.deepEqual(store.movementAsymmetry("barbell-box-squat"), []);
-});
-
-test("the coach report has an asymmetry section, and names what isn't measured yet", () => {
-  withSides();
-  const report = store.coachReport();
-  assert.match(report, /## Left\/right balance/);
-  assert.match(report, /Single-Arm DB Row.*R\/L index 1\.1\d — right 1\d(\.\d)?% ahead/);
-  assert.match(report, /follow the WEAKER side/);
-  // c3 is a leg-length-flagged slot; the other flagged movements he logged that
-  // session are still one number, and the coach should know that.
-  assert.match(report, /still logged as one number: .*Single-Leg DB RDL/);
-  // …but the barbell RDL is flagged for keeping the hips square, not because
-  // it has a left set and a right set. There is nothing to log by side there.
-  assert.doesNotMatch(report, /still logged as one number: .*Barbell Romanian/);
-});
-
-test("with no per-side data the report says so instead of inventing a balance", () => {
+test("it never touches the numbers, so no suggestion changes because of it", () => {
   fresh();
-  const report = store.coachReport();
-  assert.match(report, /## Left\/right balance/);
-  assert.match(report, /No sets logged left\/right yet/);
+  const before = JSON.stringify(suggestFor("c3"));
+  withHarderSide("L");
+  assert.equal(JSON.stringify(suggestFor("c3")), before);
 });
 
-test("old sessions learn whether their movement is unilateral", () => {
+test("the coach report counts how often each side is flagged", () => {
+  withHarderSide("L");
+  const report = store.coachReport();
+  assert.match(report, /## Harder side/);
+  assert.match(report, /Single-Arm DB Row.*left side harder in 1 of 1 session/);
+  assert.match(report, /Qualitative, not load data/);
+});
+
+test("a side flagged on both sides over time is reported as mixed", () => {
+  const data = fixture();
+  data.sessions[1].entries.find((e) => e.exerciseId === "c3").harderSide = "L";
+  // A second Day C session with the same movement, flagged the other way.
+  const second = JSON.parse(JSON.stringify(data.sessions[1]));
+  second.id = "s4";
+  second.date = "2026-08-28T17:00:00.000Z";
+  second.entries.find((e) => e.exerciseId === "c3").harderSide = "R";
+  data.sessions.push(second);
+  store.importData(data);
+
+  const [row] = store.harderSideReport().filter((h) => h.movementId === "db-row-single-arm");
+  assert.equal(row.total, 2);
+  assert.equal(row.flagged, 1);
+  assert.equal(row.mixed, true);
+  assert.match(store.coachReport(), /mixed; the other side was flagged too/);
+});
+
+test("with nothing flagged the report says so rather than inventing a balance", () => {
   fresh();
-  const dayC = store.getSessions().find((s) => s.id === "s2");
-  assert.equal(dayC.entries.find((e) => e.exerciseId === "c3").unilateral, true);
-  assert.equal(dayC.entries.find((e) => e.exerciseId === "c1").unilateral, false);
-  assert.equal(store.entryTracksSides(dayC.entries.find((e) => e.exerciseId === "c4")), true);
+  assert.deepEqual(store.harderSideReport(), []);
+  assert.match(store.coachReport(), /Nothing flagged — on a unilateral lift/);
 });
 
 test("an unrecognisable entry name still lands on the slot's movement", () => {

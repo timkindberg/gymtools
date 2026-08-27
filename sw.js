@@ -14,7 +14,6 @@ const ASSETS = [
   "./js/measures.js",
   "./js/sets.js",
   "./js/effort.js",
-  "./js/sides.js",
   "./js/config.js",
   "./js/sync.js",
   "./js/version.js",

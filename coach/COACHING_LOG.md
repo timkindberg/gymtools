@@ -26,28 +26,31 @@ changed; the app now collects two things it was prescribing but never recording.
   - Effort now rides along in the coach report ("last working set RPE 8
     (2 left)"), in the session log (`165×8 @8`), and in the suggestion's basis
     line, so a stall and a set with three reps in the tank stop looking alike.
-- **Per-side logging + asymmetry** (#6). New `js/sides.js`. Any *unilateral*
-  movement (not just `per-side` load mode — a single-leg press is one leg at a
-  time whatever the stack says) can be logged **⇄ L/R**: one toggle per
-  exercise, off by default, and splitting mirrors the numbers already typed, so
-  the symmetric case still costs no extra taps.
-  - **The set's own `weight`/`amount` roll up to the weaker side.** That one
-    decision makes "progression follows the weaker side" true everywhere at
-    once — e1RM, charts, bests and the suggestion engine all read those fields
-    and none of them had to learn about sides. The stronger side can no longer
-    drag the prescription up and widen the gap.
-  - Asymmetry index (right work ÷ left work) charts per movement on Progress,
-    shows as an ⇄ line on the exercise card, and gets its own **Left/right
-    balance** section in the coach report — including which `leglength`-flagged
-    movements are *still* being logged as one number, so I can see whether the
-    thing we care most about is actually being measured.
-- Data version 5 → 6 (additive; old entries just learn whether their movement
-  is unilateral). 89 unit tests, plus a browser pass over the whole flow —
-  log sets, rate one, split L/R, save, read it back in history and the report.
+- **Which side gave out first** (#6, cut down). Tim pushed back on full per-side
+  logging and he's right: he loads both sides the same and matches reps to the
+  weaker one, so per-side weights and reps would read identical every session —
+  a metric that can only ever say "level". I built it, then took it out
+  (`js/sides.js`, split rows, the asymmetry index, and a roll-up that quietly
+  redefined `set.weight` as the weaker side's number — a permanent tax on the
+  data model for a toggle he'd never switch on).
+  - What replaced it: **one optional tap per unilateral exercise, L or R, for
+    the side that gave out first** — the observation he actually makes ("right
+    side could have done more, left had a harder time"). It rides next to the
+    RPE chips, shows on the exercise card ("left side was the harder one last
+    time"), tags the session log, and gets a **Harder side** section in the
+    report counting how often each side is flagged out of how many sessions.
+  - It is deliberately qualitative and touches no numbers: no suggestion
+    changes because of it. If a side gets flagged session after session, that's
+    my cue to look at it in a review — which is the right place for that call,
+    not the load engine.
+  - Issue #6 stays open with this reasoning. If a rehab block ever calls for
+    genuinely different loads per side, the full version is in the PR history.
+- No data migration needed: both fields are optional and additive, so the store
+  stays at version 5. 78 unit tests, plus a browser pass over the whole flow —
+  log sets, rate one, flag a side, save, read it back in history and the report.
 
-For the next report: I'm looking for RPE on the top sets and at least one
-unilateral lift logged L/R. Without those two, #7's real engine is still
-guessing.
+For the next report: I'm looking for RPE on the top sets. Without it, #7's real
+engine is still guessing on every "should he add weight or add reps" call.
 
 ## 2026-08-26 — Swap lists must match the muscle group
 

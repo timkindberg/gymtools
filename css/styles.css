@@ -224,14 +224,10 @@ textarea.input { resize: vertical; }
 .role-badge[data-role="failed"] { color: #fff; background: var(--warn); border-color: var(--warn); }
 .role-badge.locked { box-shadow: inset 0 0 0 1px var(--accent); }
 
-/* Per-side logging: the R row hangs under its set, sharing that set's role + ✓. */
-.side-row { margin-top: -2px; }
-.side-row .set-num { font-weight: 600; opacity: .7; }
-.side-row .set-input { background: color-mix(in srgb, var(--accent) 6%, var(--bg-elev)); }
-.side-toggle, .side-toggle input { font-size: 13px; cursor: pointer; }
 .balance { font-size: 12.5px; color: var(--accent2); font-weight: 600; }
 
-/* Reps left in the tank (RPE). One tap, optional, on the last working set. */
+/* Reps left in the tank (RPE), and which side gave out first. One tap each,
+   optional, on the last working set. */
 .effort { margin-top: 10px; }
 .effort-row {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;

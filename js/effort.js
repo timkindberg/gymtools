@@ -92,6 +92,33 @@ export function workingEffort(workSets = []) {
   return null;
 }
 
+// ---- Which side gave out first (#6) ----------------------------------------
+// Unilateral work gets one more optional tap: L or R, recorded on the ENTRY
+// rather than the set, because that's how he notices it — "right side could
+// have done more, left had a harder time".
+//
+// Deliberately NOT per-side weights and reps. He loads both sides the same and
+// matches reps to the weaker one, so those numbers would read identical every
+// session; which side gave out first is the part that actually varies, and it
+// costs one tap instead of a second column.
+export const HARDER_SIDES = ["L", "R"];
+export const SIDE_LABELS = { L: "left", R: "right" };
+
+export function harderSide(entry) {
+  const v = entry && entry.harderSide;
+  return HARDER_SIDES.includes(v) ? v : null;
+}
+export function harderSideLabel(side) {
+  return SIDE_LABELS[side] || "";
+}
+// One tap sets it, the same tap clears it.
+export function recordHarderSide(entry, side) {
+  if (!entry) return entry;
+  if (side == null || !HARDER_SIDES.includes(side)) delete entry.harderSide;
+  else entry.harderSide = side;
+  return entry;
+}
+
 // ---- What the effort means for next time -----------------------------------
 // One step is one load increment; the caller owns how big an increment is for
 // the implement in hand. `hitTarget` is the reps-only reading the engine already

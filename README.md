@@ -27,16 +27,16 @@ to your home screen.
   exercise for variety, a set grid to log weight × reps, and a built-in **rest
   timer** (sound + vibration). One tap on the last working set records **how
   many reps you had left in the tank** (RPE), which is what lets the app tell
-  "that was too light" from "that was your limit". Unilateral exercises can be
-  logged **⇄ L/R** when the sides differ — the next load then follows the weaker
-  side. Optional Apple Watch metrics (duration, HR, calories) at the end.
+  "that was too light" from "that was your limit". Unilateral exercises get one
+  more tap — **which side was the harder one** — so a side that keeps giving out
+  first shows up in the coach report. Optional Apple Watch metrics (duration,
+  HR, calories) at the end.
 - **Loosen up** — a standalone 5–8 min mobility routine (right-side focus) you
   can pull up any day, especially rest days.
 - **Program** — browse the full A/B/C program with the reasoning behind every
   exercise choice.
-- **Progress** — strength charts (estimated 1-rep-max & volume) per exercise, a
-  **left/right balance** trend for anything logged by side, **symptom trend
-  lines**, a **migraine-threshold** insight (compares training
+- **Progress** — strength charts (estimated 1-rep-max & volume) per exercise,
+  **symptom trend lines**, a **migraine-threshold** insight (compares training
   load on days that triggered a migraine vs. days that didn't), cardio/HR
   charts, and your full session log.
 - **Settings** — units (lb/kg), bodyweight tracking, rest-timer prefs, and
@@ -115,11 +115,10 @@ The data model underneath it:
 | [`js/movements.js`](js/movements.js) | the movement registry — every exercise as a stable slug with its implement, load mode (total / per-hand / per-side), measure and pattern. **History keys on the movement, not the program slot**, so a 🎲 swap never hands one implement's weight to another. |
 | [`js/measures.js`](js/measures.js) | what the second column counts (reps / seconds / yards), structured prescriptions, the estimated-1RM guard, and the entry-time sanity checks. |
 | [`js/sets.js`](js/sets.js) | set roles — ramp-up, working, back-off — inferred as you log and overridable with a tap. Load suggestions read working sets only. |
-| [`js/effort.js`](js/effort.js) | RPE / reps in reserve. One tap on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
-| [`js/sides.js`](js/sides.js) | left and right. Unilateral sets can be logged per side, mirrored by default; the set's own numbers roll up to the **weaker** side, so every load suggestion follows it. Tracks the asymmetry index (right work ÷ left work) over time. |
+| [`js/effort.js`](js/effort.js) | RPE / reps in reserve, plus which side gave out first on unilateral work. One tap each on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
 | [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, and the coach report. |
 
-These five are pure modules — no DOM, no storage — which is what makes them
+These four are pure modules — no DOM, no storage — which is what makes them
 testable, and what the progression engine will be built on.
 
 ## Running locally
@@ -138,8 +137,7 @@ npm test   # node --test, no dependencies to install
 
 Unit tests cover the data model against a checked-in backup fixture
 (`test/fixtures/`): movement attribution, set-role inference, typed measures,
-effort-aware progression, left/right asymmetry, and the migrations that bring an
-old export forward.
+effort-aware progression, and the migrations that bring an old export forward.
 
 ## Backups
 

@@ -14,11 +14,8 @@ import { applyInferredRoles, roleLabel, roleOf, nextRole, lastWorkingIndex } fro
 import {
   RIR_CHOICES, RIR_LABELS, RIR_HINTS, setRir, hasEffort, recordEffort,
   effortLabel, effortGlyph, targetRir,
+  HARDER_SIDES, SIDE_LABELS, harderSide, harderSideLabel, recordHarderSide,
 } from "./effort.js";
-import {
-  SIDES, SIDE_LABELS, tracksSides, isSplit, splitSet, mergeSet, writeSide,
-  sideValues, sideTotals, rollUp, asymmetryLabel, asymmetryPercent, formatSides,
-} from "./sides.js";
 import * as store from "./store.js";
 import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
@@ -381,8 +378,8 @@ function entryForSlot(draft, exDef) {
 
 // An entry records BOTH the slot it filled and the movement performed in it.
 // The movement is what history keys on; the slot only says what was programmed
-// today. measure/loadMode/unilateral are denormalized so an old session still
-// reads correctly if the registry later changes.
+// today. measure/loadMode are denormalized so an old session still reads
+// correctly if the registry later changes.
 function blankEntry(exDef) {
   const mv = getMovement(exDef.movement);
   return {
@@ -392,8 +389,6 @@ function blankEntry(exDef) {
     variant: null,
     measure: mv ? mv.measure : "reps",
     loadMode: mv ? mv.loadMode : "total",
-    unilateral: mv ? mv.unilateral : false,
-    splitSides: false,
     sets: Array.from({ length: exDef.sets }, () => ({ weight: null, amount: null, role: "work", done: false })),
     pain: false,
     note: "",
@@ -437,10 +432,9 @@ function exerciseCard(exDef, draft, idx) {
     entry.movementId = next;
     entry.variantName = null;
     const mv = getMovement(next);
-    if (mv) { entry.measure = mv.measure; entry.loadMode = mv.loadMode; entry.unilateral = mv.unilateral; }
-    // Swapping to a two-limbs-at-once movement retires the L/R columns; the
-    // numbers already logged keep their weaker-side roll-up.
-    if (!(mv && mv.unilateral)) { entry.splitSides = false; entry.sets.forEach(mergeSet); }
+    if (mv) { entry.measure = mv.measure; entry.loadMode = mv.loadMode; }
+    // Swapping to a two-limbs-at-once movement retires the harder-side tap.
+    if (!(mv && mv.unilateral)) recordHarderSide(entry, null);
     store.saveDraft(draft);
     navigate("session");
   };
@@ -493,14 +487,12 @@ function exerciseCard(exDef, draft, idx) {
 
   // Last time / suggestion
   if (last) {
-    const lastLogged = store.loggedSets(last.sets);
-    const setStr = lastLogged.map((s) => setText(movement, s)).join(", ");
-    // The L/R indicator (#6): only appears once a set was actually logged by
-    // side, so nothing changes for the movements he logs as one number.
-    const balance = sideTotals(lastLogged);
+    const setStr = store.loggedSets(last.sets).map((s) => setText(movement, s)).join(", ");
+    // Which side gave out last time (#6) — only when he flagged one.
+    const lastHarder = harderSide(last.entry);
     card.appendChild(el("div.lasttime", {}, [
       el("span.muted.small", { text: `Last (${relDay(last.date)}): ${setStr || "—"}` }),
-      balance ? el("span.balance", { text: `⇄ ${asymmetryLabel(balance.index)} last time (R/L ${balance.index.toFixed(2)})` }) : null,
+      lastHarder ? el("span.balance", { text: `⇄ ${harderSideLabel(lastHarder)} side was the harder one last time` }) : null,
       sugg ? el("span.sugg", { text: "🎯 " + sugg.note }) : null,
       sugg && sugg.basis ? el("span.muted.tiny", { text: sugg.basis }) : null,
     ]));
@@ -525,16 +517,12 @@ function exerciseCard(exDef, draft, idx) {
     card.appendChild(box);
   }
 
-  // Set rows. Unilateral work can be logged L/R (#6) — one toggle for the whole
-  // exercise, off by default, so the symmetric case is still one entry per set.
-  const sideCapable = tracksSides(movement);
-  if (sideCapable && entry.sets.some(isSplit)) entry.splitSides = true;
-  const split = sideCapable && !!entry.splitSides;
-
+  // Set rows
   const badges = [];
   const effortHost = el("div.effort");
   const ctx = {
-    exDef, movement, measure, info, draft, entry, badges, split,
+    exDef, movement, measure, info, draft, entry, badges,
+    unilateral: !!(movement && movement.unilateral),
     phWeight: startWeight, phAmount: startAmount,
     refreshRoles: () => {},
   };
@@ -546,13 +534,13 @@ function exerciseCard(exDef, draft, idx) {
 
   const setsWrap = el("div.sets");
   setsWrap.appendChild(el("div.set-row.set-header", {}, [
-    el("span.set-col", { text: split ? "Set·side" : "Set" }),
+    el("span.set-col", { text: "Set" }),
     el("span.set-col", { text: loadLabel(movement, units()) }),
     el("span.set-col", { text: info.short }),
     el("span.set-col", { text: "Role" }),
     el("span.set-col", { text: "✓" }),
   ]));
-  entry.sets.forEach((setData, si) => setRows(ctx, setData, si).forEach((r) => setsWrap.appendChild(r)));
+  entry.sets.forEach((setData, si) => setsWrap.appendChild(setRow(ctx, setData, si)));
   card.appendChild(setsWrap);
   card.appendChild(effortHost);
   ctx.refreshRoles();
@@ -573,22 +561,12 @@ function exerciseCard(exDef, draft, idx) {
   // add/remove set + L/R + pain toggle
   card.appendChild(el("div.set-tools", {}, [
     el("button.btn.ghost.small", { text: "+ set", onclick: () => {
-      const added = { weight: entry.sets.at(-1)?.weight ?? null, amount: null, role: "work", done: false };
-      if (split) splitSet(added);
-      entry.sets.push(added);
+      entry.sets.push({ weight: entry.sets.at(-1)?.weight ?? null, amount: null, role: "work", done: false });
       store.saveDraft(draft); navigate("session");
     }}),
     entry.sets.length > 1 ? el("button.btn.ghost.small", { text: "– set", onclick: () => {
       entry.sets.pop(); store.saveDraft(draft); navigate("session");
     }}) : null,
-    sideCapable ? el("label.side-toggle", { title: "Log each side separately — the weaker side is what drives your next load." }, [
-      el("input", { type: "checkbox", checked: split, onchange: (e) => {
-        entry.splitSides = e.target.checked;
-        entry.sets.forEach((s) => (e.target.checked ? splitSet(s) : mergeSet(s)));
-        store.saveDraft(draft); navigate("session");
-      }}),
-      el("span", { text: "⇄ L/R" }),
-    ]) : null,
     el("label.pain-toggle", {}, [
       el("input", { type: "checkbox", checked: entry.pain, onchange: (e) => { entry.pain = e.target.checked; store.saveDraft(draft); e.target.closest(".exercise").classList.toggle("has-pain", e.target.checked); } }),
       el("span", { text: "⚠︎ Pain / issue on this one" }),
@@ -609,8 +587,7 @@ function exerciseCard(exDef, draft, idx) {
 // How one logged set reads in a list: "165×8↗", "L 50×10 · R 55×10 @9".
 // Sides only appear when they were logged apart; the RPE only when it was given.
 function setText(movement, set) {
-  const numbers = isSplit(set) ? formatSides(movement, set) : formatSet(movement, set);
-  return numbers + roleGlyph(set) + effortGlyph(set);
+  return formatSet(movement, set) + roleGlyph(set) + effortGlyph(set);
 }
 
 // Ramp-ups and back-offs are marked so a glance at a set list shows what was
@@ -637,11 +614,37 @@ function paintRoleBadge(badge, setData) {
   badge.classList.toggle("locked", !!(setData && setData.roleLocked));
 }
 
-// One logged set: a single row normally, or an L row and an R row when this
-// exercise is being logged by side. Role and ✓ describe the SET, so they live on
-// the first row of the pair.
-function setRows(ctx, setData, si) {
-  const { draft, entry, badges } = ctx;
+function setRow(ctx, setData, si) {
+  const { info, draft, entry, badges } = ctx;
+  const row = el("div.set-row");
+  row.appendChild(el("span.set-col.set-num", { text: String(si + 1) }));
+
+  const write = (patch) => {
+    Object.assign(setData, patch);
+    delete setData.confirmed;
+    store.saveDraft(draft);
+    ctx.refreshRoles();
+  };
+  const wInput = el("input.set-input", {
+    type: "number", inputmode: "decimal",
+    placeholder: ctx.phWeight != null ? String(ctx.phWeight) : "–",
+    value: setData.weight ?? "",
+    oninput: (e) => write({ weight: e.target.value === "" ? null : Number(e.target.value) }),
+  });
+  const aInput = el("input.set-input", {
+    type: "number", inputmode: info.inputmode,
+    placeholder: ctx.phAmount != null ? String(ctx.phAmount) : "–",
+    value: setAmount(setData) ?? "",
+    oninput: (e) => write({ amount: e.target.value === "" ? null : Number(e.target.value) }),
+  });
+  // Sanity-check on commit (blur/enter), never mid-keystroke: 140 × 120 is a
+  // typo worth catching, but "1" on the way to "12" is not (#4).
+  const recheck = () => checkSet(ctx, setData, { weight: wInput, amount: aInput });
+  wInput.addEventListener("change", recheck);
+  aInput.addEventListener("change", recheck);
+
+  row.appendChild(el("span.set-col", {}, [wInput]));
+  row.appendChild(el("span.set-col", {}, [aInput]));
 
   const badge = el("button.role-badge", {
     onclick: () => {
@@ -654,107 +657,27 @@ function setRows(ctx, setData, si) {
   });
   badges[si] = badge;
   paintRoleBadge(badge, setData);
+  row.appendChild(el("span.set-col", {}, [badge]));
 
-  const fields = [];   // every input in this set, so ✓-autofill can repaint them
   const check = el("button.set-check", { html: setData.done ? "✓" : "", "aria-label": "mark set done" });
   if (setData.done) check.classList.add("on");
   check.addEventListener("click", () => {
     setData.done = !setData.done;
     check.classList.toggle("on", setData.done);
     check.innerHTML = setData.done ? "✓" : "";
-    // autofill blanks from the previous set
+    // autofill blanks from placeholder-ish previous set
     if (setData.done && setAmount(setData) == null && si > 0) {
-      carryForward(ctx, entry.sets[si - 1], setData);
-      fields.forEach((f) => f.paint());
+      const prev = entry.sets[si - 1];
+      const prevAmount = setAmount(prev);
+      if (prevAmount != null) { setData.amount = prevAmount; aInput.value = prevAmount; }
+      if (setData.weight == null && prev.weight != null) { setData.weight = prev.weight; wInput.value = prev.weight; }
     }
     store.saveDraft(draft);
     ctx.refreshRoles();
     if (setData.done) startRest();
   });
-
-  if (!ctx.split) {
-    const f = valueFields(ctx, setData, null);
-    fields.push(f);
-    return [el("div.set-row", {}, [
-      el("span.set-col.set-num", { text: String(si + 1) }),
-      el("span.set-col", {}, [f.weight]),
-      el("span.set-col", {}, [f.amount]),
-      el("span.set-col", {}, [badge]),
-      el("span.set-col", {}, [check]),
-    ])];
-  }
-
-  splitSet(setData);
-  return SIDES.map((side, k) => {
-    const f = valueFields(ctx, setData, side);
-    fields.push(f);
-    return el("div.set-row" + (k ? ".side-row" : ""), {}, [
-      el("span.set-col.set-num", { text: k === 0 ? `${si + 1}${side}` : side, title: SIDE_LABELS[side] }),
-      el("span.set-col", {}, [f.weight]),
-      el("span.set-col", {}, [f.amount]),
-      el("span.set-col", {}, [k === 0 ? badge : null]),
-      el("span.set-col", {}, [k === 0 ? check : null]),
-    ]);
-  });
-}
-
-// The weight + amount inputs for a set, or for one side of it. `side` null means
-// the whole set; otherwise every write goes through sides.js, which keeps the
-// set's own numbers pointing at the WEAKER side.
-function valueFields(ctx, setData, side) {
-  const { info, draft } = ctx;
-  const read = () => (side ? sideValues(setData, side) : { weight: setData.weight ?? null, amount: setAmount(setData) });
-  const write = (patch) => {
-    if (side) writeSide(setData, side, patch);
-    else Object.assign(setData, patch);
-    delete setData.confirmed;
-    store.saveDraft(draft);
-    ctx.refreshRoles();
-  };
-
-  const weight = el("input.set-input", {
-    type: "number", inputmode: "decimal",
-    placeholder: ctx.phWeight != null ? String(ctx.phWeight) : "–",
-    value: read().weight ?? "",
-    oninput: (e) => write({ weight: e.target.value === "" ? null : Number(e.target.value) }),
-  });
-  const amount = el("input.set-input", {
-    type: "number", inputmode: info.inputmode,
-    placeholder: ctx.phAmount != null ? String(ctx.phAmount) : "–",
-    value: read().amount ?? "",
-    oninput: (e) => write({ amount: e.target.value === "" ? null : Number(e.target.value) }),
-  });
-  // Sanity-check on commit (blur/enter), never mid-keystroke: 140 × 120 is a
-  // typo worth catching, but "1" on the way to "12" is not (#4).
-  const recheck = () => checkSet(ctx, setData, { weight, amount }, side);
-  weight.addEventListener("change", recheck);
-  amount.addEventListener("change", recheck);
-
-  const paint = () => {
-    const v = read();
-    weight.value = v.weight ?? "";
-    amount.value = v.amount ?? "";
-  };
-  return { weight, amount, paint };
-}
-
-// ✓ on a blank set copies the previous one — both sides of it when the exercise
-// is being logged L/R.
-function carryForward(ctx, prev, setData) {
-  if (!prev) return;
-  if (ctx.split && isSplit(prev)) {
-    SIDES.forEach((side) => {
-      const from = sideValues(prev, side), here = sideValues(setData, side);
-      writeSide(setData, side, {
-        weight: here.weight == null ? from.weight : here.weight,
-        amount: here.amount == null ? from.amount : here.amount,
-      });
-    });
-    return;
-  }
-  const prevAmount = setAmount(prev);
-  if (prevAmount != null) setData.amount = prevAmount;
-  if (setData.weight == null && prev.weight != null) setData.weight = prev.weight;
+  row.appendChild(el("span.set-col", {}, [check]));
+  return row;
 }
 
 // ---- Effort (#5) ------------------------------------------------------------
@@ -771,12 +694,39 @@ function renderEffort(host, ctx) {
     .filter((i) => i === lastWork || hasEffort(entry.sets[i]));
   if (!indices.length) return;
   indices.forEach((i) => host.appendChild(effortRow(ctx, i, i === lastWork)));
+  if (ctx.unilateral) host.appendChild(harderSideRow(ctx));
   const wanted = targetRir(exDef && exDef.rpe);
   host.appendChild(el("p.muted.tiny", {
     text: wanted != null
       ? `Optional. Programmed RPE ${exDef.rpe} ≈ ${wanted} left in the tank — logging it is what lets the app tell "too light" from "at your limit".`
       : "Optional — how many more reps you could have done on that set.",
   }));
+}
+
+// The one left/right question worth a tap (#6): which side gave out first.
+// Not per-side weights and reps — you load both sides the same and match the
+// reps to the weaker one, so those numbers would read identical every session.
+// Which side was the hard one is the part that actually moves.
+function harderSideRow(ctx) {
+  const { entry, draft } = ctx;
+  const current = harderSide(entry);
+  const chips = el("div.effort-chips", {}, HARDER_SIDES.map((side) => el("button", {
+    class: "chip" + (current === side ? " on" : ""),
+    text: side, title: `The ${SIDE_LABELS[side]} side was the harder one — tap again to clear`,
+    onclick: () => {
+      recordHarderSide(entry, current === side ? null : side);
+      store.saveDraft(draft);
+      ctx.refreshRoles();
+    },
+  })));
+  return el("div.effort-row", {}, [
+    el("div.effort-head", {}, [
+      el("span.effort-label", { text: "Harder side" }),
+      el("span.muted.tiny", { text: "if one gave out first" }),
+    ]),
+    chips,
+    el("span.effort-read", { text: current ? `${harderSideLabel(current)} was harder` : "sides felt even" }),
+  ]);
 }
 
 function effortRow(ctx, si, isLastWorking) {
@@ -813,13 +763,9 @@ function effortRow(ctx, si, isLastWorking) {
 // check is one tap from "yes, that's right".
 const WARNING_FIELDS = { "high-amount": "amount", "amount-jump": "amount", "high-weight": "weight", "load-jump": "weight" };
 
-async function checkSet(ctx, setData, inputs, side = null) {
+async function checkSet(ctx, setData, inputs) {
   if (setData.confirmed) return;
-  // Check the number he just typed. On a split set that's one side's value —
-  // the set's own numbers are the weaker side's, which would hide a typo on
-  // the stronger one.
-  const checked = side ? sideValues(setData, side) : setData;
-  const warning = validateSet(ctx.movement, checked, store.movementBests(ctx.entry.movementId))[0];
+  const warning = validateSet(ctx.movement, setData, store.movementBests(ctx.entry.movementId))[0];
   if (!warning) { delete setData.suspect; return; }
   const keep = await confirmDialog(warning.message, { okText: "Yes, that's right", cancelText: "Let me fix it" });
   if (keep) {
@@ -827,8 +773,7 @@ async function checkSet(ctx, setData, inputs, side = null) {
     delete setData.suspect;
   } else {
     const field = WARNING_FIELDS[warning.code] || "amount";
-    if (side) writeSide(setData, side, { [field]: null });
-    else setData[field] = null;
+    setData[field] = null;
     const input = inputs[field];
     if (input) { input.value = ""; input.focus(); }
   }
@@ -859,9 +804,6 @@ async function finishSession(draft, day) {
       const movementId = e.variant || e.movementId;
       const mv = getMovement(movementId);
       const prescription = prescriptionFor(findExercise(e.exerciseId), mv);
-      // A split set's own numbers are the weaker side's; anything logged on one
-      // side only still lands in `weight`/`amount`, so isLogged sees it.
-      e.sets.forEach(rollUp);
       const sets = e.sets.filter(isLogged);
       applyInferredRoles(sets, prescription);
       // Anything still implausible and unconfirmed is flagged rather than
@@ -881,8 +823,7 @@ async function finishSession(draft, day) {
         prescription,
         measure: (mv && mv.measure) || e.measure || "reps",
         loadMode: (mv && mv.loadMode) || e.loadMode || "total",
-        unilateral: mv ? mv.unilateral : !!e.unilateral,
-        splitSides: sets.some(isSplit),
+        harderSide: harderSide(e),
         pain: e.pain,
         note: e.note,
         sets,
@@ -1139,20 +1080,6 @@ route("history", () => {
       if (mv && mv.measure !== "reps") {
         chartHost.appendChild(el("p.muted.tiny", { text: `Measured in ${info.label.toLowerCase()} — no estimated 1RM for this one.` }));
       }
-      // Left/right balance over time (#6) — only for movements he's logged by
-      // side, since for everything else there is nothing to compare.
-      const asym = store.movementAsymmetry(select.value);
-      if (asym.length) {
-        const latest = asym[asym.length - 1];
-        chartHost.appendChild(el("p.muted.small", { text: "Left/right balance (%, 0 = level, + = right side ahead)" }));
-        chartHost.appendChild(lineChart(asym.map((a) => ({ date: a.date, value: asymmetryPercent(a.index) })), { color: "var(--warn)", height: 90 }));
-        chartHost.appendChild(el("p.muted.tiny", {
-          text: `Latest: ${asymmetryLabel(latest.index)} (R/L ${latest.index.toFixed(2)}) over ${asym.length} session${asym.length === 1 ? "" : "s"} — ` +
-            "load suggestions follow the weaker side.",
-        }));
-      } else if (mv && mv.unilateral) {
-        chartHost.appendChild(el("p.muted.tiny", { text: "Turn on ⇄ L/R during a workout to chart how even this one is." }));
-      }
     };
     select.addEventListener("change", renderChart);
     progressCard.appendChild(select);
@@ -1271,7 +1198,7 @@ function sessionSummaryCard(s, withDelete) {
     if (!e.sets || !e.sets.length) return;
     const mv = getMovement(e.movementId);
     det.appendChild(el("div.log-line", { title: "↗ ramp-up · ↘ back-off · ✗ failed opener · @n RPE" }, [
-      el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") }),
+      el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") + (harderSide(e) ? ` (${harderSide(e)} harder)` : "") }),
       el("span.muted.small", { text: e.sets.map((x) => setText(mv, x) + (x.suspect ? " ⚠︎" : "")).join(", ") }),
     ]));
   });

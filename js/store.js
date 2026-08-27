@@ -9,16 +9,15 @@ import {
   formatSet, staticWarnings, measureInfo, prescriptionFor,
 } from "./measures.js";
 import { applyInferredRoles, workingSets, rampSets, topWorkingLoad, failedSets } from "./sets.js";
-import { workingEffort, effortVerdict, effortLabel, rirFromRpe } from "./effort.js";
-import { tracksSides, rollUp, sideTotals, asymmetryLabel, SIDE_LABELS } from "./sides.js";
-import { allExercises, flaggedMovements } from "./program.js";
+import { workingEffort, effortVerdict, effortLabel, rirFromRpe, harderSideLabel } from "./effort.js";
+import { allExercises } from "./program.js";
 
 const KEY = "gymtools.v1";
 const DRAFT_KEY = "gymtools.draft.v1";
 
 // Bump when the shape of a stored session changes, and add a step to
 // MIGRATIONS. Steps run in order, are idempotent, and never drop data.
-export const DATA_VERSION = 6;
+export const DATA_VERSION = 5;
 
 const DEFAULT_DATA = {
   version: DATA_VERSION,
@@ -156,26 +155,11 @@ function migrateStampPrescriptions(data) {
   }
 }
 
-// v5 → v6: sides (issue #6). Nothing to backfill — no session was ever logged
-// with a side — but entries learn whether the movement they recorded is
-// unilateral, so a movement later reclassified in the registry can't rewrite
-// what an old session is allowed to mean. Any set that DOES carry sides (a
-// backup from a newer app, a cloud pull) gets its roll-up recomputed.
-function migrateSideAwareness(data) {
-  for (const session of data.sessions || []) {
-    for (const entry of session.entries || []) {
-      stampEntryMeasure(entry);
-      for (const set of entry.sets || []) rollUp(set);
-    }
-  }
-}
-
 const MIGRATIONS = [
   migrateEntriesToMovements, // → 2
   migrateSetRoles,           // → 3
   migrateTypedMeasures,      // → 4
   migrateStampPrescriptions, // → 5
-  migrateSideAwareness,      // → 6
 ];
 
 // Denormalize how the entry was measured onto the entry itself, so a session
@@ -185,16 +169,7 @@ function stampEntryMeasure(entry) {
   if (!mv) return entry;
   if (!entry.measure) entry.measure = mv.measure;
   if (!entry.loadMode) entry.loadMode = mv.loadMode;
-  if (entry.unilateral == null) entry.unilateral = mv.unilateral;
   return entry;
-}
-
-// Can this entry be logged left/right? The stamped answer wins over today's
-// registry, for the same reason `measure` is stamped.
-export function entryTracksSides(entry) {
-  if (!entry) return false;
-  if (entry.unilateral != null) return !!entry.unilateral;
-  return tracksSides(getMovement(entry.movementId));
 }
 
 function migrate(data) {
@@ -235,7 +210,6 @@ function migrateDraft(draft, program) {
     for (const set of entry.sets || []) {
       if (set.amount == null && set.reps != null) set.amount = Number(set.reps);
       delete set.reps;
-      rollUp(set);
     }
     if (!entry.prescription) {
       const slot = program && program.find((e) => e.id === entry.exerciseId);
@@ -439,11 +413,9 @@ export function movementHistory(movementId) {
         if (e1 && e1 > bestE1rm) bestE1rm = e1;
       }
     }
-    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, rpe: null, sides: null, asymmetry: null, measure: (mv && mv.measure) || "reps" }); continue; }
-    // How hard it was (#5) and how evenly it was shared (#6) — both optional,
-    // both null until he logs them.
+    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, rpe: null, measure: (mv && mv.measure) || "reps" }); continue; }
+    // How hard it was (#5) — optional, and null until he logs it.
     const effort = workingEffort(counted);
-    const sides = sideTotals(counted);
     out.push({
       date: s.date,
       sets,
@@ -453,57 +425,36 @@ export function movementHistory(movementId) {
       bestAmount,
       e1rm: bestE1rm ? Math.round(bestE1rm) : null,
       rpe: effort ? effort.rpe : null,
-      sides,
-      asymmetry: sides ? sides.index : null,
       measure: (mv && mv.measure) || "reps",
     });
   }
   return out;
 }
 
-// ---- Asymmetry (#6) ---------------------------------------------------------
-// One number per session per movement: right-side work ÷ left-side work, from
-// the sets he actually logged by side. 1.0 is level.
-
-export function movementAsymmetry(movementId) {
-  return movementHistory(movementId)
-    .filter((h) => h.asymmetry != null)
-    .map((h) => ({ date: h.date, index: h.asymmetry, left: h.sides.left, right: h.sides.right, sets: h.sides.sets }));
-}
-
-// Was this movement performed one limb at a time, as its entries recorded it?
-// (A leg-length-flagged slot isn't necessarily unilateral — the barbell RDL is
-// flagged because keeping the hips square is the point, but there is no left
-// set and right set to compare.)
-function loggedAsUnilateral(movementId) {
-  for (const s of getSessions()) {
-    for (const entry of entriesFor(s, movementId)) {
-      if (loggedSets(entry.sets).length) return entryTracksSides(entry);
-    }
-  }
-  return false;
-}
-
-// Every movement with per-side data, newest first, plus the leg-length-flagged
-// unilateral movements that have none yet — the gap is itself worth reporting,
-// since closing that asymmetry is the point of the program.
-export function asymmetryOverview() {
-  const tracked = [], missing = [];
-  const flagged = flaggedMovements("leglength");
+// ---- Harder side (#6) -------------------------------------------------------
+// One tap per exercise: which side gave out first. Per movement, how often each
+// side was flagged and out of how many sessions — a side flagged once is a bad
+// day, a side flagged every time is the asymmetry the program exists to fix.
+export function harderSideReport() {
+  const out = [];
   for (const id of loggedMovementIds()) {
-    const points = movementAsymmetry(id);
-    if (points.length) {
-      const latest = points[points.length - 1];
-      tracked.push({
-        movementId: id, name: movementName(id, id), points,
-        index: latest.index, date: latest.date, sessions: points.length,
-        flagged: flagged.includes(id),
-      });
-    } else if (flagged.includes(id) && loggedAsUnilateral(id)) {
-      missing.push({ movementId: id, name: movementName(id, id) });
+    let L = 0, R = 0, total = 0, date = null;
+    for (const s of getSessions().slice().reverse()) {
+      for (const entry of entriesFor(s, id)) {
+        if (!loggedSets(entry.sets).length) continue;
+        total++;
+        if (entry.harderSide === "L") { L++; date = s.date; }
+        else if (entry.harderSide === "R") { R++; date = s.date; }
+      }
     }
+    if (!L && !R) continue;
+    const side = L >= R ? "L" : "R";
+    out.push({
+      movementId: id, name: movementName(id, id), side,
+      flagged: Math.max(L, R), total, date, mixed: L > 0 && R > 0,
+    });
   }
-  return { tracked, missing };
+  return out;
 }
 
 // Every movement with logged history, newest activity first.
@@ -616,17 +567,10 @@ export function suggestion(movementId, prescription) {
   const effort = workingEffort(work);
   const verdict = effortVerdict({ rir: effort ? effort.rir : null, hitTarget });
 
-  // Unilateral work reads off the weaker side — the set's own numbers already
-  // do (sides.js rolls a split set up to its weaker half), so this is only for
-  // saying so out loud (#6).
-  const totals = sideTotals(work);
-  const weak = totals && totals.index !== 1 ? (totals.index < 1 ? "R" : "L") : null;
-
   const basis = `Counted ${work.length} working set${work.length === 1 ? "" : "s"}` +
     (ramps ? `, ignored ${ramps} ramp-up set${ramps === 1 ? "" : "s"}` : "") +
     (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + "." +
-    (effort ? ` Last working set at ${effortLabel(effort.set)}.` : "") +
-    (weak ? ` Load follows your weaker side (${SIDE_LABELS[weak]}).` : "");
+    (effort ? ` Last working set at ${effortLabel(effort.set)}.` : "");
 
   const topWeight = topWorkingLoad(logged);
 
@@ -794,24 +738,21 @@ export function coachReport() {
   }
   L.push("");
 
-  // left vs right — the whole point of the leg-length work, finally measurable
-  L.push("## Left/right balance");
-  const asym = asymmetryOverview();
-  if (asym.tracked.length) {
-    asym.tracked.forEach((a) => {
-      const first = a.points[0];
-      const trend = a.points.length >= 2
-        ? ` (was ${asymmetryLabel(first.index)} on ${first.date.slice(0, 10)})`
-        : "";
-      L.push(`- **${a.name}**${a.flagged ? " 🦵" : ""}: R/L index ${a.index.toFixed(2)} — ${asymmetryLabel(a.index)}` +
-        ` across ${sessionCount(a.points)}${trend}`);
+  // Which side gave out first (#6). Deliberately qualitative: he uses the same
+  // dumbbell on both sides and matches reps to the weaker one, so per-side
+  // numbers would read identical forever. What he DOES notice — "right side
+  // could have done more, left had a harder time" — is one tap, and it's the
+  // only left/right signal in here that can actually change.
+  L.push("## Harder side");
+  const harder = harderSideReport();
+  if (harder.length) {
+    harder.forEach((h) => {
+      L.push(`- **${h.name}**: ${harderSideLabel(h.side)} side harder in ${h.flagged} of ${h.total} session${h.total === 1 ? "" : "s"}` +
+        ` (latest ${h.date.slice(0, 10)})${h.mixed ? " — mixed; the other side was flagged too" : ""}`);
     });
-    L.push("- Load suggestions for these follow the WEAKER side, so the stronger one can't drag the prescription up.");
+    L.push("- Qualitative, not load data: it says which side gave out first, not how much weaker it is.");
   } else {
-    L.push("- No sets logged left/right yet — turn on ⇄ L/R on a unilateral exercise to start measuring the gap.");
-  }
-  if (asym.missing.length) {
-    L.push(`- Leg-length-flagged movements still logged as one number: ${asym.missing.map((m) => m.name).join(", ")}.`);
+    L.push("- Nothing flagged — on a unilateral lift, tap L or R when one side gives out first.");
   }
   L.push("");
 
