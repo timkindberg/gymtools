@@ -25,7 +25,10 @@ to your home screen.
   notes, cues, injury flags, **superset** pairings, your **last performance**,
   an **auto-progression suggestion** (what to lift, and the reasoning behind
   the number — including holding back on a flare day and prescribing a deload
-  when a lift stalls), a **🎲 swap** button to rotate the
+  when a lift stalls), a **warm-up ramp** into heavy barbell compounds (bar →
+  ~50% → ~70% → ~85%, logged as ramp sets that never count toward progression),
+  an **estimated start** for a lift you've never done, worked back from a
+  related one you have, a **🎲 swap** button to rotate the
   exercise for variety, a set grid to log weight × reps, and a built-in **rest
   timer** (sound + vibration). One tap on the last working set records **how
   many reps you had left in the tank** (RPE), which is what lets the app tell
@@ -41,7 +44,8 @@ to your home screen.
   **symptom trend lines**, a **migraine-threshold** insight (compares training
   load on days that triggered a migraine vs. days that didn't), cardio/HR
   charts, and your full session log.
-- **Settings** — units (lb/kg), bodyweight tracking, rest-timer prefs, and
+- **Settings** — units (lb/kg), bodyweight tracking, rest-timer prefs,
+  **coach adjustments** (paste back what your review decided), and
   **export/import** your data as JSON (your backup — do this regularly!).
 
 ## The program (why it looks the way it does)
@@ -85,7 +89,16 @@ because your data lives only on your device (nothing syncs to a server).
 | Daily | Check in, lift, log | Auto-progresses loads, rest timer, swaps | — |
 | Weekly | Glance at Progress | Trends, stalls, symptom lines | — |
 | ~Every 4 weeks | **Settings → Coach report → Copy**, paste into a Claude chat, ask for an update | Generates the report | Reviews it, edits `js/program.js`, pushes → your app updates |
+| Same conversation | Paste Claude's adjustment block into **Settings → Coach adjustments** | Applies it to each lift's next session | Hands back `Barbell Bench Press: 155 x 8 — take the jump` |
 | Anytime | Stall or pain? Send the report | | Reacts |
+
+The report leads with **what the app will prescribe next session** for every
+lift, with the reasoning and which sets it counted, then the last three sessions
+set by set — roles, RPE and your per-exercise notes included. That's the part a
+review corrects. Corrections come back as one line per movement, apply to that
+lift's **next session only**, and are recorded next to what the app had proposed:
+if the review keeps pushing a number up, the report says the increments are too
+small.
 
 Claude's memory of you lives in [`coach/PROFILE.md`](coach/PROFILE.md) and the
 [`coach/COACHING_LOG.md`](coach/COACHING_LOG.md), so any future session is
@@ -118,8 +131,8 @@ The data model underneath it:
 | [`js/measures.js`](js/measures.js) | what the second column counts (reps / seconds / yards), structured prescriptions, the estimated-1RM guard, and the entry-time sanity checks. |
 | [`js/sets.js`](js/sets.js) | set roles — ramp-up, working, back-off — inferred as you log and overridable with a tap. Load suggestions read working sets only. |
 | [`js/effort.js`](js/effort.js) | RPE / reps in reserve, plus which side gave out first on unilateral work. One tap each on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
-| [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, and its own comparator for timed, bodyweight and carry work. |
-| [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, and the coach report. |
+| [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, its own comparator for timed, bodyweight and carry work, the warm-up ramp, and the cross-implement seed for a lift with no history. |
+| [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, the coach report, and the review's corrections coming back in. |
 
 These five are pure modules — no DOM, no storage — which is what makes them
 testable.

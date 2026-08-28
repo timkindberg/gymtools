@@ -449,8 +449,12 @@ function exerciseCard(exDef, draft, idx, session = {}) {
   // seeded start — but ONLY for the default exercise, since that number is
   // calibrated to the default implement (e.g. 45 per dumbbell). A swapped
   // variant (dumbbell→barbell, etc.) needs its own number, so we don't guess.
+  // A movement with no history of its own can still be seeded from a related
+  // one (#12). Never mixed into `sugg`: a seed is a guess, not a data point.
+  const seed = sugg ? null : store.seedFor(movementId, prescription);
   const startWeight = sugg && sugg.weight != null
     ? sugg.weight
+    : seed ? seed.weight
     : (!entry.variant && exDef.start != null ? exDef.start : null);
   const startAmount = sugg && sugg.amount != null ? sugg.amount : target;
 
@@ -537,7 +541,15 @@ function exerciseCard(exDef, draft, idx, session = {}) {
       : entry.variant
         ? `🎯 Swapped to ${displayName} — pick a weight that leaves a rep or two in the tank at ${amountHint} (the seeded start was for the original move). I'll suggest loads once you've logged this one.`
         : `🎯 First time on this one — pick a weight you could hold about ${measure === "reps" ? target + 2 + " reps" : amountHint} with, and stop at ${amountHint}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
-    const box = el("div.lasttime", {}, [el("span.sugg", { text: hint })]);
+    // No history HERE, but maybe history in a cousin (#12) — a barbell row can
+    // start from what the single-arm DB row has been carrying. Clearly an
+    // estimate: it's styled apart, and the first real set replaces it.
+    const box = seed
+      ? el("div.lasttime", {}, [
+          el("span.sugg.seeded", { text: "≈ " + seed.note }),
+          el("span.muted.tiny", { text: seed.basis }),
+        ])
+      : el("div.lasttime", {}, [el("span.sugg", { text: hint })]);
     if (slotLast && slotLast.movementId && slotLast.movementId !== movementId) {
       const prevMv = getMovement(slotLast.movementId);
       box.appendChild(el("span.muted.tiny", {
@@ -546,6 +558,21 @@ function exerciseCard(exDef, draft, idx, session = {}) {
       }));
     }
     card.appendChild(box);
+  }
+
+  // How to get to today's top set. Ramping into a heavy compound is standard
+  // practice, not a template: it rehearses the groove and warms the joints
+  // under progressively heavier load. These sets are marked `ramp` when logged
+  // and the engine ignores them, so they can't drag the next suggestion around.
+  const ramp = store.rampFor(movementId, startWeight, measure);
+  if (ramp.length) {
+    card.appendChild(el("details.ramp", {}, [
+      el("summary", { text: `🔥 Ramp to ${startWeight} ${units()}: ` + ramp.map((r) => `${r.load}×${r.amount}`).join(" · ") }),
+      el("p.muted.tiny", {
+        text: "Warm-up sets, not working sets — easy speed, full rest is unnecessary, stop each one well short. " +
+          "Log them if you like: they're marked as ramp-ups and never count toward your progression.",
+      }),
+    ]));
   }
 
   // Set rows
@@ -1354,6 +1381,9 @@ route("settings", () => {
     el("button.btn.primary", { text: "📋 Coach report", onclick: () => navigate("report") }),
   ]));
 
+  // the return leg of the loop (#11): what the review sends back
+  view.appendChild(overridesCard());
+
   // data
   view.appendChild(el("div.card", {}, [
     el("h3", { text: "Your data" }),
@@ -1378,6 +1408,46 @@ route("settings", () => {
 
   render(view);
 });
+
+// The review's corrections coming back in (#11). The report asks Claude to end
+// with a block of adjustment lines; this is where they land. Each one steers a
+// single movement's NEXT session and then retires itself, so a correction can
+// never quietly outlive the evidence it was based on.
+function overridesCard() {
+  const live = store.getOverrides();
+  const ids = Object.keys(live);
+  const card = el("div.card", {}, [
+    el("h3", { text: "✎ Coach adjustments" }),
+    el("p.muted.small", { text: "Paste the adjustment block from your coach report review. One movement per line — \"Barbell Bench Press: 155 x 8 — take the jump\", or \"Barbell Row: clear\" to drop one. Each applies to that lift's next session only." }),
+  ]);
+  const ta = el("textarea.input.report-input", { rows: 4, placeholder: "Barbell Bench Press: 155 x 8 — you left 3 in the tank" });
+  card.appendChild(ta);
+  card.appendChild(el("button.btn.primary", { text: "Apply adjustments", onclick: () => {
+    const res = store.applyOverrideText(ta.value);
+    if (res.errors.length) toast(`Couldn't read: ${res.errors[0]}`);
+    else if (!res.applied.length && !res.cleared.length) toast("Nothing to apply");
+    else toast(`${res.applied.length} set, ${res.cleared.length} cleared`);
+    if (res.applied.length || res.cleared.length) navigate("settings");
+  }}));
+  if (ids.length) {
+    card.appendChild(el("h4.mt", { text: "In effect" }));
+    ids.forEach((id) => {
+      const ov = live[id];
+      card.appendChild(el("div.override-row", {}, [
+        el("span.small", {
+          text: `${movementName(id, id)} → ${ov.weight == null ? "—" : ov.weight + " " + units()}` +
+            (ov.amount == null ? "" : ` × ${ov.amount}`) +
+            (ov.engineWeight != null ? ` (app said ${ov.engineWeight})` : ""),
+        }),
+        ov.note ? el("span.muted.tiny", { text: ov.note }) : null,
+        el("button.icon-btn", { html: "✕", title: "Remove", onclick: () => { store.clearOverride(id); navigate("settings"); } }),
+      ]));
+    });
+  } else {
+    card.appendChild(el("p.muted.tiny", { text: "None in effect — every suggestion is the app's own." }));
+  }
+  return card;
+}
 
 function versionFooter() {
   const wrap = el("div.version-footer");

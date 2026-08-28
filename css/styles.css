@@ -198,6 +198,26 @@ textarea.input { resize: vertical; }
 
 .lasttime { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; padding: 8px 10px; background: var(--bg-elev); border-radius: var(--radius-sm); }
 .sugg { font-size: 13px; color: var(--good); font-weight: 600; }
+/* A seeded start is an estimate from a RELATED lift, not this one's history —
+   it has to look different from a number the engine actually earned (#12). */
+.sugg.seeded { color: var(--accent2); font-weight: 600; font-style: italic; }
+
+/* The warm-up ramp into a heavy compound: collapsed by default, since it's a
+   reminder rather than a prescription. */
+.ramp { margin: 8px 0; }
+.ramp > summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--muted);
+  padding: 6px 10px; background: var(--bg-elev); border-radius: var(--radius-sm); list-style: none;
+}
+.ramp > summary::-webkit-details-marker { display: none; }
+.ramp > p { padding: 6px 10px 0; }
+
+/* Corrections coming back from the weekly review (#11). */
+.override-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.override-row:last-child { border-bottom: none; }
+.override-row .small { flex: 1; font-weight: 600; }
+.report-input { width: 100%; font-family: inherit; font-size: 14px; resize: vertical; margin-bottom: 8px; }
+.mt { margin-top: 12px; }
 
 /* set grid */
 .sets { margin-top: 10px; }

@@ -5,6 +5,69 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-28 — The coaching model (chunk 4), and a decision about 5/3/1
+
+Issues #11 and #12 of the rewrite (#13). **#10 — opt-in 5/3/1 wave mode — was
+deliberately not built.** The reasoning, so nobody re-opens it by accident:
+
+- The ramp-to-a-top-set shape in his log was **not intentional** — it was him
+  dialling in weights on lifts he'd just started. Building a whole percentage
+  template on top of a pattern the athlete didn't mean to create is
+  data-fitting, not coaching.
+- On the merits, 5/3/1 is a well-earned template for an intermediate who has
+  **stalled** on linear progression and needs sub-maximal work, slow training-max
+  growth and scheduled deloads. Tim is currently beating his numbers session to
+  session. Its Training Max march (+5 upper / +10 lower per four weeks) is
+  *slower* than what he's banking, so adopting it now would cost him progress to
+  buy structure he doesn't yet need.
+- Fit is poor besides: it assumes four days around squat/bench/deadlift/OHP; he
+  trains three with Friday skippable, hinges with an RDL (a bad AMRAP lift), and
+  a meniscus that has no business near a 1+ single on a box squat.
+- The mechanisms that make 5/3/1 work are already in the engine and stay there:
+  a training-max ceiling, percentage increments, RPE as the autoregulation
+  signal, stall detection, and a scheduled deload.
+
+**Ramping itself is worth doing on purpose**, independent of any template —
+warming up into a heavy compound rehearses the groove under rising load and gets
+a 44-year-old knee and shoulder through their first reps submaximal. So the app
+now *prescribes* the ramp (`warmupRamp`) on heavy barbell and machine compounds
+— bar, ~50%, ~70%, ~85% — collapsed on the card, marked as ramp sets, and
+ignored by the engine. Isolation work gets none: a 12.5 lb cuff cable **is** the
+warm-up.
+
+**Revisit #10** when the engine reports a genuine stall (2+ consecutive) on the
+main barbell lifts and a deload hasn't cleared it. That's the trigger; until
+then it stays closed-in-spirit and open on the tracker.
+
+What did ship:
+
+- **Coach report v2 (#11).** It now leads with **what the app will prescribe
+  next session** for every movement, with the engine's rationale and which sets
+  it counted — the thing a review has to correct *before* he trains. Below that:
+  the last three sessions set by set with roles (`[ramp]`, `[fail]`), logged
+  RPE, and the **per-exercise notes**, which is where all his real effort signal
+  lives ("could probably have done 2-3 more"). The v1 report kept only the best
+  set per movement, so a failed 30 followed by two back-off sets at 25 read as
+  "top set 30". Est. 1RM is labelled an Epley estimate everywhere it appears.
+- **The weekly loop closes (#11).** The report ends by asking for a fenced block
+  of adjustment lines (`Barbell Bench Press: 155 x 8 — take the jump`); Settings
+  → **Coach adjustments** parses them into per-movement overrides. An override
+  steers exactly one session and then retires itself once that lift has been
+  trained again — a week-old correction never outlives its evidence. Every
+  override is recorded alongside what the engine had proposed, and the report
+  tallies the direction: three corrections up and none down means the increment
+  band is too small, and says so.
+- **Cross-implement seeding (#12).** A movement with no history is seeded from a
+  cousin that has some — his own numbers say a 60/hand single-arm row and a 125
+  barbell row are the same job. Ratios live in one table of reciprocal links in
+  `js/movements.js`, rounded **down** to a real increment (a first set too light
+  costs one set; too heavy costs a week), shown in a distinct style with "worked
+  back from…", and structurally barred from history, bests, charts and training
+  maxes. Machines are almost absent from the table on purpose: a lever arm can
+  make the number on the stack mean anything.
+
+---
+
 ## 2026-08-27 — The progression engine (chunk 3)
 
 Issues #7, #8 and #9 of the rewrite (#13). `suggestion()`'s fifteen lines are

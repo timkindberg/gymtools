@@ -184,6 +184,68 @@ export function swapGroup(movement) {
   return SWAP_GROUPS[movement.pattern] || movement.pattern;
 }
 
+// ---- Cross-implement seed ratios (#12) --------------------------------------
+// A movement performed for the first time has no history, so the engine has
+// nothing to suggest. It does, however, usually have a cousin with history: a
+// barbell row and a single-arm DB row are the same job with a different handle.
+//
+// One link means "load(a) is about `ratio` × load(b)", each side expressed in
+// the units that movement is LOGGED in — per-hand for dumbbells, total for a
+// bar. Every link registers in both directions, reciprocal ratio.
+//
+// These are gym heuristics, not science. They vary with limb length, grip and
+// stability demand, and for a 6'3" lifter especially. A seeded number is a
+// starting guess to be overwritten by the first real set — it never enters
+// history, never feeds a training max, never counts as a data point. That is
+// enforced in the engine, and it is the reason machines are almost absent from
+// this table: a lever arm can make the number on the stack mean anything.
+const LINKS = [
+  // Rowing: 60/hand single-arm ≈ 125 on the bar in his own log (issue #12).
+  ["barbell-row", "db-row-single-arm", 2.0, "one arm at a time carries about the same total load as the bar"],
+  ["barbell-row", "chest-supported-db-row", 2.2, "the bench takes the low back out, so per hand goes down a little"],
+  ["chest-supported-db-row", "db-row-single-arm", 0.9, "both hands at once, chest supported"],
+  // Pressing: a pair of dumbbells is a little less than the same bar weight,
+  // and unstable, so the per-hand number lands under half the bar.
+  ["barbell-bench-press", "db-bench-press-neutral", 1.8, "two dumbbells cost stability the bar doesn't"],
+  ["barbell-incline-press", "db-incline-press-neutral", 1.8, "same trade on an incline"],
+  ["barbell-bench-press", "barbell-incline-press", 1.2, "flat is the stronger angle"],
+  ["barbell-overhead-press", "db-shoulder-press-seated", 1.7, "seated dumbbells press less than the standing bar"],
+  // Hinge: grip, not the hamstrings, caps a dumbbell RDL.
+  ["barbell-rdl", "db-rdl", 2.0, "the bar isn't grip-limited the way two dumbbells are"],
+  ["db-rdl", "single-leg-db-rdl", 1.6, "one leg at a time is a balance lift before it's a load lift"],
+  // Squat pattern: the safety bar sits a touch below the straight bar.
+  ["barbell-box-squat", "safety-bar-box-squat", 1.1, "the yoke shifts the load forward"],
+  ["barbell-box-squat", "goblet-box-squat", 3.0, "a goblet is capped by what you can hold at the chest"],
+  ["db-reverse-lunge", "bulgarian-split-squat", 1.25, "the rear foot elevated is the harder split"],
+  ["db-reverse-lunge", "split-squat-to-box", 1.1, "same split, less range"],
+  ["db-reverse-lunge", "db-step-up", 1.1, "stepping up is the same leg with less deceleration"],
+  // Arms and cuff work — small loads, tight relationships.
+  ["hammer-curl", "incline-db-curl", 1.15, "the incline stretches the biceps and costs load"],
+  ["triceps-rope-pushdown", "overhead-rope-extension", 1.4, "overhead is the weaker position"],
+  ["cable-external-rotation", "db-external-rotation-side-lying", 1.0, "same cuff, same tiny numbers"],
+  ["lat-pulldown", "lat-pulldown-neutral", 1.0, "same stack, different handle"],
+  ["suitcase-carry", "suitcase-hold", 1.0, "carrying it and holding it are the same load"],
+];
+
+const SEEDS = (() => {
+  const idx = {};
+  const add = (to, from, ratio, why) => {
+    if (!MOVEMENTS[to] || !MOVEMENTS[from]) return;
+    (idx[to] = idx[to] || []).push({ from, ratio: Math.round(ratio * 1000) / 1000, why });
+  };
+  for (const [a, b, ratio, why] of LINKS) {
+    add(a, b, ratio, why);
+    add(b, a, 1 / ratio, why);
+  }
+  return idx;
+})();
+
+// Related movements whose history could seed a first-time load here, best
+// first. Never more than a guess — see the note above.
+export function seedSourcesFor(slug) {
+  return (SEEDS[slug] || []).slice();
+}
+
 // ---- Lookup ----------------------------------------------------------------
 
 // Display names logged before the registry existed, plus the shorthand the

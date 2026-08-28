@@ -543,3 +543,106 @@ function loadCeiling(summaries, movement, reps, step) {
   if (!capacity) return null;
   return round(Math.floor((capacity + step.inc) / step.inc) * step.inc);
 }
+
+// ---- Seeding a first-time movement (#12) ------------------------------------
+// No history here, but history in a cousin: seed a *guess* and say loudly that
+// it's a guess. Deliberately conservative — the ratio is rounded DOWN to the
+// nearest real increment, because a first set that's too light costs one set
+// and a first set that's too heavy costs a week.
+//
+// A seed is not a suggestion. It carries `seeded: true`, it never reaches
+// stall detection, a training max, or a chart, and the first logged set of the
+// movement replaces it. Callers must not feed it back in as history.
+
+export function seedPrescription({
+  movement = null,
+  prescription = null,
+  sources = [],
+  units = "lb",
+} = {}) {
+  if (!movement) return null;
+  const measure = (prescription && prescription.measure) || movement.measure || "reps";
+  const info = measureInfo(measure);
+  const ceiling = prescription && prescription.max > 0 ? Number(prescription.max) : null;
+  const floor = prescription && prescription.min > 0 ? Number(prescription.min) : ceiling;
+  const inc = loadIncrement(movement);
+  // An assist stack runs backwards and a bodyweight movement has no load to
+  // seed. Neither has a ratio anyone should trust.
+  if (!inc || invertLoad(movement) || movement.loadMode === "none") return null;
+
+  for (const src of sources) {
+    const load = Number(src.load);
+    if (!(load > 0) || !(src.ratio > 0)) continue;
+    const weight = round(Math.floor((load * src.ratio) / inc) * inc);
+    if (!(weight > 0)) continue;
+    const amount = floor ?? ceiling;
+    const from = `${src.name || src.from} at ${load} ${units}` +
+      (src.date ? ` (${String(src.date).slice(0, 10)})` : "");
+    return {
+      action: "seed",
+      weight,
+      amount,
+      seeded: true,
+      source: { movementId: src.from, name: src.name || src.from, load, date: src.date || null, ratio: src.ratio },
+      note: `No history on this one yet, so here's an estimate: ${weight} ${units}, worked back from ` +
+        `${from}${src.why ? ` — ${src.why}` : ""}. Start there for ` +
+        `${amountText(amount, measure, info)} and adjust so the last rep or two feel genuinely hard.`,
+      basis: "Estimated from a related movement, not from this one's history — a starting guess, " +
+        "not a data point. Your first real set replaces it.",
+    };
+  }
+  return null;
+}
+
+// ---- Warm-up ramp -----------------------------------------------------------
+// Ramping to a heavy top set is standard practice on a compound barbell lift,
+// independent of any percentage template: it rehearses the groove under
+// progressively heavier load, primes the nervous system, and gets a 44-year-old
+// knee and shoulder through their first few reps under something submaximal.
+// It is NOT extra work — the ramp sets are marked `ramp` and the engine ignores
+// them (js/sets.js), so they can't drag a suggestion around.
+//
+// Small isolation work doesn't need this. A 12.5 lb cuff cable IS the warm-up.
+export const RAMP_STEPS = [
+  { pct: 0.5, amount: 5 },
+  { pct: 0.7, amount: 3 },
+  { pct: 0.85, amount: 2 },
+];
+export const BAR_WEIGHT = 45;
+
+const RAMPABLE = new Set([
+  "squat", "hinge", "hip-extension",
+  "horizontal-push", "vertical-push", "incline-push",
+  "horizontal-pull", "vertical-pull",
+]);
+
+// The sets to do on the way to `workLoad`, coarsest-first. Empty whenever a
+// ramp would be theatre: light loads, isolation work, assist stacks, anything
+// not measured in reps.
+export function warmupRamp(movement, workLoad, { measure = "reps" } = {}) {
+  if (!movement || measure !== "reps") return [];
+  if (invertLoad(movement) || movement.addedLoad || movement.loadMode === "none") return [];
+  if (!RAMPABLE.has(movement.pattern)) return [];
+  if (movement.implement !== "barbell" && movement.implement !== "machine") return [];
+  const inc = loadIncrement(movement);
+  const load = Number(workLoad);
+  if (!inc || !(load > 0)) return [];
+
+  const bar = movement.implement === "barbell" ? BAR_WEIGHT : inc * 2;
+  // Nothing to ramp through: the first honest warm-up set is already the work.
+  if (load < bar + inc * 4) return [];
+
+  const out = [];
+  // A barbell ramp starts at the empty bar. It costs thirty seconds and it's
+  // where the groove gets rehearsed before there's anything to lose.
+  if (movement.implement === "barbell" && load >= bar * 2) out.push({ load: bar, amount: 5 });
+  for (const stepDef of RAMP_STEPS) {
+    const target = round(Math.round((load * stepDef.pct) / inc) * inc);
+    const at = Math.max(bar, target);
+    if (at >= load) break;
+    // Two ramp sets a single increment apart is one ramp set with extra steps.
+    if (out.length && at - out[out.length - 1].load < inc * 2) continue;
+    out.push({ load: at, amount: stepDef.amount });
+  }
+  return out;
+}
