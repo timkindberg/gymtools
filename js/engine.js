@@ -318,8 +318,14 @@ export function nextPrescription({
   const inverted = invertLoad(movement);
   const say = (amount) => amountText(amount, measure, info);
 
+  // `note` is the full sentence; `headline` is the same verdict at a glance, for
+  // a card that shows the number first and the reasoning on demand. `range` is
+  // what the target was read against — the card needs it to answer "am I going
+  // for 8 or for 12?", which a single target number can't.
   const out = (action, weight, amount, note, extra = {}) => ({
     action, weight, amount, note, basis,
+    headline: extra.headline || defaultHeadline(action, extra),
+    range: { floor, ceiling },
     stall: stall.consecutive,
     ...extra,
   });
@@ -523,6 +529,36 @@ export function nextPrescription({
     `Stay at ${cur.load} and get every working set to ${say(ceiling)} before adding weight.${tank}${stallNote}`);
 }
 
+// A verdict short enough to sit under the load without wrapping. Branches that
+// know something more specific pass their own; this is the floor.
+const HEADLINES = {
+  increase: "Load goes up",
+  repeat: "Hold the load, chase reps",
+  deload: "Deload — reset and rebuild",
+  swap: "Swap this one out",
+};
+
+function defaultHeadline(action, extra = {}) {
+  if (action === "deload") return extra.reason === "scheduled" ? "Deload week" : "Stalled — reset";
+  return HEADLINES[action] || "";
+}
+
+// What topping the range would earn — the other half of double progression, and
+// the half the app has never said out loud. Returns the load the next jump lands
+// on, or, on an implement whose smallest step is too big, the rep count to
+// stretch to first.
+export function jumpPreview(movement, load, prescription = null) {
+  const measure = (prescription && prescription.measure) || (movement && movement.measure) || "reps";
+  const ceiling = prescription && prescription.max > 0 ? Number(prescription.max) : null;
+  const step = movement && load > 0 ? loadStep(movement, load) : null;
+  if (!step || ceiling == null) return null;
+  if (step.coarse) {
+    return { coarse: true, at: ceiling + amountStep(measure), inc: step.inc, measure };
+  }
+  const next = advance(movement, load, step, 1);
+  return { coarse: false, at: ceiling, load: next.load, delta: next.delta, measure };
+}
+
 function implementWord(movement) {
   if (!movement) return "implement";
   if (movement.implement === "dumbbell") return "dumbbell rack";
@@ -542,6 +578,37 @@ function loadCeiling(summaries, movement, reps, step) {
   const capacity = capacityAt(best, reps);
   if (!capacity) return null;
   return round(Math.floor((capacity + step.inc) / step.inc) * step.inc);
+}
+
+// ---- The terms of the deal --------------------------------------------------
+// Double progression only makes sense if both ends are on screen. A card that
+// says "150 × 8" when the range is 8–12 reads as "stop at 8", and the athlete
+// has no way to know that 12 on every set is what releases the next plate.
+// One sentence, stating today's floor and what topping the range earns.
+
+export function progressionTerms(sugg, { movement = null, prescription = null, units = "lb" } = {}) {
+  if (!sugg) return null;
+  const measure = (prescription && prescription.measure) || (movement && movement.measure) || "reps";
+  const info = measureInfo(measure);
+  const say = (n) => (measure === "reps" ? `${n}` : `${n}${info.unit}`);
+  const amount = sugg.amount;
+  const ceiling = (sugg.range && sugg.range.ceiling) || (prescription && prescription.max) || null;
+
+  if (sugg.guard === "pain") return "Hold today — pain was flagged here. Nothing to earn.";
+  if (sugg.guard === "symptom") return "Hold today. The load will still be there when it settles.";
+  if (sugg.action === "deload") return `Deload: ${say(amount)} at ${sugg.weight}, then back to ${sugg.from}.`;
+  if (sugg.action === "swap") return "Don't load this again — swap it.";
+  if (amount == null || sugg.weight == null) return null;
+
+  const jump = jumpPreview(movement, sugg.weight, prescription);
+  // A rack whose smallest step is too big progresses by stretching the range
+  // instead, so what's being chased isn't the ceiling — it's past it.
+  if (jump && jump.coarse) {
+    return `Clear ${say(amount)} on every set. ${say(jump.at)} is what earns the ${jump.inc} ${units} jump.`;
+  }
+  if (!jump || ceiling == null) return `Clear ${say(amount)} on every set today.`;
+  if (amount >= ceiling) return `Every set to ${say(ceiling)} — that's what takes you to ${jump.load} ${units}.`;
+  return `Clear ${say(amount)} today. Every set at ${say(ceiling)} takes you to ${jump.load} ${units}.`;
 }
 
 // ---- Seeding a first-time movement (#12) ------------------------------------

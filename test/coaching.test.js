@@ -10,9 +10,9 @@ import assert from "node:assert/strict";
 import { installBrowserGlobals, readFixture } from "./helpers.js";
 installBrowserGlobals();
 
-import { seedPrescription, warmupRamp, BAR_WEIGHT } from "../js/engine.js";
+import { seedPrescription, warmupRamp, jumpPreview, progressionTerms, BAR_WEIGHT } from "../js/engine.js";
 import { getMovement, seedSourcesFor, MOVEMENT_SLUGS } from "../js/movements.js";
-import { repRange } from "../js/measures.js";
+import { repRange, timeRange } from "../js/measures.js";
 
 const store = await import("../js/store.js");
 const fresh = () => { store.importData(readFixture("sessions-v1.json")); return store; };
@@ -198,4 +198,75 @@ test("a flagged typo still never reaches a proposal", () => {
   fresh();
   const thrust = store.nextSessionProposals().find((n) => n.movementId === "barbell-hip-thrust");
   assert.ok(thrust.weight < 200); // 140 × 120 would have proposed something absurd
+});
+
+// ---- The prescription, as the redesigned card states it ---------------------
+// The card leads with the load, so the range and the terms have to be stated
+// explicitly: "×8" when the range is 8–12 reads as "stop at 8".
+
+test("a suggestion carries a short headline and the range it was read against", () => {
+  fresh();
+  const sugg = store.suggestion("barbell-box-squat", repRange(5, 8));
+  assert.equal(sugg.headline, "Load goes up");
+  assert.deepEqual(sugg.range, { floor: 5, ceiling: 8 });
+  assert.ok(sugg.note.length > sugg.headline.length); // the sentence still exists
+});
+
+test("jumpPreview says what topping the range earns", () => {
+  const bar = jumpPreview(getMovement("barbell-hip-thrust"), 150, repRange(8, 12));
+  assert.equal(bar.coarse, false);
+  assert.equal(bar.at, 12);
+  assert.equal(bar.load, 160);
+  // A dumbbell rack whose smallest step is 20% of the load progresses by reps.
+  const db = jumpPreview(getMovement("incline-db-curl"), 25, repRange(10, 12));
+  assert.equal(db.coarse, true);
+  assert.equal(db.at, 14);  // stretch past the ceiling first
+  assert.equal(db.inc, 5);
+  assert.equal(jumpPreview(getMovement("side-plank"), 0, timeRange(45, 60)), null);
+});
+
+test("the terms line states today's floor and what earns the next jump", () => {
+  fresh();
+  const mv = getMovement("barbell-hip-thrust");
+  const prescription = repRange(8, 12);
+  const sugg = store.suggestion("barbell-hip-thrust", prescription);
+  assert.equal(sugg.weight, 150);
+  assert.equal(sugg.amount, 8);   // the floor at the new load, not the ceiling
+  assert.equal(
+    progressionTerms(sugg, { movement: mv, prescription, units: "lb" }),
+    "Clear 8 today. Every set at 12 takes you to 160 lb.",
+  );
+});
+
+test("a hold states the ceiling, because that's what releases the load", () => {
+  const mv = getMovement("barbell-bench-press");
+  const prescription = repRange(5, 8);
+  const held = { action: "repeat", weight: 135, amount: 8, range: { floor: 5, ceiling: 8 } };
+  assert.equal(
+    progressionTerms(held, { movement: mv, prescription, units: "lb" }),
+    "Every set to 8 — that's what takes you to 140 lb.",
+  );
+});
+
+test("a coarse rack is told to stretch the range, not to wait for a jump it can't take", () => {
+  const mv = getMovement("incline-db-curl");
+  const prescription = repRange(10, 12);
+  const sugg = { action: "repeat", weight: 25, amount: 14, extend: true, range: { floor: 10, ceiling: 12 } };
+  assert.equal(
+    progressionTerms(sugg, { movement: mv, prescription, units: "lb" }),
+    "Clear 14 on every set. 14 is what earns the 5 lb jump.",
+  );
+});
+
+test("guarded and deloaded lifts are told to hold, with nothing dangled", () => {
+  const mv = getMovement("barbell-box-squat");
+  const prescription = repRange(5, 8);
+  const opts = { movement: mv, prescription, units: "lb" };
+  assert.match(progressionTerms({ action: "repeat", guard: "pain", weight: 165, amount: 8 }, opts), /pain was flagged/);
+  assert.match(progressionTerms({ action: "repeat", guard: "symptom", weight: 165, amount: 8 }, opts), /still be there/);
+  assert.match(
+    progressionTerms({ action: "deload", weight: 150, amount: 5, from: 165 }, opts),
+    /Deload: 5 at 150, then back to 165\./,
+  );
+  assert.equal(progressionTerms(null, opts), null);
 });

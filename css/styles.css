@@ -175,6 +175,127 @@ textarea.input { resize: vertical; }
 .slider-val { font-weight: 800; font-size: 18px; color: var(--accent); min-width: 24px; text-align: right; }
 .slider-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
 
+/* ---- Exercise card, rebuilt ------------------------------------------------
+   Three bands: DECIDE (the prescription), LOG (the grid), TOOLS (exceptions).
+   Everything you consult a few times a month folds into the chip strip or the
+   ⋯ menu, so the number you came for is the first thing on the card. */
+
+.ex-head { display: flex; align-items: flex-start; gap: 10px; }
+.ex-idx {
+  width: 24px; height: 24px; border-radius: 8px; background: var(--bg-elev);
+  color: var(--muted); font-weight: 700; font-size: 12px; flex: none; margin-top: 2px;
+  display: flex; align-items: center; justify-content: center;
+}
+.ex-title { flex: 1; min-width: 0; }
+.ex-title h3 { font-size: 16px; }
+
+/* The ⋯ menu: swap, video, remove a set — a few times a month, each. */
+.ex-menu { position: relative; flex: none; }
+.ex-menu > summary { list-style: none; cursor: pointer; }
+.ex-menu > summary::-webkit-details-marker { display: none; }
+.menu-sheet {
+  position: absolute; right: 0; top: 36px; z-index: 20; min-width: 190px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow); padding: 6px; display: flex; flex-direction: column;
+}
+.menu-item {
+  text-align: left; background: none; border: none; border-radius: 8px; cursor: pointer;
+  padding: 9px 10px; font-size: 14px; color: var(--text); text-decoration: none; display: block;
+}
+.menu-item:hover, .menu-item:focus-visible { background: var(--bg-elev); }
+
+/* DECIDE. The load reads at arm's length; the range sits next to it so "×8"
+   can never be mistaken for "stop at 8" when the range is 8–12. */
+.rx { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin: 10px 0 6px; }
+.rx-load { font-size: 40px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+.rx-unit { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.rx-x { font-size: 20px; color: var(--muted); }
+.rx-range { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Sets, effort and rest were one grey run-on line. They're three facts you act
+   on, so they get three cells and real contrast. */
+.rx-stats { display: flex; gap: 8px; margin-bottom: 8px; }
+.rx-stats .stat {
+  flex: 1; display: flex; flex-direction: column; gap: 1px; padding: 6px 8px;
+  background: var(--bg-elev); border-radius: var(--radius-sm); min-width: 0;
+}
+.rx-stats .stat b { font-size: 14px; font-weight: 700; }
+.rx-stats .stat span {
+  font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* The terms of double progression, stated. This is the line that answers
+   "am I going for 8 or 12?". */
+.rx-goal {
+  font-size: 13px; font-weight: 600; color: var(--good); margin: 0 0 8px;
+  padding-left: 10px; border-left: 3px solid var(--good);
+}
+.rx-seed { font-size: 13px; color: var(--accent2); font-style: italic; margin-bottom: 8px; }
+
+/* The engine's verdict at a glance; the reasoning is one tap away. */
+.why-line {
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  background: none; border: none; padding: 0; margin-bottom: 8px; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; color: var(--muted);
+}
+.why-line .q {
+  width: 16px; height: 16px; border-radius: 50%; border: 1px solid currentColor;
+  font-size: 10px; font-weight: 700; flex: none; display: flex; align-items: center; justify-content: center;
+}
+.why-line[aria-expanded="true"] { color: var(--text); }
+
+.chip-strip { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.chip-btn {
+  border: 1px solid var(--line); background: var(--bg-elev); color: var(--muted);
+  border-radius: 8px; padding: 6px 9px; font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.chip-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--text); }
+.drawer-host:empty { display: none; }
+.drawer {
+  background: var(--bg-elev); border-radius: var(--radius-sm); padding: 10px;
+  margin-bottom: 8px; font-size: 13px; color: var(--muted);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.drawer p { margin: 0; }
+.drawer .cues, .drawer .flags { margin: 0; }
+.ramp-list { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.note-host:empty { display: none; }
+.btn.ghost.small.on { border-color: var(--warn); color: var(--warn); }
+
+/* ---- The focus stack -------------------------------------------------------
+   One lift open at a time. Everything else is a line you can tap. */
+.session-progress { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+.prog-track { flex: 1; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.prog-fill { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+@media (prefers-reduced-motion: reduce) { .prog-fill { transition: none; } }
+
+.stack-row {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 11px 14px; box-shadow: var(--shadow);
+}
+.stack-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stack-row.done { opacity: .62; }
+.stack-row.has-pain { border-color: var(--warn); }
+.stack-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.stack-name > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack-rx { font-size: 14px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stack-rx.done { color: var(--good); }
+.set-dots { display: flex; gap: 3px; flex: none; }
+.set-dots .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.set-dots .dot.on { background: var(--good); }
+
+.active-group { display: flex; flex-direction: column; gap: 10px; }
+.active-group.superset {
+  border: 1px solid color-mix(in srgb, var(--accent2) 45%, var(--line));
+  border-radius: var(--radius); padding: 10px; background: color-mix(in srgb, var(--accent2) 5%, transparent);
+}
+.ss-lead { color: var(--accent2); font-weight: 700; margin: 0 0 2px; }
+.advance-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.btn.small { padding: 8px 14px; font-size: 14px; }
+
 /* ---- Exercise card ---- */
 .exercise-head { display: flex; align-items: flex-start; gap: 12px; }
 .exercise-idx {
@@ -195,22 +316,6 @@ textarea.input { resize: vertical; }
 .cues li { margin: 2px 0; }
 .flags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .flag { font-size: 11px; background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); padding: 2px 8px; border-radius: 999px; font-weight: 600; }
-
-.lasttime { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; padding: 8px 10px; background: var(--bg-elev); border-radius: var(--radius-sm); }
-.sugg { font-size: 13px; color: var(--good); font-weight: 600; }
-/* A seeded start is an estimate from a RELATED lift, not this one's history —
-   it has to look different from a number the engine actually earned (#12). */
-.sugg.seeded { color: var(--accent2); font-weight: 600; font-style: italic; }
-
-/* The warm-up ramp into a heavy compound: collapsed by default, since it's a
-   reminder rather than a prescription. */
-.ramp { margin: 8px 0; }
-.ramp > summary {
-  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--muted);
-  padding: 6px 10px; background: var(--bg-elev); border-radius: var(--radius-sm); list-style: none;
-}
-.ramp > summary::-webkit-details-marker { display: none; }
-.ramp > p { padding: 6px 10px 0; }
 
 /* Corrections coming back from the weekly review (#11). */
 .override-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
@@ -238,7 +343,7 @@ textarea.input { resize: vertical; }
   background: var(--bg-elev); color: var(--muted); cursor: pointer;
   font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: lowercase; padding: 0;
 }
-.role-badge[data-role="work"] { color: var(--text); border-color: var(--accent); }
+.role-badge[data-role="work"] { color: var(--text); }
 .role-badge[data-role="ramp"] { color: var(--muted); }
 .role-badge[data-role="backoff"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
 .role-badge[data-role="failed"] { color: #fff; background: var(--warn); border-color: var(--warn); }
@@ -351,10 +456,7 @@ textarea.input { resize: vertical; }
 .cloud-card .input { margin-bottom: 10px; }
 .coach-card { border-color: var(--accent); }
 .report { white-space: pre-wrap; word-break: break-word; font-size: 12.5px; line-height: 1.5; background: var(--bg-elev); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; margin-top: 12px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.exercise-actions { display: flex; gap: 6px; flex: none; }
-.ss-hint { margin: 6px 0 0; font-style: italic; }
 .plate-note { font-size: 12.5px; font-weight: 600; color: var(--muted); background: var(--bg-elev); border: 1px dashed var(--line); border-radius: 8px; padding: 6px 10px; margin: 8px 0 4px; }
-.variant-note { color: var(--accent); margin-top: 2px; }
 .barbell-note { color: var(--muted); margin: 8px 0; padding: 8px 10px; background: var(--bg-elev); border-radius: var(--radius-sm); }
 
 /* migraine follow-up question */

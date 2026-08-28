@@ -5,6 +5,56 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-28 — The session card, rebuilt around the three moments
+
+The card had absorbed eight features across four chunks and showed all of them
+at once, in one flat stack of ten equally-weighted zones. Nothing on it was
+wrong; the problem was that everything had the same weight, so the number you
+came for competed with the paragraph explaining it. Rebuilt around what the card
+is actually for at any given second:
+
+- **Decide** (~8× a session) — the prescription, now one block at the top.
+- **Log** (~30× a session) — the grid, moved directly under it, ~120px higher.
+- **Consult** (a few × a month) — why, cues, plates, ramp, history, the engine's
+  reasoning, swap, video. All of it folded behind one chip strip and a ⋯ menu.
+
+**The bug this exposed, and the real fix.** The card led with a single target
+rep count — `150 lb × 8` — while the prescription was a *range* of 8–12. That
+reads as "stop at 8", and there was nothing anywhere in the app saying that 12
+on every set is what releases the next plate. Double progression only makes
+sense if both ends are on screen. So the prescription block now shows **load ×
+range**, a three-cell strip for **sets / RPE ("2 in the tank") / rest**, and one
+generated line stating the terms:
+
+> Clear 8 today. Every set at 12 takes you to 160 lb.
+
+That sentence is `progressionTerms()` in the engine, not copy in the view, so it
+stays true for a hold ("Every set to 12 — that's what takes you to 160"), a
+coarse dumbbell rack ("14 is what earns the 5 lb jump"), a deload, and a lift
+held back by pain, where nothing is dangled at all. `jumpPreview()` is the new
+pure function underneath it — what topping the range would earn.
+
+Also new on the engine's return value: `headline`, a verdict short enough to sit
+under the load without wrapping ("Load goes up"), with the full sentence and the
+basis line one tap behind a `?`; and `range`, so the card can never again show a
+target without the range it was read against.
+
+**The session is a focus stack.** Six open cards is a session-level problem no
+amount of card-level tidying fixes, so everything but the lift you're on
+collapses to a line — name, what it asks for (or, once done, what you actually
+did), and a dot per set. A progress bar replaces counting cards, **Next lift ›**
+advances, and the active lift is remembered in the draft, so closing the app
+mid-session brings you back to where you were. A ⇄ superset opens as a pair in
+one tinted container: alternating between the two is the entire point of the
+pairing, so hiding one of them would break it.
+
+Not taken, deliberately: tap-to-log a pre-filled load. It's the fastest thing on
+the table, but the data model rests on the athlete typing the number, and a tap
+meaning "yes, exactly that" is different evidence. Worth deciding on purpose
+rather than drifting into.
+
+---
+
 ## 2026-08-28 — The coaching model (chunk 4), and a decision about 5/3/1
 
 Issues #11 and #12 of the rewrite (#13). **#10 — opt-in 5/3/1 wave mode — was

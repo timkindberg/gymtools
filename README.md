@@ -21,21 +21,30 @@ to your home screen.
 - **Guided sessions** — a quick symptom check-in first (right knee, right-side
   tightness, shoulder, neck/headache, energy, sleep) plus a **"did a migraine
   follow your last workout?"** prompt. If something's flaring, the app warns you
-  and points to the safer swaps. Then you go exercise-by-exercise: coach's
-  notes, cues, injury flags, **superset** pairings, your **last performance**,
-  an **auto-progression suggestion** (what to lift, and the reasoning behind
-  the number — including holding back on a flare day and prescribing a deload
-  when a lift stalls), a **warm-up ramp** into heavy barbell compounds (bar →
-  ~50% → ~70% → ~85%, logged as ramp sets that never count toward progression),
-  an **estimated start** for a lift you've never done, worked back from a
-  related one you have, a **🎲 swap** button to rotate the
-  exercise for variety, a set grid to log weight × reps, and a built-in **rest
-  timer** (sound + vibration). One tap on the last working set records **how
-  many reps you had left in the tank** (RPE), which is what lets the app tell
-  "that was too light" from "that was your limit". Unilateral exercises get one
-  more tap — **which side was the harder one** — so a side that keeps giving out
-  first shows up in the coach report. Optional Apple Watch metrics (duration,
-  HR, calories) at the end.
+  and points to the safer swaps. Then it's **one lift at a time**: the session is
+  a focus stack, so everything but the exercise you're on collapses to a line
+  (name, what it asks for, a dot per set), with a progress bar and a **Next lift**
+  button. A ⇄ **superset** pair opens together.
+
+  The open card leads with the **prescription** — load × rep range, then sets /
+  RPE / rest, then the terms of the deal in one line: *"Clear 8 today. Every set
+  at 12 takes you to 160 lb."* Double progression only makes sense if both ends
+  are on screen. Under it: the engine's verdict, with the full reasoning and the
+  sets it counted one tap behind a **?** — including holding back on a flare day,
+  prescribing a deload when a lift stalls, and an **estimated start** for a lift
+  you've never done, worked back from a related one you have. A chip strip opens,
+  one at a time, the **warm-up ramp** into heavy barbell compounds (bar → ~50% →
+  ~70% → ~85%, logged as ramp sets that never count toward progression), the
+  **plate math**, your **last performance**, and the coach's notes, cues and
+  injury flags. A **⋯** menu holds the rare stuff: 🎲 swap for variety, how-to
+  video, remove a set.
+
+  Then the set grid, a built-in **rest timer** (sound + vibration), and one tap on
+  the last working set to record **how many reps you had left in the tank** (RPE),
+  which is what lets the app tell "that was too light" from "that was your limit".
+  Unilateral exercises get one more tap — **which side was the harder one** — so a
+  side that keeps giving out first shows up in the coach report. Optional Apple
+  Watch metrics (duration, HR, calories) at the end.
 - **Loosen up** — a standalone 5–8 min mobility routine (right-side focus) you
   can pull up any day, especially rest days.
 - **Program** — browse the full A/B/C program with the reasoning behind every
@@ -131,7 +140,7 @@ The data model underneath it:
 | [`js/measures.js`](js/measures.js) | what the second column counts (reps / seconds / yards), structured prescriptions, the estimated-1RM guard, and the entry-time sanity checks. |
 | [`js/sets.js`](js/sets.js) | set roles — ramp-up, working, back-off — inferred as you log and overridable with a tap. Load suggestions read working sets only. |
 | [`js/effort.js`](js/effort.js) | RPE / reps in reserve, plus which side gave out first on unilateral work. One tap each on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
-| [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, its own comparator for timed, bodyweight and carry work, the warm-up ramp, and the cross-implement seed for a lift with no history. |
+| [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, its own comparator for timed, bodyweight and carry work, the warm-up ramp, the cross-implement seed for a lift with no history, and the sentence stating what topping the rep range earns. |
 | [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, the coach report, and the review's corrections coming back in. |
 
 These five are pure modules — no DOM, no storage — which is what makes them
