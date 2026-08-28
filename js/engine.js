@@ -32,6 +32,7 @@
 // =============================================================================
 
 import { invertLoad } from "./movements.js";
+import { rampLadder } from "./plates.js";
 import { setAmount, setLoad, isLogged, measureInfo, estimate1RM } from "./measures.js";
 import { workingSets, rampSets, failedSets, topWorkingLoad } from "./sets.js";
 import { workingEffort, effortVerdict, effortLabel } from "./effort.js";
@@ -670,11 +671,7 @@ export function seedPrescription({
 // them (js/sets.js), so they can't drag a suggestion around.
 //
 // Small isolation work doesn't need this. A 12.5 lb cuff cable IS the warm-up.
-export const RAMP_STEPS = [
-  { pct: 0.5, amount: 5 },
-  { pct: 0.7, amount: 3 },
-  { pct: 0.85, amount: 2 },
-];
+export const RAMP_STEPS = [{ pct: 0.5 }, { pct: 0.7 }, { pct: 0.85 }];
 export const BAR_WEIGHT = 45;
 
 const RAMPABLE = new Set([
@@ -699,17 +696,34 @@ export function warmupRamp(movement, workLoad, { measure = "reps" } = {}) {
   // Nothing to ramp through: the first honest warm-up set is already the work.
   if (load < bar + inc * 4) return [];
 
+  // A bar is loaded, not dialled. Percentages that look tidy on paper —
+  // 82.5 / 105 / 127.5 — mean stripping the bar twice on the way up, so the
+  // barbell ramp comes from the plate ladder instead: every step above the
+  // first is a prefix of the working set's stack, so the plates go on and stay
+  // on. Everything else (a stack, a pin) really is dialled, and percentages are
+  // exactly right for it.
+  const steps = movement.implement === "barbell"
+    ? rampLadder(load, bar)
+    : percentageRamp(load, bar, inc);
+  return steps.map((step, i) => ({ ...step, amount: rampReps(i, steps.length) }));
+}
+
+// Heavier ramp sets, fewer reps: the point is to rehearse the groove and warm
+// the tissue, not to spend anything before the working set.
+const RAMP_REPS = [5, 5, 3, 2];
+function rampReps(i, total) {
+  return RAMP_REPS[RAMP_REPS.length - total + i] ?? RAMP_REPS[RAMP_REPS.length - 1];
+}
+
+function percentageRamp(load, bar, inc) {
   const out = [];
-  // A barbell ramp starts at the empty bar. It costs thirty seconds and it's
-  // where the groove gets rehearsed before there's anything to lose.
-  if (movement.implement === "barbell" && load >= bar * 2) out.push({ load: bar, amount: 5 });
   for (const stepDef of RAMP_STEPS) {
     const target = round(Math.round((load * stepDef.pct) / inc) * inc);
     const at = Math.max(bar, target);
     if (at >= load) break;
     // Two ramp sets a single increment apart is one ramp set with extra steps.
     if (out.length && at - out[out.length - 1].load < inc * 2) continue;
-    out.push({ load: at, amount: stepDef.amount });
+    out.push({ load: at });
   }
   return out;
 }

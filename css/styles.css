@@ -259,7 +259,20 @@ textarea.input { resize: vertical; }
 }
 .drawer p { margin: 0; }
 .drawer .cues, .drawer .flags { margin: 0; }
-.ramp-list { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+/* The ramp, as a thing you load. One row per set: the load, what changes on
+   the bar, and the reps. A ⇄ row is the one place plates come back off. */
+.ramp-rows { display: flex; flex-direction: column; gap: 2px; }
+.ramp-row {
+  display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: baseline;
+  padding: 5px 6px; border-radius: 6px;
+}
+.ramp-load { font-weight: 700; font-size: 15px; color: var(--text); font-variant-numeric: tabular-nums; }
+.ramp-move { font-size: 12.5px; }
+.ramp-reps { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ramp-row.swap { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.ramp-row.swap .ramp-move { color: var(--warn); font-weight: 600; }
+.ramp-row.work { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+.ramp-row.work .ramp-load, .ramp-row.work .ramp-reps { color: var(--good); font-weight: 700; }
 
 .note-host:empty { display: none; }
 .btn.ghost.small.on { border-color: var(--warn); color: var(--warn); }

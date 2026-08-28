@@ -5,6 +5,49 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-28 — A ramp you can load
+
+`js/plates.js`, and the first thing in the app that knows a bar is *loaded*
+rather than dialled. The percentage ramp was arithmetically correct and
+practically annoying: 50 / 70 / 85% of 150 is 75 / 105 / 127.5, which means
+stripping the bar twice on the way up.
+
+The rule that makes a ramp loadable is that every step above the first is a
+**prefix of the working set's plate stack**. Load the big plates first and from
+there you only add — the 45s go on and stay on, then the 5s, then the 2.5s.
+Where the jump from the empty bar to that first prefix is too big to be a
+warm-up, one bridge step gets built from smaller plates, and those come back
+off. That swap is real, so it is shown rather than hidden, and it happens once,
+early, with the lightest plates in the ramp:
+
+```
+ 45   empty bar          × 5
+ 95   + 25               × 5
+135   ⇄ 25 off, 45 on    × 3
+145   + 5                × 2
+150   + 2.5              work
+```
+
+`rampLadder()` guarantees the ramp rises, starts at the bar, stops below the
+working set, is at most four sets, and strips the bar at most once — all of
+that is pinned by tests across loads from 95 to 315. A machine or a cable stack
+keeps the percentage ramp, because a pin genuinely is dialled and there are no
+plates to talk about.
+
+The chip carries the loads (`🔥 45 · 95 · 135 · 145`) since that's what you
+glance at between sets; the drawer carries the plate order and ends with the
+working set's full stack, which retired the separate 🏋️ Plates chip wherever a
+ramp exists. The old inline plate helper moved into the module, so the Program
+view and the session card now do their plate math the same way.
+
+Two smaller things from the same pass: the chip is labelled **Cues** rather than
+Notes, since that's what's in it; and tapping a set's role badge now says what
+it did — "Ramp-up — ignored by the next suggestion". The role decides whether a
+set feeds the engine at all, which is too consequential to convey by relabelling
+a button silently.
+
+---
+
 ## 2026-08-28 — The session card, rebuilt around the three moments
 
 The card had absorbed eight features across four chunks and showed all of them

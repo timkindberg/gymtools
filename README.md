@@ -141,9 +141,10 @@ The data model underneath it:
 | [`js/sets.js`](js/sets.js) | set roles — ramp-up, working, back-off — inferred as you log and overridable with a tap. Load suggestions read working sets only. |
 | [`js/effort.js`](js/effort.js) | RPE / reps in reserve, plus which side gave out first on unilateral work. One tap each on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
 | [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, its own comparator for timed, bodyweight and carry work, the warm-up ramp, the cross-implement seed for a lift with no history, and the sentence stating what topping the rep range earns. |
+| [`js/plates.js`](js/plates.js) | what goes on the bar, and in what order. A ramp isn't a set of percentages, it's a sequence of loads you have to build: every step above the first is a prefix of the working set's stack, so plates go on and stay on. Where one bridge step has to come back off, the ramp says so. |
 | [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, the coach report, and the review's corrections coming back in. |
 
-These five are pure modules — no DOM, no storage — which is what makes them
+These six are pure modules — no DOM, no storage — which is what makes them
 testable.
 
 ### How the load suggestion is made

@@ -17,6 +17,7 @@ import {
   HARDER_SIDES, SIDE_LABELS, harderSide, harderSideLabel, recordHarderSide,
 } from "./effort.js";
 import { progressionTerms } from "./engine.js";
+import { stackText, plateStack, stackDelta } from "./plates.js";
 import * as store from "./store.js";
 import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
@@ -571,6 +572,25 @@ function rangeText(prescription, measure, info) {
   return measure === "reps" ? `${span} reps` : `${span}${info.unit}`;
 }
 
+// What changes on the bar at this step, per side. "+ 25" you can act on;
+// "45 + 25 per side" you have to diff against what's already loaded.
+function plateMove(step, barbell) {
+  if (!barbell) return "";
+  if (!step.side || !step.side.length) return "empty bar";
+  const list = (a) => a.join(" + ");
+  if (step.remove && step.remove.length) return `⇄ ${list(step.remove)} off, ${list(step.add)} on`;
+  if (step.add && step.add.length) return `+ ${list(step.add)}`;
+  return "as loaded";
+}
+
+function rampRow(step, move, right) {
+  return el("div.ramp-row" + (step.work ? ".work" : "") + (step.swap ? ".swap" : ""), {}, [
+    el("span.ramp-load", { text: String(step.load) }),
+    el("span.ramp-move", { text: move }),
+    el("span.ramp-reps", { text: right }),
+  ]);
+}
+
 // A chip that opens one drawer under the strip. One open at a time: two open
 // drawers is the pile-up this redesign exists to remove.
 function drawerChip(strip, host, label, build) {
@@ -737,17 +757,37 @@ function exerciseCard(exDef, draft, idx, session = {}) {
   // ---- CONSULT. One strip, one drawer at a time.
   const strip = el("div.chip-strip");
   const ramp = store.rampFor(movementId, startWeight, measure);
+  const barbell = !!(movement && movement.implement === "barbell");
   if (ramp.length) {
-    strip.appendChild(drawerChip(strip, drawerHost, "🔥 Ramp", () => el("div.drawer", {}, [
-      el("p.ramp-list", { text: ramp.map((r) => `${r.load}×${r.amount}`).join("  ·  ") + `  →  ${startWeight}` }),
-      el("p.tiny.muted", { text: "Warm-up sets, not working sets — easy speed, stop each one well short. Log them if you like: they're marked as ramp-ups and never count toward your progression." }),
-    ])));
-  }
-  if (movement && movement.implement === "barbell" && startWeight != null) {
-    strip.appendChild(drawerChip(strip, drawerHost, "🏋️ Plates", () => {
-      const b = plateBreakdown(startWeight, 45);
-      return el("div.drawer", {}, [el("p", { text: b ? `${Math.round(startWeight)} lb → ${b.text}` : "Enter a weight for the plate math." })]);
+    // The chip carries the loads, because that's what you glance at between
+    // sets. The drawer carries the plates, in load order, saying what changes
+    // at each step — a ramp you can build without stripping the bar twice.
+    const label = "🔥 " + ramp.map((r) => r.load).join(" · ");
+    strip.appendChild(drawerChip(strip, drawerHost, label, () => {
+      const box = el("div.drawer");
+      const rows = el("div.ramp-rows");
+      const workSide = barbell && startWeight != null ? (plateStack(startWeight) || {}).side || [] : null;
+      ramp.forEach((r, i) => rows.appendChild(rampRow(r, plateMove(r, barbell), `× ${r.amount}`)));
+      if (workSide) {
+        const toWork = stackDelta(ramp[ramp.length - 1].side || [], workSide);
+        rows.appendChild(rampRow({ load: startWeight, work: true },
+          plateMove({ add: toWork.add, remove: toWork.remove, swap: toWork.remove.length > 0, side: workSide }, true),
+          "work"));
+      }
+      box.appendChild(rows);
+      if (workSide) box.appendChild(el("p.tiny", { text: `Working set: ${stackText(startWeight)}` }));
+      box.appendChild(el("p.tiny.muted", {
+        text: barbell
+          ? "Loaded so the plates go on and stay on — a ⇄ is the one place something comes back off. Warm-up sets: easy speed, stop each one well short. They're marked as ramp-ups and never count toward your progression."
+          : "Warm-up sets, not working sets — easy speed, stop each one well short. They're marked as ramp-ups and never count toward your progression.",
+      }));
+      return box;
     }));
+  }
+  if (barbell && startWeight != null && !ramp.length) {
+    strip.appendChild(drawerChip(strip, drawerHost, "🏋️ Plates", () => el("div.drawer", {}, [
+      el("p", { text: stackText(startWeight) || "Enter a weight for the plate math." }),
+    ])));
   }
   if (last) {
     strip.appendChild(drawerChip(strip, drawerHost, "📈 Last", () => {
@@ -768,7 +808,7 @@ function exerciseCard(exDef, draft, idx, session = {}) {
       })]);
     }));
   }
-  strip.appendChild(drawerChip(strip, drawerHost, "📋 Notes", () => {
+  strip.appendChild(drawerChip(strip, drawerHost, "📋 Cues", () => {
     const box = el("div.drawer");
     if (entry.variant) {
       box.appendChild(el("p", { text: `You swapped to ${displayName} — it fills the same slot as ${exDef.name}. The flags are why this slot is in your program.` }));
@@ -871,6 +911,13 @@ function roleGlyph(set) {
   return r === "ramp" ? "↗" : r === "backoff" ? "↘" : "";
 }
 
+// What the role you just picked means for the engine, said once, on the tap.
+const ROLE_TOASTS = {
+  ramp: "Ramp-up — ignored by the next suggestion",
+  work: "Working set — this is what the suggestion reads",
+  backoff: "Back-off — counted as fatigue, not as your working load",
+};
+
 const ROLE_TITLES = {
   ramp: "Ramp-up set — doesn't count toward progression",
   work: "Working set — this is what the load suggestion reads",
@@ -919,6 +966,9 @@ function setRow(ctx, setData, si) {
   row.appendChild(el("span.set-col", {}, [wInput]));
   row.appendChild(el("span.set-col", {}, [aInput]));
 
+  // Tapping the badge cycles the role and locks it, so inference stops
+  // overwriting your call. A silent relabel isn't enough — the role decides
+  // whether this set feeds the next suggestion at all, so say what it did.
   const badge = el("button.role-badge", {
     onclick: () => {
       setData.role = nextRole(roleOf(setData));
@@ -926,6 +976,8 @@ function setRow(ctx, setData, si) {
       delete setData.failed;
       store.saveDraft(draft);
       paintRoleBadge(badge, setData);
+      ctx.refreshRoles();
+      toast(ROLE_TOASTS[roleOf(setData)]);
     },
   });
   badges[si] = badge;
@@ -1293,8 +1345,8 @@ function programExercise(e, i) {
   if (e.techNote) card.appendChild(el("p.barbell-note.small", { text: "🎥 " + e.techNote }));
   const progMv = getMovement(e.movement);
   if (progMv && progMv.implement === "barbell" && e.start != null) {
-    const b = plateBreakdown(e.start, 45);
-    if (b) card.appendChild(el("div.plate-note", { text: `🏋️ Start ${e.start} lb → ${b.text}` }));
+    const b = stackText(e.start);
+    if (b) card.appendChild(el("div.plate-note", { text: `🏋️ Start ${e.start} lb → ${b}` }));
   }
   if (e.flags && e.flags.length) card.appendChild(el("div.flags", {}, e.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   const altNames = alternativeNames(e);
@@ -1792,22 +1844,6 @@ function cloudCard() {
 // Shared bits
 // ---------------------------------------------------------------------------
 // Plate math for a barbell total (standard 45 lb bar, symmetric loading).
-function plateBreakdown(total, bar = 45) {
-  const t = Number(total);
-  if (!t || t <= 0) return null;
-  if (t < bar) return { text: `lighter than the empty ${bar} lb bar` };
-  if (t === bar) return { text: `just the empty ${bar} lb bar` };
-  let rem = (t - bar) / 2;
-  const plates = [45, 35, 25, 10, 5, 2.5];
-  const used = [];
-  for (const p of plates) {
-    while (rem >= p - 1e-9) { used.push(p); rem = Math.round((rem - p) * 100) / 100; }
-  }
-  const sideStr = used.length ? used.join(" + ") : "0";
-  const short = rem > 0.01 ? ` (+${rem} short — nearest below)` : "";
-  return { text: `${bar} bar + ${sideStr} per side${short}` };
-}
-
 function statTile(value, label) {
   return el("div.stat-tile", {}, [el("span.stat-value", { text: value }), el("span.stat-label", { text: label })]);
 }
