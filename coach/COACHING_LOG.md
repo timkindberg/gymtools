@@ -5,6 +5,162 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-28 — A ramp you can load
+
+`js/plates.js`, and the first thing in the app that knows a bar is *loaded*
+rather than dialled. The percentage ramp was arithmetically correct and
+practically annoying: 50 / 70 / 85% of 150 is 75 / 105 / 127.5, which means
+stripping the bar twice on the way up.
+
+The rule that makes a ramp loadable is that every step above the first is a
+**prefix of the working set's plate stack**. Load the big plates first and from
+there you only add — the 45s go on and stay on, then the 5s, then the 2.5s.
+Where the jump from the empty bar to that first prefix is too big to be a
+warm-up, one bridge step gets built from smaller plates, and those come back
+off. That swap is real, so it is shown rather than hidden, and it happens once,
+early, with the lightest plates in the ramp:
+
+```
+ 45   empty bar          × 5
+ 95   + 25               × 5
+135   ⇄ 25 off, 45 on    × 3
+145   + 5                × 2
+150   + 2.5              work
+```
+
+`rampLadder()` guarantees the ramp rises, starts at the bar, stops below the
+working set, is at most four sets, and strips the bar at most once — all of
+that is pinned by tests across loads from 95 to 315. A machine or a cable stack
+keeps the percentage ramp, because a pin genuinely is dialled and there are no
+plates to talk about.
+
+The chip carries the loads (`🔥 45 · 95 · 135 · 145`) since that's what you
+glance at between sets; the drawer carries the plate order and ends with the
+working set's full stack, which retired the separate 🏋️ Plates chip wherever a
+ramp exists. The old inline plate helper moved into the module, so the Program
+view and the session card now do their plate math the same way.
+
+Two smaller things from the same pass: the chip is labelled **Cues** rather than
+Notes, since that's what's in it; and tapping a set's role badge now says what
+it did — "Ramp-up — ignored by the next suggestion". The role decides whether a
+set feeds the engine at all, which is too consequential to convey by relabelling
+a button silently.
+
+---
+
+## 2026-08-28 — The session card, rebuilt around the three moments
+
+The card had absorbed eight features across four chunks and showed all of them
+at once, in one flat stack of ten equally-weighted zones. Nothing on it was
+wrong; the problem was that everything had the same weight, so the number you
+came for competed with the paragraph explaining it. Rebuilt around what the card
+is actually for at any given second:
+
+- **Decide** (~8× a session) — the prescription, now one block at the top.
+- **Log** (~30× a session) — the grid, moved directly under it, ~120px higher.
+- **Consult** (a few × a month) — why, cues, plates, ramp, history, the engine's
+  reasoning, swap, video. All of it folded behind one chip strip and a ⋯ menu.
+
+**The bug this exposed, and the real fix.** The card led with a single target
+rep count — `150 lb × 8` — while the prescription was a *range* of 8–12. That
+reads as "stop at 8", and there was nothing anywhere in the app saying that 12
+on every set is what releases the next plate. Double progression only makes
+sense if both ends are on screen. So the prescription block now shows **load ×
+range**, a three-cell strip for **sets / RPE ("2 in the tank") / rest**, and one
+generated line stating the terms:
+
+> Clear 8 today. Every set at 12 takes you to 160 lb.
+
+That sentence is `progressionTerms()` in the engine, not copy in the view, so it
+stays true for a hold ("Every set to 12 — that's what takes you to 160"), a
+coarse dumbbell rack ("14 is what earns the 5 lb jump"), a deload, and a lift
+held back by pain, where nothing is dangled at all. `jumpPreview()` is the new
+pure function underneath it — what topping the range would earn.
+
+Also new on the engine's return value: `headline`, a verdict short enough to sit
+under the load without wrapping ("Load goes up"), with the full sentence and the
+basis line one tap behind a `?`; and `range`, so the card can never again show a
+target without the range it was read against.
+
+**The session is a focus stack.** Six open cards is a session-level problem no
+amount of card-level tidying fixes, so everything but the lift you're on
+collapses to a line — name, what it asks for (or, once done, what you actually
+did), and a dot per set. A progress bar replaces counting cards, **Next lift ›**
+advances, and the active lift is remembered in the draft, so closing the app
+mid-session brings you back to where you were. A ⇄ superset opens as a pair in
+one tinted container: alternating between the two is the entire point of the
+pairing, so hiding one of them would break it.
+
+Not taken, deliberately: tap-to-log a pre-filled load. It's the fastest thing on
+the table, but the data model rests on the athlete typing the number, and a tap
+meaning "yes, exactly that" is different evidence. Worth deciding on purpose
+rather than drifting into.
+
+---
+
+## 2026-08-28 — The coaching model (chunk 4), and a decision about 5/3/1
+
+Issues #11 and #12 of the rewrite (#13). **#10 — opt-in 5/3/1 wave mode — was
+deliberately not built.** The reasoning, so nobody re-opens it by accident:
+
+- The ramp-to-a-top-set shape in his log was **not intentional** — it was him
+  dialling in weights on lifts he'd just started. Building a whole percentage
+  template on top of a pattern the athlete didn't mean to create is
+  data-fitting, not coaching.
+- On the merits, 5/3/1 is a well-earned template for an intermediate who has
+  **stalled** on linear progression and needs sub-maximal work, slow training-max
+  growth and scheduled deloads. Tim is currently beating his numbers session to
+  session. Its Training Max march (+5 upper / +10 lower per four weeks) is
+  *slower* than what he's banking, so adopting it now would cost him progress to
+  buy structure he doesn't yet need.
+- Fit is poor besides: it assumes four days around squat/bench/deadlift/OHP; he
+  trains three with Friday skippable, hinges with an RDL (a bad AMRAP lift), and
+  a meniscus that has no business near a 1+ single on a box squat.
+- The mechanisms that make 5/3/1 work are already in the engine and stay there:
+  a training-max ceiling, percentage increments, RPE as the autoregulation
+  signal, stall detection, and a scheduled deload.
+
+**Ramping itself is worth doing on purpose**, independent of any template —
+warming up into a heavy compound rehearses the groove under rising load and gets
+a 44-year-old knee and shoulder through their first reps submaximal. So the app
+now *prescribes* the ramp (`warmupRamp`) on heavy barbell and machine compounds
+— bar, ~50%, ~70%, ~85% — collapsed on the card, marked as ramp sets, and
+ignored by the engine. Isolation work gets none: a 12.5 lb cuff cable **is** the
+warm-up.
+
+**Revisit #10** when the engine reports a genuine stall (2+ consecutive) on the
+main barbell lifts and a deload hasn't cleared it. That's the trigger; until
+then it stays closed-in-spirit and open on the tracker.
+
+What did ship:
+
+- **Coach report v2 (#11).** It now leads with **what the app will prescribe
+  next session** for every movement, with the engine's rationale and which sets
+  it counted — the thing a review has to correct *before* he trains. Below that:
+  the last three sessions set by set with roles (`[ramp]`, `[fail]`), logged
+  RPE, and the **per-exercise notes**, which is where all his real effort signal
+  lives ("could probably have done 2-3 more"). The v1 report kept only the best
+  set per movement, so a failed 30 followed by two back-off sets at 25 read as
+  "top set 30". Est. 1RM is labelled an Epley estimate everywhere it appears.
+- **The weekly loop closes (#11).** The report ends by asking for a fenced block
+  of adjustment lines (`Barbell Bench Press: 155 x 8 — take the jump`); Settings
+  → **Coach adjustments** parses them into per-movement overrides. An override
+  steers exactly one session and then retires itself once that lift has been
+  trained again — a week-old correction never outlives its evidence. Every
+  override is recorded alongside what the engine had proposed, and the report
+  tallies the direction: three corrections up and none down means the increment
+  band is too small, and says so.
+- **Cross-implement seeding (#12).** A movement with no history is seeded from a
+  cousin that has some — his own numbers say a 60/hand single-arm row and a 125
+  barbell row are the same job. Ratios live in one table of reciprocal links in
+  `js/movements.js`, rounded **down** to a real increment (a first set too light
+  costs one set; too heavy costs a week), shown in a distinct style with "worked
+  back from…", and structurally barred from history, bests, charts and training
+  maxes. Machines are almost absent from the table on purpose: a lever arm can
+  make the number on the stack mean anything.
+
+---
+
 ## 2026-08-27 — The progression engine (chunk 3)
 
 Issues #7, #8 and #9 of the rewrite (#13). `suggestion()`'s fifteen lines are

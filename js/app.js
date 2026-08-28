@@ -7,7 +7,7 @@ import {
 } from "./program.js";
 import { getMovement, movementName, loadLabel } from "./movements.js";
 import {
-  measureInfo, prescriptionFor, formatPrescription, formatSet, setAmount,
+  measureInfo, prescriptionFor, formatSet, setAmount,
   isLogged, validateSet,
 } from "./measures.js";
 import { applyInferredRoles, roleLabel, roleOf, nextRole, lastWorkingIndex, topWorkingLoad } from "./sets.js";
@@ -16,6 +16,8 @@ import {
   effortLabel, effortGlyph, targetRir,
   HARDER_SIDES, SIDE_LABELS, harderSide, harderSideLabel, recordHarderSide,
 } from "./effort.js";
+import { progressionTerms } from "./engine.js";
+import { stackText, plateStack, stackDelta } from "./plates.js";
 import * as store from "./store.js";
 import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
@@ -272,9 +274,26 @@ route("session", () => {
     ]));
   }
 
-  // Exercises
-  day.exercises.forEach((exDef, idx) => {
-    view.appendChild(exerciseCard(exDef, draft, idx, { deload: deload.due, symptoms: draft.symptoms }));
+  // Exercises, as a focus stack: one open at a time. Six expanded cards is the
+  // pile-up no amount of card-level tidying fixes, so everything but the lift
+  // you're on collapses to a line — name, what it asks for, and a dot per set.
+  const ctx = { deload: deload.due, symptoms: draft.symptoms };
+  const groups = exerciseGroups(day.exercises);
+  const activeGroup = activeGroupIndex(groups, draft);
+
+  view.appendChild(sessionProgress(draft, groups, activeGroup));
+  groups.forEach((group, gi) => {
+    if (gi === activeGroup) {
+      // A ⇄ superset opens as a unit: alternating between two lifts is the whole
+      // point of the pairing, so hiding one of them would break it.
+      const wrap = el("div.active-group" + (group.length > 1 ? ".superset" : ""));
+      if (group.length > 1) wrap.appendChild(el("p.ss-lead.tiny", { text: `⇄ Superset ${group[0].exDef.ss} — alternate these two` }));
+      group.forEach(({ exDef, idx }) => wrap.appendChild(exerciseCard(exDef, draft, idx, ctx)));
+      wrap.appendChild(advanceRow(draft, groups, gi));
+      view.appendChild(wrap);
+    } else {
+      group.forEach(({ exDef }) => view.appendChild(collapsedExercise(exDef, draft, groups, gi)));
+    }
   });
 
   // Cooldown
@@ -408,6 +427,189 @@ function blankEntry(exDef) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// THE FOCUS STACK
+//
+// The session renders one open exercise at a time. Which one is `draft.activeId`
+// — persisted, so closing the app mid-session brings you back to the lift you
+// were on rather than the top of the list.
+// ---------------------------------------------------------------------------
+
+// Exercises, grouped so a ⇄ superset pair opens together.
+function exerciseGroups(exercises) {
+  const groups = [];
+  const bySs = {};
+  exercises.forEach((exDef, idx) => {
+    const item = { exDef, idx };
+    if (exDef.ss && bySs[exDef.ss]) { bySs[exDef.ss].push(item); return; }
+    const group = [item];
+    if (exDef.ss) bySs[exDef.ss] = group;
+    groups.push(group);
+  });
+  return groups;
+}
+
+// Which set rows in this entry have something logged in them.
+function entryProgress(draft, exDef) {
+  const entry = (draft.entries || []).find((e) => e.exerciseId === exDef.id);
+  const sets = (entry && entry.sets) || [];
+  return { total: sets.length || Number(exDef.sets) || 3, done: sets.filter((x) => x.done || isLogged(x)).length };
+}
+
+const groupDone = (draft, group) => group.every(({ exDef }) => {
+  const p = entryProgress(draft, exDef);
+  return p.total > 0 && p.done >= p.total;
+});
+
+// Where to open: the athlete's last choice if it's still in this day, otherwise
+// the first group with work left, otherwise the last one.
+function activeGroupIndex(groups, draft) {
+  if (draft.activeId) {
+    const i = groups.findIndex((g) => g.some(({ exDef }) => exDef.id === draft.activeId));
+    if (i >= 0) return i;
+  }
+  const next = groups.findIndex((g) => !groupDone(draft, g));
+  return next >= 0 ? next : groups.length - 1;
+}
+
+function openGroup(draft, groups, gi) {
+  const group = groups[Math.max(0, Math.min(gi, groups.length - 1))];
+  draft.activeId = group[0].exDef.id;
+  store.saveDraft(draft);
+  navigate("session");
+}
+
+// One line at the top of the session: how far in you are, without counting cards.
+function sessionProgress(draft, groups, activeGroup) {
+  const done = groups.filter((g) => groupDone(draft, g)).length;
+  const pct = groups.length ? Math.round((done / groups.length) * 100) : 0;
+  return el("div.session-progress", {}, [
+    el("span.tiny.muted", { text: `Lift ${activeGroup + 1} of ${groups.length}` }),
+    el("span.prog-track", {}, [el("span.prog-fill", { style: `width:${pct}%` })]),
+    el("span.tiny.muted", { text: `${done} done` }),
+  ]);
+}
+
+// The collapsed row: name, what it's asking for (or what you did), set dots.
+function collapsedExercise(exDef, draft, groups, gi) {
+  const entry = (draft.entries || []).find((e) => e.exerciseId === exDef.id);
+  const movementId = (entry && (entry.variant || entry.movementId)) || exDef.movement;
+  const movement = getMovement(movementId);
+  const prescription = prescriptionFor(exDef, movement);
+  const measure = (movement && movement.measure) || prescription.measure;
+  const info = measureInfo(measure);
+  const progress = entryProgress(draft, exDef);
+  const complete = progress.total > 0 && progress.done >= progress.total;
+
+  // Done → what you actually did. Not done → what it's going to ask for.
+  const logged = (entry && store.loggedSets(entry.sets)) || [];
+  const sugg = complete ? null : store.suggestion(movementId, prescription, {
+    symptoms: draft.symptoms, flags: exDef.flags || [],
+  });
+  const load = complete
+    ? topWorkingLoad(logged, movement)
+    : sugg && sugg.weight != null ? sugg.weight : null;
+  const amount = complete
+    ? Math.max(0, ...logged.map((x) => setAmount(x) || 0))
+    : (sugg && sugg.amount != null ? sugg.amount : prescription.max);
+  const summary = (load != null ? `${load} × ` : "") +
+    (measure === "reps" ? amount : `${amount}${info.unit}`);
+
+  const dots = el("span.set-dots", {}, Array.from({ length: progress.total }, (_, i) =>
+    el("span.dot" + (i < progress.done ? ".on" : ""))));
+
+  const row = el("div.stack-row" + (complete ? ".done" : "") + (entry && entry.pain ? ".has-pain" : ""), {
+    role: "button", tabindex: 0,
+    onclick: () => openGroup(draft, groups, gi),
+  }, [
+    dots,
+    el("span.stack-name", {}, [
+      el("span", { text: movementName(movementId, exDef.name) }),
+      exDef.ss ? el("span.ss-badge.tiny", { text: "⇄ " + exDef.ss }) : null,
+    ]),
+    el("span.stack-rx" + (complete ? ".done" : ""), { text: summary }),
+  ]);
+  row.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); row.click(); } });
+  return row;
+}
+
+// Move to the next lift. The one control that makes a stack feel like a session
+// rather than a list.
+function advanceRow(draft, groups, gi) {
+  const last = gi >= groups.length - 1;
+  return el("div.advance-row", {}, [
+    gi > 0 ? el("button.btn.ghost.small", { text: "‹ Previous", onclick: () => openGroup(draft, groups, gi - 1) }) : el("span"),
+    last
+      ? el("span.muted.tiny", { text: "Last one — finish below." })
+      : el("button.btn.primary.small", { text: "Next lift ›", onclick: () => openGroup(draft, groups, gi + 1) }),
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// THE EXERCISE CARD
+//
+// Rebuilt around the three moments a card actually serves, because it had grown
+// ten equally-weighted zones and the one number you came for was competing with
+// a paragraph explaining it:
+//
+//   DECIDE   (~8× a session)  the prescription. Load, range, sets, RPE, and —
+//                             new — what topping the range earns you.
+//   LOG     (~30× a session)  the grid, the ✓, the one tap of effort.
+//   CONSULT (a few × a month) why this lift, how it's cued, what the number was
+//                             based on, what you did last time, the swap.
+//
+// Decide is a single block at the top, Log sits directly under it, and every
+// Consult element folds behind one row of chips or the ⋯ menu. Nothing was
+// dropped in the move.
+// ---------------------------------------------------------------------------
+
+// "8–12 reps", "45s", "30yd" — the range as a unit, not a bare number.
+function rangeText(prescription, measure, info) {
+  const min = prescription && prescription.min > 0 ? prescription.min : null;
+  const max = prescription && prescription.max > 0 ? prescription.max : null;
+  if (max == null) return "";
+  const span = min != null && min !== max ? `${min}–${max}` : String(max);
+  return measure === "reps" ? `${span} reps` : `${span}${info.unit}`;
+}
+
+// What changes on the bar at this step, per side. "+ 25" you can act on;
+// "45 + 25 per side" you have to diff against what's already loaded.
+function plateMove(step, barbell) {
+  if (!barbell) return "";
+  if (!step.side || !step.side.length) return "empty bar";
+  const list = (a) => a.join(" + ");
+  if (step.remove && step.remove.length) return `⇄ ${list(step.remove)} off, ${list(step.add)} on`;
+  if (step.add && step.add.length) return `+ ${list(step.add)}`;
+  return "as loaded";
+}
+
+function rampRow(step, move, right) {
+  return el("div.ramp-row" + (step.work ? ".work" : "") + (step.swap ? ".swap" : ""), {}, [
+    el("span.ramp-load", { text: String(step.load) }),
+    el("span.ramp-move", { text: move }),
+    el("span.ramp-reps", { text: right }),
+  ]);
+}
+
+// A chip that opens one drawer under the strip. One open at a time: two open
+// drawers is the pile-up this redesign exists to remove.
+function drawerChip(strip, host, label, build) {
+  let open = false;
+  const btn = el("button.chip-btn", { text: label, "aria-expanded": "false" });
+  btn.addEventListener("click", () => {
+    const wasOpen = open;
+    strip.querySelectorAll(".chip-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+    clear(host);
+    open = false;
+    if (!wasOpen) {
+      btn.setAttribute("aria-expanded", "true");
+      host.appendChild(build());
+      open = true;
+    }
+  });
+  return btn;
+}
+
 function exerciseCard(exDef, draft, idx, session = {}) {
   const entry = entryForSlot(draft, exDef);
 
@@ -445,20 +647,19 @@ function exerciseCard(exDef, draft, idx, session = {}) {
   // incline number never becomes a dumbbell shoulder-press suggestion (#2).
   const slotLast = last ? null : store.lastPerformanceInSlot(exDef.id);
 
-  // Weight to pre-fill: history-based suggestion if we have it; otherwise the
-  // seeded start — but ONLY for the default exercise, since that number is
-  // calibrated to the default implement (e.g. 45 per dumbbell). A swapped
-  // variant (dumbbell→barbell, etc.) needs its own number, so we don't guess.
+  // A movement with no history of its own can still be seeded from a related
+  // one (#12). Never mixed into `sugg`: a seed is a guess, not a data point.
+  const seed = sugg ? null : store.seedFor(movementId, prescription);
   const startWeight = sugg && sugg.weight != null
     ? sugg.weight
+    : seed ? seed.weight
     : (!entry.variant && exDef.start != null ? exDef.start : null);
   const startAmount = sugg && sugg.amount != null ? sugg.amount : target;
 
   // Variety swap: cycle through the main lift + its listed alternatives.
   const displayName = movementName(movementId, entry.variantName || exDef.name);
   const swapOptions = [exDef.movement, ...(exDef.alternatives || [])];
-  const doSwap = () => {
-    const next = swapOptions[(swapOptions.indexOf(movementId) + 1) % swapOptions.length];
+  const swapTo = (next) => {
     entry.variant = next === exDef.movement ? null : next;
     entry.movementId = next;
     entry.variantName = null;
@@ -469,86 +670,165 @@ function exerciseCard(exDef, draft, idx, session = {}) {
     store.saveDraft(draft);
     navigate("session");
   };
+  const doSwap = () => swapTo(swapOptions[(swapOptions.indexOf(movementId) + 1) % swapOptions.length]);
 
-  // Header
-  const head = el("div.exercise-head", {}, [
-    el("div.exercise-idx", { text: String(idx + 1) }),
-    el("div.exercise-title", {}, [
-      el("div.title-row", {}, [
-        el("h3", { text: displayName }),
-        exDef.ss ? el("span.ss-badge", { text: "⇄ superset " + exDef.ss }) : null,
-        exDef.learn ? el("span.learn-badge", { text: "🎥 technique" }) : null,
-      ]),
-      el("p.muted.small", { text: `${exDef.target} · ${exDef.sets}×${formatPrescription(prescription)} · RPE ${exDef.rpe} · rest ${exDef.rest}` }),
-      entry.variant ? el("p.variant-note.tiny", { text: "swapped from " + exDef.name }) : null,
-    ]),
-    el("div.exercise-actions", {}, [
-      swapOptions.length > 1 ? el("button.icon-btn", { html: "🎲", title: "Swap for variety", onclick: doSwap }) : null,
-      el("a.icon-btn", { html: "▶", title: "How-to video",
+  // ---- Header. Name, the flags that change how you lift it, and one ⋯ for the
+  // things you do to an exercise a few times a month.
+  const menu = el("details.ex-menu", {}, [
+    el("summary.icon-btn", { html: "⋯", title: "More" }),
+    el("div.menu-sheet", {}, [
+      swapOptions.length > 1 ? el("button.menu-item", { text: "🎲  Swap for variety", onclick: doSwap }) : null,
+      el("a.menu-item", {
+        text: "▶  How-to video",
         href: "https://www.youtube.com/results?search_query=" + encodeURIComponent("how to " + displayName + " proper form"),
-        target: "_blank", rel: "noopener" }),
+        target: "_blank", rel: "noopener",
+      }),
+      entry.sets.length > 1 ? el("button.menu-item", { text: "–  Remove a set", onclick: () => {
+        entry.sets.pop(); store.saveDraft(draft); navigate("session");
+      }}) : null,
+      entry.variant ? el("button.menu-item", { text: "↩  Back to " + exDef.name, onclick: () => swapTo(exDef.movement) }) : null,
     ]),
   ]);
-  card.appendChild(head);
 
-  if (exDef.ss) {
-    card.appendChild(el("p.ss-hint.muted.tiny", { text: `Optional superset (${exDef.ss}) — pair with the other ⇄ ${exDef.ss} move if you can keep both, otherwise just do straight sets.` }));
+  card.appendChild(el("div.ex-head", {}, [
+    el("div.ex-idx", { text: String(idx + 1) }),
+    el("div.ex-title", {}, [
+      el("div.title-row", {}, [
+        el("h3", { text: displayName }),
+        exDef.ss ? el("span.ss-badge", { text: "⇄ " + exDef.ss }) : null,
+        exDef.learn ? el("span.learn-badge", { text: "🎥" }) : null,
+      ]),
+      el("p.muted.tiny", { text: exDef.target + (entry.variant ? " · swapped from " + exDef.name : "") }),
+    ]),
+    menu,
+  ]));
+
+  // ---- DECIDE. The load at a glance, the range it lives in, and the terms.
+  const rx = el("div.rx");
+  if (startWeight != null) {
+    rx.appendChild(el("span.rx-load", { text: String(startWeight) }));
+    rx.appendChild(el("span.rx-unit", { text: loadLabel(movement, units()) }));
+    rx.appendChild(el("span.rx-x", { text: "×" }));
   }
+  rx.appendChild(el("span.rx-range", { text: rangeText(prescription, measure, info) || `${startAmount ?? target}` }));
+  card.appendChild(rx);
 
-  // Coaching. The why/cues/techNote are written for the DEFAULT movement, so on
-  // a swap we drop them (they'd be wrong for the new lift) and show a swap note.
-  // The flags describe why this slot exists — those carry over to any swap.
-  const coach = el("details.coach");
-  coach.appendChild(el("summary", { text: "Coach's notes" }));
-  if (entry.variant) {
-    coach.appendChild(el("p.why", { text: `You swapped to ${displayName} for variety — it fills the same slot as ${exDef.name}. Tap ▶ above for its form; the flags below are why this slot is in your program.` }));
+  // Sets, effort and rest were a single grey run-on line under the title. They
+  // are three separate facts you act on, so they get three separate cells.
+  card.appendChild(el("div.rx-stats", {}, [
+    el("span.stat", {}, [el("b", { text: String(entry.sets.length) }), el("span", { text: "sets" })]),
+    el("span.stat", {}, [el("b", { text: "RPE " + exDef.rpe }), el("span", { text: rpeHint(exDef.rpe) })]),
+    el("span.stat", {}, [el("b", { text: exDef.rest }), el("span", { text: "rest" })]),
+  ]));
+
+  const goal = progressionTerms(sugg, { movement, prescription, units: units() });
+  if (goal) card.appendChild(el("p.rx-goal", { text: goal }));
+
+  // The engine's verdict at a glance; the full reasoning and the audit trail are
+  // one tap away, where they belong — you read them when you doubt the number.
+  const drawerHost = el("div.drawer-host");
+  if (sugg) {
+    const why = el("button.why-line", { "aria-expanded": "false" }, [
+      el("span.q", { text: "?" }),
+      el("span", { text: sugg.headline || "Why this number" }),
+    ]);
+    let open = false;
+    why.addEventListener("click", () => {
+      open = !open;
+      why.setAttribute("aria-expanded", String(open));
+      clear(drawerHost);
+      if (open) {
+        drawerHost.appendChild(el("div.drawer", {}, [
+          el("p", { text: sugg.note }),
+          sugg.basis ? el("p.tiny.muted", { text: sugg.basis }) : null,
+        ]));
+      }
+    });
+    card.appendChild(why);
   } else {
-    if (exDef.why) coach.appendChild(el("p.why", { text: exDef.why }));
-    if (exDef.cues && exDef.cues.length) coach.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
-    if (exDef.techNote) coach.appendChild(el("p.barbell-note.small", { text: "🎥 " + exDef.techNote }));
-  }
-  if (exDef.flags && exDef.flags.length) {
-    coach.appendChild(el("div.flags", {}, exDef.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
-  }
-  const altNames = alternativeNames(exDef);
-  if (altNames.length) {
-    coach.appendChild(el("p.muted.small", { text: "Swaps (or hit 🎲): " + altNames.join(" · ") }));
-  }
-  card.appendChild(coach);
-
-  // Last time / suggestion
-  if (last) {
-    const setStr = store.loggedSets(last.sets).map((s) => setText(movement, s)).join(", ");
-    // Which side gave out last time (#6) — only when he flagged one.
-    const lastHarder = harderSide(last.entry);
-    card.appendChild(el("div.lasttime", {}, [
-      el("span.muted.small", { text: `Last (${relDay(last.date)}): ${setStr || "—"}` }),
-      lastHarder ? el("span.balance", { text: `⇄ ${harderSideLabel(lastHarder)} side was the harder one last time` }) : null,
-      sugg ? el("span.sugg", { text: "🎯 " + sugg.note }) : null,
-      sugg && sugg.basis ? el("span.muted.tiny", { text: sugg.basis }) : null,
-    ]));
-  } else {
-    // No history for THIS movement — coach the weight pick, since we can't
-    // suggest one. If the slot itself has history under another movement, say
-    // so, so the blank doesn't read like lost data.
+    // No history for THIS movement. A seed from a related lift (#12) reads as an
+    // estimate; with nothing to seed from, coach the weight pick instead.
     const amountHint = measure === "reps" ? `${target} reps` : `${target}${info.unit}`;
-    const hint = startWeight != null
-      ? `🎯 Suggested start: ${startWeight} ${units()}. Adjust so you stop around ${amountHint} with the last one or two feeling hard. From next session I'll suggest the load.`
-      : entry.variant
-        ? `🎯 Swapped to ${displayName} — pick a weight that leaves a rep or two in the tank at ${amountHint} (the seeded start was for the original move). I'll suggest loads once you've logged this one.`
-        : `🎯 First time on this one — pick a weight you could hold about ${measure === "reps" ? target + 2 + " reps" : amountHint} with, and stop at ${amountHint}. The last rep or two should feel genuinely hard. From next session I'll suggest the load.`;
-    const box = el("div.lasttime", {}, [el("span.sugg", { text: hint })]);
-    if (slotLast && slotLast.movementId && slotLast.movementId !== movementId) {
-      const prevMv = getMovement(slotLast.movementId);
-      box.appendChild(el("span.muted.tiny", {
-        text: `In this slot ${relDay(slotLast.date)} you did ${movementName(slotLast.movementId, slotLast.entry.name)} ` +
-          `(${store.loggedSets(slotLast.sets).map((x) => setText(prevMv, x)).join(", ")}) — different movement, so that weight isn't carried over.`,
-      }));
-    }
-    card.appendChild(box);
+    card.appendChild(seed
+      ? el("p.rx-seed", { text: "≈ " + seed.note })
+      : el("p.rx-seed", { text: `First time on ${entry.variant ? displayName : "this one"} — pick a weight where ${amountHint} is genuinely hard, with a rep or two left. I'll suggest the load from next session.` }));
   }
 
-  // Set rows
+  // ---- CONSULT. One strip, one drawer at a time.
+  const strip = el("div.chip-strip");
+  const ramp = store.rampFor(movementId, startWeight, measure);
+  const barbell = !!(movement && movement.implement === "barbell");
+  if (ramp.length) {
+    // The chip carries the loads, because that's what you glance at between
+    // sets. The drawer carries the plates, in load order, saying what changes
+    // at each step — a ramp you can build without stripping the bar twice.
+    const label = "🔥 " + ramp.map((r) => r.load).join(" · ");
+    strip.appendChild(drawerChip(strip, drawerHost, label, () => {
+      const box = el("div.drawer");
+      const rows = el("div.ramp-rows");
+      const workSide = barbell && startWeight != null ? (plateStack(startWeight) || {}).side || [] : null;
+      ramp.forEach((r, i) => rows.appendChild(rampRow(r, plateMove(r, barbell), `× ${r.amount}`)));
+      if (workSide) {
+        const toWork = stackDelta(ramp[ramp.length - 1].side || [], workSide);
+        rows.appendChild(rampRow({ load: startWeight, work: true },
+          plateMove({ add: toWork.add, remove: toWork.remove, swap: toWork.remove.length > 0, side: workSide }, true),
+          "work"));
+      }
+      box.appendChild(rows);
+      if (workSide) box.appendChild(el("p.tiny", { text: `Working set: ${stackText(startWeight)}` }));
+      box.appendChild(el("p.tiny.muted", {
+        text: barbell
+          ? "Loaded so the plates go on and stay on — a ⇄ is the one place something comes back off. Warm-up sets: easy speed, stop each one well short. They're marked as ramp-ups and never count toward your progression."
+          : "Warm-up sets, not working sets — easy speed, stop each one well short. They're marked as ramp-ups and never count toward your progression.",
+      }));
+      return box;
+    }));
+  }
+  if (barbell && startWeight != null && !ramp.length) {
+    strip.appendChild(drawerChip(strip, drawerHost, "🏋️ Plates", () => el("div.drawer", {}, [
+      el("p", { text: stackText(startWeight) || "Enter a weight for the plate math." }),
+    ])));
+  }
+  if (last) {
+    strip.appendChild(drawerChip(strip, drawerHost, "📈 Last", () => {
+      const setStr = store.loggedSets(last.sets).map((x) => setText(movement, x)).join(", ");
+      const lastHarder = harderSide(last.entry);
+      return el("div.drawer", {}, [
+        el("p", { text: `${relDay(last.date)}: ${setStr || "—"}` }),
+        lastHarder ? el("p.tiny.balance", { text: `⇄ ${harderSideLabel(lastHarder)} side was the harder one` }) : null,
+        last.entry && last.entry.note ? el("p.tiny.muted", { text: `"${last.entry.note}"` }) : null,
+      ]);
+    }));
+  } else if (slotLast && slotLast.movementId && slotLast.movementId !== movementId) {
+    strip.appendChild(drawerChip(strip, drawerHost, "📈 This slot", () => {
+      const prevMv = getMovement(slotLast.movementId);
+      return el("div.drawer", {}, [el("p", {
+        text: `${relDay(slotLast.date)} you did ${movementName(slotLast.movementId, slotLast.entry.name)} here ` +
+          `(${store.loggedSets(slotLast.sets).map((x) => setText(prevMv, x)).join(", ")}) — different movement, so that weight isn't carried over.`,
+      })]);
+    }));
+  }
+  strip.appendChild(drawerChip(strip, drawerHost, "📋 Cues", () => {
+    const box = el("div.drawer");
+    if (entry.variant) {
+      box.appendChild(el("p", { text: `You swapped to ${displayName} — it fills the same slot as ${exDef.name}. The flags are why this slot is in your program.` }));
+    } else {
+      if (exDef.why) box.appendChild(el("p", { text: exDef.why }));
+      if (exDef.cues && exDef.cues.length) box.appendChild(el("ul.cues", {}, exDef.cues.map((c) => el("li", { text: c }))));
+      if (exDef.techNote) box.appendChild(el("p.tiny.muted", { text: "🎥 " + exDef.techNote }));
+    }
+    if (exDef.flags && exDef.flags.length) {
+      box.appendChild(el("div.flags", {}, exDef.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
+    }
+    const altNames = alternativeNames(exDef);
+    if (altNames.length) box.appendChild(el("p.tiny.muted", { text: "Swaps: " + altNames.join(" · ") }));
+    if (exDef.ss) box.appendChild(el("p.tiny.muted", { text: `Optional superset (${exDef.ss}) — pair with the other ⇄ ${exDef.ss} move if you can hold both, otherwise straight sets.` }));
+    return box;
+  }));
+  card.appendChild(strip);
+  card.appendChild(drawerHost);
+
+  // ---- LOG. Directly under the prescription, where it should always have been.
   const badges = [];
   const effortHost = el("div.effort");
   const ctx = {
@@ -576,43 +856,45 @@ function exerciseCard(exDef, draft, idx, session = {}) {
   card.appendChild(effortHost);
   ctx.refreshRoles();
 
-  // Barbell plate helper: live breakdown of what to load, off a 45 lb bar.
-  if (movement && movement.implement === "barbell") {
-    const plateNote = el("div.plate-note");
-    const draw = (w) => {
-      const b = plateBreakdown(w, 45);
-      plateNote.textContent = b ? `🏋️ ${Math.round(Number(w))} lb → ${b.text}` : "🏋️ enter a weight for the plate math";
-    };
-    const firstW = setsWrap.querySelector(".set-input");
-    draw((firstW && firstW.value) ? firstW.value : startWeight);
-    if (firstW) firstW.addEventListener("input", (e) => draw(e.target.value || startWeight));
-    card.insertBefore(plateNote, setsWrap);
-  }
-
-  // add/remove set + L/R + pain toggle
+  // ---- Tools. What's left is exceptions: another set, a note, a pain flag.
+  const noteHost = el("div.note-host");
+  const showNote = () => {
+    clear(noteHost);
+    noteHost.appendChild(el("textarea.input.note-input", {
+      rows: 2, placeholder: "form cues, how it felt, tweaks…", value: entry.note || "",
+      oninput: (e) => { entry.note = e.target.value; store.saveDraft(draft); },
+    }));
+    noteHost.firstChild.focus();
+  };
+  const painBtn = el("button.btn.ghost.small" + (entry.pain ? ".on" : ""), {
+    text: "⚠︎ pain",
+    onclick: () => {
+      entry.pain = !entry.pain;
+      store.saveDraft(draft);
+      painBtn.classList.toggle("on", entry.pain);
+      card.classList.toggle("has-pain", entry.pain);
+    },
+  });
   card.appendChild(el("div.set-tools", {}, [
     el("button.btn.ghost.small", { text: "+ set", onclick: () => {
       entry.sets.push({ weight: entry.sets.at(-1)?.weight ?? null, amount: null, role: "work", done: false });
       store.saveDraft(draft); navigate("session");
     }}),
-    entry.sets.length > 1 ? el("button.btn.ghost.small", { text: "– set", onclick: () => {
-      entry.sets.pop(); store.saveDraft(draft); navigate("session");
-    }}) : null,
-    el("label.pain-toggle", {}, [
-      el("input", { type: "checkbox", checked: entry.pain, onchange: (e) => { entry.pain = e.target.checked; store.saveDraft(draft); e.target.closest(".exercise").classList.toggle("has-pain", e.target.checked); } }),
-      el("span", { text: "⚠︎ Pain / issue on this one" }),
-    ]),
+    el("button.btn.ghost.small", { text: "✎ note", onclick: showNote }),
+    painBtn,
   ]));
+  card.appendChild(noteHost);
+  if (entry.note) showNote();
   if (entry.pain) card.classList.add("has-pain");
 
-  // per-exercise note
-  const noteBox = el("textarea.input.note-input", {
-    rows: 2, placeholder: "notes (optional) — form cues, how it felt, tweaks…", value: entry.note || "",
-    oninput: (e) => { entry.note = e.target.value; store.saveDraft(draft); },
-  });
-  card.appendChild(noteBox);
-
   return card;
+}
+
+// "RPE 8" means nothing on its own to anyone who hasn't memorised the scale.
+// The program prescribes in RPE; the athlete thinks in reps left in the tank.
+function rpeHint(rpe) {
+  const rir = targetRir(rpe);
+  return rir == null ? "effort" : `${rir} in the tank`;
 }
 
 // How one logged set reads in a list: "165×8↗", "L 50×10 · R 55×10 @9".
@@ -628,6 +910,13 @@ function roleGlyph(set) {
   const r = roleOf(set);
   return r === "ramp" ? "↗" : r === "backoff" ? "↘" : "";
 }
+
+// What the role you just picked means for the engine, said once, on the tap.
+const ROLE_TOASTS = {
+  ramp: "Ramp-up — ignored by the next suggestion",
+  work: "Working set — this is what the suggestion reads",
+  backoff: "Back-off — counted as fatigue, not as your working load",
+};
 
 const ROLE_TITLES = {
   ramp: "Ramp-up set — doesn't count toward progression",
@@ -677,6 +966,9 @@ function setRow(ctx, setData, si) {
   row.appendChild(el("span.set-col", {}, [wInput]));
   row.appendChild(el("span.set-col", {}, [aInput]));
 
+  // Tapping the badge cycles the role and locks it, so inference stops
+  // overwriting your call. A silent relabel isn't enough — the role decides
+  // whether this set feeds the next suggestion at all, so say what it did.
   const badge = el("button.role-badge", {
     onclick: () => {
       setData.role = nextRole(roleOf(setData));
@@ -684,6 +976,8 @@ function setRow(ctx, setData, si) {
       delete setData.failed;
       store.saveDraft(draft);
       paintRoleBadge(badge, setData);
+      ctx.refreshRoles();
+      toast(ROLE_TOASTS[roleOf(setData)]);
     },
   });
   badges[si] = badge;
@@ -1051,8 +1345,8 @@ function programExercise(e, i) {
   if (e.techNote) card.appendChild(el("p.barbell-note.small", { text: "🎥 " + e.techNote }));
   const progMv = getMovement(e.movement);
   if (progMv && progMv.implement === "barbell" && e.start != null) {
-    const b = plateBreakdown(e.start, 45);
-    if (b) card.appendChild(el("div.plate-note", { text: `🏋️ Start ${e.start} lb → ${b.text}` }));
+    const b = stackText(e.start);
+    if (b) card.appendChild(el("div.plate-note", { text: `🏋️ Start ${e.start} lb → ${b}` }));
   }
   if (e.flags && e.flags.length) card.appendChild(el("div.flags", {}, e.flags.map((f) => el("span.flag", { text: FLAG_LABELS[f] || f }))));
   const altNames = alternativeNames(e);
@@ -1354,6 +1648,9 @@ route("settings", () => {
     el("button.btn.primary", { text: "📋 Coach report", onclick: () => navigate("report") }),
   ]));
 
+  // the return leg of the loop (#11): what the review sends back
+  view.appendChild(overridesCard());
+
   // data
   view.appendChild(el("div.card", {}, [
     el("h3", { text: "Your data" }),
@@ -1378,6 +1675,46 @@ route("settings", () => {
 
   render(view);
 });
+
+// The review's corrections coming back in (#11). The report asks Claude to end
+// with a block of adjustment lines; this is where they land. Each one steers a
+// single movement's NEXT session and then retires itself, so a correction can
+// never quietly outlive the evidence it was based on.
+function overridesCard() {
+  const live = store.getOverrides();
+  const ids = Object.keys(live);
+  const card = el("div.card", {}, [
+    el("h3", { text: "✎ Coach adjustments" }),
+    el("p.muted.small", { text: "Paste the adjustment block from your coach report review. One movement per line — \"Barbell Bench Press: 155 x 8 — take the jump\", or \"Barbell Row: clear\" to drop one. Each applies to that lift's next session only." }),
+  ]);
+  const ta = el("textarea.input.report-input", { rows: 4, placeholder: "Barbell Bench Press: 155 x 8 — you left 3 in the tank" });
+  card.appendChild(ta);
+  card.appendChild(el("button.btn.primary", { text: "Apply adjustments", onclick: () => {
+    const res = store.applyOverrideText(ta.value);
+    if (res.errors.length) toast(`Couldn't read: ${res.errors[0]}`);
+    else if (!res.applied.length && !res.cleared.length) toast("Nothing to apply");
+    else toast(`${res.applied.length} set, ${res.cleared.length} cleared`);
+    if (res.applied.length || res.cleared.length) navigate("settings");
+  }}));
+  if (ids.length) {
+    card.appendChild(el("h4.mt", { text: "In effect" }));
+    ids.forEach((id) => {
+      const ov = live[id];
+      card.appendChild(el("div.override-row", {}, [
+        el("span.small", {
+          text: `${movementName(id, id)} → ${ov.weight == null ? "—" : ov.weight + " " + units()}` +
+            (ov.amount == null ? "" : ` × ${ov.amount}`) +
+            (ov.engineWeight != null ? ` (app said ${ov.engineWeight})` : ""),
+        }),
+        ov.note ? el("span.muted.tiny", { text: ov.note }) : null,
+        el("button.icon-btn", { html: "✕", title: "Remove", onclick: () => { store.clearOverride(id); navigate("settings"); } }),
+      ]));
+    });
+  } else {
+    card.appendChild(el("p.muted.tiny", { text: "None in effect — every suggestion is the app's own." }));
+  }
+  return card;
+}
 
 function versionFooter() {
   const wrap = el("div.version-footer");
@@ -1507,22 +1844,6 @@ function cloudCard() {
 // Shared bits
 // ---------------------------------------------------------------------------
 // Plate math for a barbell total (standard 45 lb bar, symmetric loading).
-function plateBreakdown(total, bar = 45) {
-  const t = Number(total);
-  if (!t || t <= 0) return null;
-  if (t < bar) return { text: `lighter than the empty ${bar} lb bar` };
-  if (t === bar) return { text: `just the empty ${bar} lb bar` };
-  let rem = (t - bar) / 2;
-  const plates = [45, 35, 25, 10, 5, 2.5];
-  const used = [];
-  for (const p of plates) {
-    while (rem >= p - 1e-9) { used.push(p); rem = Math.round((rem - p) * 100) / 100; }
-  }
-  const sideStr = used.length ? used.join(" + ") : "0";
-  const short = rem > 0.01 ? ` (+${rem} short — nearest below)` : "";
-  return { text: `${bar} bar + ${sideStr} per side${short}` };
-}
-
 function statTile(value, label) {
   return el("div.stat-tile", {}, [el("span.stat-value", { text: value }), el("span.stat-label", { text: label })]);
 }

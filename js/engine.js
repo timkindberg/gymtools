@@ -32,6 +32,7 @@
 // =============================================================================
 
 import { invertLoad } from "./movements.js";
+import { rampLadder } from "./plates.js";
 import { setAmount, setLoad, isLogged, measureInfo, estimate1RM } from "./measures.js";
 import { workingSets, rampSets, failedSets, topWorkingLoad } from "./sets.js";
 import { workingEffort, effortVerdict, effortLabel } from "./effort.js";
@@ -318,8 +319,14 @@ export function nextPrescription({
   const inverted = invertLoad(movement);
   const say = (amount) => amountText(amount, measure, info);
 
+  // `note` is the full sentence; `headline` is the same verdict at a glance, for
+  // a card that shows the number first and the reasoning on demand. `range` is
+  // what the target was read against — the card needs it to answer "am I going
+  // for 8 or for 12?", which a single target number can't.
   const out = (action, weight, amount, note, extra = {}) => ({
     action, weight, amount, note, basis,
+    headline: extra.headline || defaultHeadline(action, extra),
+    range: { floor, ceiling },
     stall: stall.consecutive,
     ...extra,
   });
@@ -523,6 +530,36 @@ export function nextPrescription({
     `Stay at ${cur.load} and get every working set to ${say(ceiling)} before adding weight.${tank}${stallNote}`);
 }
 
+// A verdict short enough to sit under the load without wrapping. Branches that
+// know something more specific pass their own; this is the floor.
+const HEADLINES = {
+  increase: "Load goes up",
+  repeat: "Hold the load, chase reps",
+  deload: "Deload — reset and rebuild",
+  swap: "Swap this one out",
+};
+
+function defaultHeadline(action, extra = {}) {
+  if (action === "deload") return extra.reason === "scheduled" ? "Deload week" : "Stalled — reset";
+  return HEADLINES[action] || "";
+}
+
+// What topping the range would earn — the other half of double progression, and
+// the half the app has never said out loud. Returns the load the next jump lands
+// on, or, on an implement whose smallest step is too big, the rep count to
+// stretch to first.
+export function jumpPreview(movement, load, prescription = null) {
+  const measure = (prescription && prescription.measure) || (movement && movement.measure) || "reps";
+  const ceiling = prescription && prescription.max > 0 ? Number(prescription.max) : null;
+  const step = movement && load > 0 ? loadStep(movement, load) : null;
+  if (!step || ceiling == null) return null;
+  if (step.coarse) {
+    return { coarse: true, at: ceiling + amountStep(measure), inc: step.inc, measure };
+  }
+  const next = advance(movement, load, step, 1);
+  return { coarse: false, at: ceiling, load: next.load, delta: next.delta, measure };
+}
+
 function implementWord(movement) {
   if (!movement) return "implement";
   if (movement.implement === "dumbbell") return "dumbbell rack";
@@ -542,4 +579,151 @@ function loadCeiling(summaries, movement, reps, step) {
   const capacity = capacityAt(best, reps);
   if (!capacity) return null;
   return round(Math.floor((capacity + step.inc) / step.inc) * step.inc);
+}
+
+// ---- The terms of the deal --------------------------------------------------
+// Double progression only makes sense if both ends are on screen. A card that
+// says "150 × 8" when the range is 8–12 reads as "stop at 8", and the athlete
+// has no way to know that 12 on every set is what releases the next plate.
+// One sentence, stating today's floor and what topping the range earns.
+
+export function progressionTerms(sugg, { movement = null, prescription = null, units = "lb" } = {}) {
+  if (!sugg) return null;
+  const measure = (prescription && prescription.measure) || (movement && movement.measure) || "reps";
+  const info = measureInfo(measure);
+  const say = (n) => (measure === "reps" ? `${n}` : `${n}${info.unit}`);
+  const amount = sugg.amount;
+  const ceiling = (sugg.range && sugg.range.ceiling) || (prescription && prescription.max) || null;
+
+  if (sugg.guard === "pain") return "Hold today — pain was flagged here. Nothing to earn.";
+  if (sugg.guard === "symptom") return "Hold today. The load will still be there when it settles.";
+  if (sugg.action === "deload") return `Deload: ${say(amount)} at ${sugg.weight}, then back to ${sugg.from}.`;
+  if (sugg.action === "swap") return "Don't load this again — swap it.";
+  if (amount == null || sugg.weight == null) return null;
+
+  const jump = jumpPreview(movement, sugg.weight, prescription);
+  // A rack whose smallest step is too big progresses by stretching the range
+  // instead, so what's being chased isn't the ceiling — it's past it.
+  if (jump && jump.coarse) {
+    return `Clear ${say(amount)} on every set. ${say(jump.at)} is what earns the ${jump.inc} ${units} jump.`;
+  }
+  if (!jump || ceiling == null) return `Clear ${say(amount)} on every set today.`;
+  if (amount >= ceiling) return `Every set to ${say(ceiling)} — that's what takes you to ${jump.load} ${units}.`;
+  return `Clear ${say(amount)} today. Every set at ${say(ceiling)} takes you to ${jump.load} ${units}.`;
+}
+
+// ---- Seeding a first-time movement (#12) ------------------------------------
+// No history here, but history in a cousin: seed a *guess* and say loudly that
+// it's a guess. Deliberately conservative — the ratio is rounded DOWN to the
+// nearest real increment, because a first set that's too light costs one set
+// and a first set that's too heavy costs a week.
+//
+// A seed is not a suggestion. It carries `seeded: true`, it never reaches
+// stall detection, a training max, or a chart, and the first logged set of the
+// movement replaces it. Callers must not feed it back in as history.
+
+export function seedPrescription({
+  movement = null,
+  prescription = null,
+  sources = [],
+  units = "lb",
+} = {}) {
+  if (!movement) return null;
+  const measure = (prescription && prescription.measure) || movement.measure || "reps";
+  const info = measureInfo(measure);
+  const ceiling = prescription && prescription.max > 0 ? Number(prescription.max) : null;
+  const floor = prescription && prescription.min > 0 ? Number(prescription.min) : ceiling;
+  const inc = loadIncrement(movement);
+  // An assist stack runs backwards and a bodyweight movement has no load to
+  // seed. Neither has a ratio anyone should trust.
+  if (!inc || invertLoad(movement) || movement.loadMode === "none") return null;
+
+  for (const src of sources) {
+    const load = Number(src.load);
+    if (!(load > 0) || !(src.ratio > 0)) continue;
+    const weight = round(Math.floor((load * src.ratio) / inc) * inc);
+    if (!(weight > 0)) continue;
+    const amount = floor ?? ceiling;
+    const from = `${src.name || src.from} at ${load} ${units}` +
+      (src.date ? ` (${String(src.date).slice(0, 10)})` : "");
+    return {
+      action: "seed",
+      weight,
+      amount,
+      seeded: true,
+      source: { movementId: src.from, name: src.name || src.from, load, date: src.date || null, ratio: src.ratio },
+      note: `No history on this one yet, so here's an estimate: ${weight} ${units}, worked back from ` +
+        `${from}${src.why ? ` — ${src.why}` : ""}. Start there for ` +
+        `${amountText(amount, measure, info)} and adjust so the last rep or two feel genuinely hard.`,
+      basis: "Estimated from a related movement, not from this one's history — a starting guess, " +
+        "not a data point. Your first real set replaces it.",
+    };
+  }
+  return null;
+}
+
+// ---- Warm-up ramp -----------------------------------------------------------
+// Ramping to a heavy top set is standard practice on a compound barbell lift,
+// independent of any percentage template: it rehearses the groove under
+// progressively heavier load, primes the nervous system, and gets a 44-year-old
+// knee and shoulder through their first few reps under something submaximal.
+// It is NOT extra work — the ramp sets are marked `ramp` and the engine ignores
+// them (js/sets.js), so they can't drag a suggestion around.
+//
+// Small isolation work doesn't need this. A 12.5 lb cuff cable IS the warm-up.
+export const RAMP_STEPS = [{ pct: 0.5 }, { pct: 0.7 }, { pct: 0.85 }];
+export const BAR_WEIGHT = 45;
+
+const RAMPABLE = new Set([
+  "squat", "hinge", "hip-extension",
+  "horizontal-push", "vertical-push", "incline-push",
+  "horizontal-pull", "vertical-pull",
+]);
+
+// The sets to do on the way to `workLoad`, coarsest-first. Empty whenever a
+// ramp would be theatre: light loads, isolation work, assist stacks, anything
+// not measured in reps.
+export function warmupRamp(movement, workLoad, { measure = "reps" } = {}) {
+  if (!movement || measure !== "reps") return [];
+  if (invertLoad(movement) || movement.addedLoad || movement.loadMode === "none") return [];
+  if (!RAMPABLE.has(movement.pattern)) return [];
+  if (movement.implement !== "barbell" && movement.implement !== "machine") return [];
+  const inc = loadIncrement(movement);
+  const load = Number(workLoad);
+  if (!inc || !(load > 0)) return [];
+
+  const bar = movement.implement === "barbell" ? BAR_WEIGHT : inc * 2;
+  // Nothing to ramp through: the first honest warm-up set is already the work.
+  if (load < bar + inc * 4) return [];
+
+  // A bar is loaded, not dialled. Percentages that look tidy on paper —
+  // 82.5 / 105 / 127.5 — mean stripping the bar twice on the way up, so the
+  // barbell ramp comes from the plate ladder instead: every step above the
+  // first is a prefix of the working set's stack, so the plates go on and stay
+  // on. Everything else (a stack, a pin) really is dialled, and percentages are
+  // exactly right for it.
+  const steps = movement.implement === "barbell"
+    ? rampLadder(load, bar)
+    : percentageRamp(load, bar, inc);
+  return steps.map((step, i) => ({ ...step, amount: rampReps(i, steps.length) }));
+}
+
+// Heavier ramp sets, fewer reps: the point is to rehearse the groove and warm
+// the tissue, not to spend anything before the working set.
+const RAMP_REPS = [5, 5, 3, 2];
+function rampReps(i, total) {
+  return RAMP_REPS[RAMP_REPS.length - total + i] ?? RAMP_REPS[RAMP_REPS.length - 1];
+}
+
+function percentageRamp(load, bar, inc) {
+  const out = [];
+  for (const stepDef of RAMP_STEPS) {
+    const target = round(Math.round((load * stepDef.pct) / inc) * inc);
+    const at = Math.max(bar, target);
+    if (at >= load) break;
+    // Two ramp sets a single increment apart is one ramp set with extra steps.
+    if (out.length && at - out[out.length - 1].load < inc * 2) continue;
+    out.push({ load: at });
+  }
+  return out;
 }

@@ -3,14 +3,14 @@
 // Data lives on THIS device only, so export/import is how you back up & move.
 // =============================================================================
 
-import { getMovement, resolveMovementId, movementName } from "./movements.js";
+import { getMovement, resolveMovementId, movementName, seedSourcesFor } from "./movements.js";
 import {
   setAmount, setLoad, isLogged, estimate1RM, setVolume,
   formatSet, staticWarnings, measureInfo, prescriptionFor,
 } from "./measures.js";
-import { applyInferredRoles, workingSets } from "./sets.js";
+import { applyInferredRoles, workingSets, roleLabel, topWorkingLoad } from "./sets.js";
 import { workingEffort, rirFromRpe, harderSideLabel } from "./effort.js";
-import { nextPrescription, summarize, stallState } from "./engine.js";
+import { nextPrescription, seedPrescription, summarize, stallState, warmupRamp } from "./engine.js";
 import { allExercises, findExercise } from "./program.js";
 
 const KEY = "gymtools.v1";
@@ -29,6 +29,13 @@ const DEFAULT_DATA = {
   },
   sessions: [],      // completed workout sessions
   bodyweight: [],    // { date, weight }
+  // Per-movement corrections from the weekly review (#11). Keyed by movement
+  // slug; each one overrides the engine for that movement's NEXT session only.
+  overrides: {},
+  // Every correction ever applied, with what the engine had proposed at the
+  // time. This is the learning signal: a movement the review keeps pushing up
+  // is a movement the engine is consistently undershooting.
+  overrideLog: [],
   settings: {
     restTimerDefault: 90, // seconds
     sound: true,
@@ -577,7 +584,7 @@ export function movementSessions(movementId, limit = 12) {
 export function suggestion(movementId, prescription, context = {}) {
   const movement = getMovement(movementId);
   const slot = context.exerciseId ? findExercise(context.exerciseId) : null;
-  return nextPrescription({
+  const sugg = nextPrescription({
     movement,
     prescription: prescription || (movement && movement.prescription) || null,
     history: movementSessions(movementId),
@@ -586,6 +593,157 @@ export function suggestion(movementId, prescription, context = {}) {
     scheduledDeload: !!context.scheduledDeload,
     units: getProfile().units,
   });
+  // The review gets the last word — but only where it actually left one, and
+  // never silently: the engine's own answer travels along in `engine` so both
+  // the card and the next report can show what was corrected (#11).
+  return applyOverride(movementId, sugg);
+}
+
+// A first-time movement's estimate, from a cousin with history (#12). Kept
+// separate from suggestion() on purpose: a seed is a guess about a movement
+// with no history, and nothing downstream — stalls, charts, training maxes —
+// may ever read it as one.
+export function seedFor(movementId, prescription) {
+  const movement = getMovement(movementId);
+  if (!movement) return null;
+  if (movementSessions(movementId, 1).length) return null; // it has real history
+  const sources = [];
+  for (const link of seedSourcesFor(movementId)) {
+    const srcMv = getMovement(link.from);
+    const perf = movementSessions(link.from, 1)[0];
+    if (!srcMv || !perf) continue;
+    const load = topWorkingLoad(workingSets(perf.sets), srcMv);
+    if (!(load > 0)) continue;
+    sources.push({ ...link, name: movementName(link.from, link.from), load, date: perf.date });
+  }
+  return seedPrescription({
+    movement,
+    prescription: prescription || (movement && movement.prescription) || null,
+    sources,
+    units: getProfile().units,
+  });
+}
+
+// The sets to do on the way to today's top set (engine.js). Purely advisory —
+// they're marked `ramp` when logged and the engine ignores them.
+export function rampFor(movementId, workLoad, measure) {
+  return warmupRamp(getMovement(movementId), workLoad, { measure });
+}
+
+// ---- Coach overrides (#11) --------------------------------------------------
+// The weekly loop: the engine proposes week to week, the review corrects it.
+// An override lands on ONE movement's next session and then retires itself —
+// once that movement has been trained again, the engine has fresh evidence and
+// a week-old correction has no business still steering it.
+
+export function getOverrides() {
+  const d = load();
+  const out = {};
+  for (const [id, ov] of Object.entries(d.overrides || {})) {
+    const last = lastPerformance(id);
+    // Trained since the correction was written → the correction is spent.
+    if (last && ov.date && last.date > ov.date) continue;
+    out[id] = ov;
+  }
+  return out;
+}
+
+export function overrideFor(movementId) {
+  return (movementId && getOverrides()[movementId]) || null;
+}
+
+export function setOverride(movementId, patch = {}) {
+  const id = resolveMovementId(movementId) || movementId;
+  if (!getMovement(id)) return null;
+  const d = load();
+  // What the engine wanted, read against the rep range the movement is actually
+  // programmed at — the same number the report showed the reviewer.
+  const engine = nextPrescription({
+    movement: getMovement(id),
+    prescription: prescriptionFor(slotFor(id), getMovement(id)),
+    history: movementSessions(id),
+    units: d.profile.units,
+  });
+  const ov = {
+    movementId: id,
+    weight: patch.weight == null ? null : Number(patch.weight),
+    amount: patch.amount == null ? null : Number(patch.amount),
+    note: patch.note || "",
+    date: patch.date || new Date().toISOString(),
+    source: patch.source || "review",
+    // What the engine wanted, frozen at the moment it was overruled.
+    engineWeight: engine ? engine.weight : null,
+    engineAmount: engine ? engine.amount : null,
+  };
+  d.overrides = { ...(d.overrides || {}), [id]: ov };
+  d.overrideLog = [...(d.overrideLog || []), ov].slice(-100);
+  save();
+  return ov;
+}
+
+export function clearOverride(movementId) {
+  const d = load();
+  if (!d.overrides || !d.overrides[movementId]) return false;
+  delete d.overrides[movementId];
+  save();
+  return true;
+}
+
+export function getOverrideLog() { return (load().overrideLog || []).slice().reverse(); }
+
+// Merge a live override into an engine suggestion. Never mutates the engine's
+// answer — it rides along under `engine` so the difference stays visible.
+function applyOverride(movementId, sugg) {
+  const ov = overrideFor(movementId);
+  if (!ov) return sugg;
+  const units = getProfile().units;
+  const weight = ov.weight == null ? (sugg && sugg.weight) : ov.weight;
+  const amount = ov.amount == null ? (sugg && sugg.amount) : ov.amount;
+  const engineSaid = sugg && sugg.weight != null ? `The app had ${sugg.weight} ${units}. ` : "";
+  return {
+    ...(sugg || {}),
+    action: "override",
+    weight,
+    amount,
+    override: true,
+    engine: sugg ? { action: sugg.action, weight: sugg.weight, amount: sugg.amount, note: sugg.note } : null,
+    note: `Coach's call for today: ${weight == null ? "see the note" : weight + " " + units}` +
+      (amount == null ? "" : ` × ${amount}`) + (ov.note ? ` — ${ov.note}` : "") + ".",
+    basis: `${engineSaid}Set in the weekly review${ov.date ? " on " + ov.date.slice(0, 10) : ""}; ` +
+      `it applies to this session only, then the engine takes it from here.`,
+  };
+}
+
+// Parse the lines a review hands back. One movement per line:
+//
+//   Barbell Bench Press: 155 x 8 — you left three in the tank, take the jump
+//   barbell-row: 130
+//   Incline DB Curl: clear
+//
+// Names or slugs both work; anything unrecognised comes back as an error
+// rather than being silently dropped.
+export function applyOverrideText(text) {
+  const applied = [], cleared = [], errors = [];
+  for (const raw of String(text || "").split(/\r?\n/)) {
+    const line = raw.trim().replace(/^[-*]\s*/, "");
+    if (!line || line.startsWith("#")) continue;
+    const m = line.match(/^(.+?)\s*:\s*(.*)$/);
+    if (!m) { errors.push(`${line} — expected "movement: weight × reps — note"`); continue; }
+    const id = resolveMovementId(m[1].trim());
+    if (!id) { errors.push(`${m[1].trim()} — no movement by that name`); continue; }
+    const rest = m[2].trim();
+    if (/^(clear|none|off|remove)$/i.test(rest)) {
+      clearOverride(id);
+      cleared.push(movementName(id, id));
+      continue;
+    }
+    const nums = rest.match(/^([\d.]+)\s*(?:[x×]\s*([\d.]+))?/);
+    if (!nums) { errors.push(`${line} — no weight in that line`); continue; }
+    const note = rest.slice(nums[0].length).replace(/^\s*[—–-]+\s*/, "").trim();
+    setOverride(id, { weight: Number(nums[1]), amount: nums[2] == null ? null : Number(nums[2]), note });
+    applied.push(movementName(id, id));
+  }
+  return { applied, cleared, errors };
 }
 
 // One stall definition, shared by the engine and the coach report (#8) — reps
@@ -679,6 +837,38 @@ export function metricHistory(metricId) {
     .map((s) => ({ date: s.date, value: Number(s.metrics[metricId]) }));
 }
 
+// ---- Next-session proposals (#11) -------------------------------------------
+// What the app will actually put on the card next time this movement comes
+// round — the thing a review has to be able to correct BEFORE he trains. The
+// check-in can't be known in advance, so these are the un-gated numbers: a
+// flare day will hold the load below whatever is printed here.
+
+// Where a movement is programmed, so its proposal is read against the right rep
+// range. A movement can sit in a slot as the default or as a 🎲 alternative.
+function slotFor(movementId) {
+  const all = allExercises();
+  return all.find((e) => e.movement === movementId) ||
+    all.find((e) => (e.alternatives || []).includes(movementId)) || null;
+}
+
+export function nextSessionProposals() {
+  return loggedMovementIds().map((id) => {
+    const mv = getMovement(id);
+    const slot = slotFor(id);
+    const prescription = prescriptionFor(slot, mv);
+    const sugg = suggestion(id, prescription, { scheduledDeload: deloadStatus().due });
+    if (!sugg) return null;
+    return {
+      movementId: id,
+      name: movementName(id, id),
+      slot: slot ? slot.id : null,
+      prescription,
+      measure: prescription.measure,
+      ...sugg,
+    };
+  }).filter(Boolean);
+}
+
 // ---- Coach report ----------------------------------------------------------
 // A compact, human-readable Markdown summary of recent training that Tim pastes
 // into a Claude conversation to get the program reviewed and updated. This is
@@ -704,6 +894,27 @@ export function coachReport() {
   L.push(`**Range:** ${first} → ${last} · ${sessions.length} sessions total · ${last28} in the last 4 weeks`);
   const bw = getBodyweight();
   if (bw.length) L.push(`**Bodyweight:** ${bw[0].weight} → ${bw[bw.length - 1].weight} ${p.units} (${bw.length} entries)`);
+  L.push("");
+
+  // What the app will put on the card next time — the section the weekly review
+  // exists to correct (#11). Printed before the history detail on purpose: this
+  // is the only part that can still be changed before he trains.
+  L.push("## Next session — what the app will prescribe");
+  L.push("_These are the un-gated numbers. The day's check-in can still hold a load below what's printed here._");
+  const proposals = nextSessionProposals();
+  if (proposals.length) {
+    proposals.forEach((n) => {
+      const info = measureInfo(n.measure);
+      const load = n.weight == null ? "" : `${n.weight}${p.units} × `;
+      const amount = n.amount == null ? "—" : `${n.amount}${n.measure === "reps" ? " reps" : info.unit}`;
+      L.push(`- **${n.name}**${n.slot ? ` (slot ${n.slot})` : ""} → **${load}${amount}** · ${n.action}` +
+        (n.override ? " · ⚑ coach override in effect" : ""));
+      L.push(`  - ${n.note}`);
+      if (n.basis) L.push(`  - _${n.basis}_`);
+    });
+  } else {
+    L.push("- (nothing with enough history to prescribe from yet)");
+  }
   L.push("");
 
   // per-movement progress (working sets only; a ramp-up is not a data point)
@@ -735,7 +946,7 @@ export function coachReport() {
       ? ` · deloaded ${deloads.length === 1 ? "on " + deloads[0].date.slice(0, 10) : deloads.length + "×"} (planned reset, not a regression)`
       : "";
     if (l.e1rm != null && f.e1rm != null) {
-      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${effortTag}${deloadTag}${tag}`);
+      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} (Epley estimate from reps, never tested) over ${sessionCount(h)}${effortTag}${deloadTag}${tag}`);
     } else {
       // No meaningful e1RM here — report what the movement actually measures,
       // and say why there's no 1RM so the coach doesn't go looking for one.
@@ -774,6 +985,30 @@ export function coachReport() {
     L.push("- Nothing flagged — on a unilateral lift, tap L or R when one side gives out first.");
   }
   L.push("");
+
+  // The sets themselves. The old report kept only the best set per movement, so
+  // a back-off after a failed top set — the exact thing a coach needs to see —
+  // was invisible. Roles, effort and the per-exercise notes all travel now.
+  L.push("## Session detail (last 3)");
+  sessions.slice(0, 3).forEach((s) => {
+    L.push(`### ${s.date.slice(0, 10)}${s.day ? " · day " + s.day : ""}`);
+    (s.entries || []).forEach((e) => {
+      const logged = loggedSets(e.sets);
+      if (!logged.length) return;
+      const mv = getMovement(e.movementId);
+      const sets = logged.map((x) => {
+        const role = roleLabel(x);
+        const rpe = x.rpe != null ? ` @RPE${x.rpe}` : "";
+        return `${formatSet(mv, x)}${rpe}${role === "work" ? "" : ` [${role}]`}${x.suspect ? " [⚠️ flagged]" : ""}`;
+      });
+      L.push(`- **${entryName(e)}**: ${sets.join(", ")}` +
+        (e.harderSide ? ` · ⇄ ${harderSideLabel(e.harderSide)} side harder` : "") +
+        (e.deload ? " · deload" : "") + (e.pain ? " · ⚠️ pain" : ""));
+      if (e.note && e.note.trim()) L.push(`  - _"${e.note.trim()}"_`);
+    });
+    if (s.notes && s.notes.trim()) L.push(`- Session note: _"${s.notes.trim()}"_`);
+    L.push("");
+  });
 
   // Where the engine is holding back, and why (#8). A coach reading this should
   // never have to guess whether a step down was a decision or a bad day.
@@ -825,8 +1060,42 @@ export function coachReport() {
     L.push("");
   }
 
+  // The other half of the loop: what the last review changed, and whether the
+  // engine has been consistently wrong in one direction (#11).
+  L.push("## Coach adjustments");
+  const live = getOverrides();
+  const liveIds = Object.keys(live);
+  if (liveIds.length) {
+    liveIds.forEach((id) => {
+      const ov = live[id];
+      L.push(`- **${movementName(id, id)}** → ${ov.weight == null ? "—" : ov.weight + p.units}` +
+        (ov.amount == null ? "" : ` × ${ov.amount}`) +
+        ` (set ${ov.date.slice(0, 10)}; the app had ${ov.engineWeight == null ? "no number" : ov.engineWeight + p.units})` +
+        (ov.note ? ` — ${ov.note}` : ""));
+    });
+    L.push("- These apply to each movement's next session only, then the engine takes over again.");
+  } else {
+    L.push("- None in effect — every number above is the engine's own.");
+  }
+  const log = getOverrideLog().filter((ov) => ov.engineWeight != null && ov.weight != null);
+  if (log.length >= 2) {
+    const up = log.filter((ov) => ov.weight > ov.engineWeight).length;
+    const down = log.filter((ov) => ov.weight < ov.engineWeight).length;
+    L.push(`- Correction history: ${log.length} overrides — ${up} up, ${down} down.` +
+      (up >= 3 && down === 0 ? " The engine is undershooting; consider a bigger increment band." :
+       down >= 3 && up === 0 ? " The engine is overshooting; consider a smaller increment band." : ""));
+  }
+  L.push("");
+
   L.push("## Coach, please");
   L.push("Review the numbers, progress what's working, and fix anything stalled or flagged for pain. Follow my current injury guardrails and preferences — the up-to-date source is coach/PROFILE.md in the repo, not this report. Give me updated loads/reps and any swaps for the next block.");
+  L.push("");
+  L.push("If you want to change what the app prescribes next session, end your reply with a fenced block of adjustment lines — one movement per line, `weight × reps — why`, or `clear` to drop an existing one. I paste it straight into Settings → Coach adjustments:");
+  L.push("");
+  L.push("```");
+  L.push("Barbell Bench Press: 155 x 8 — you left 3 in the tank, take the jump");
+  L.push("Incline DB Curl: clear");
+  L.push("```");
   return L.join("\n");
 }
 
