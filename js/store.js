@@ -565,17 +565,48 @@ export function confirmSuspectSet(sessionId, entryIndex, setIndex) {
 // through. A set flagged as implausible would otherwise decide the next load.
 export function movementSessions(movementId, limit = 12) {
   if (!movementId) return [];
+  const movement = getMovement(movementId);
   const out = [];
   for (const s of getSessions()) {
     for (const entry of entriesFor(s, movementId)) {
-      const sets = loggedSets(entry.sets).filter((x) => !x.suspect);
-      if (!sets.length) continue;
+      const logged = loggedSets(entry.sets);
+      const kept = logged.filter((x) => !x.suspect);
+      if (!kept.length) continue;
+      // Roles were inferred against the WHOLE set list, flagged set included.
+      // Pull a bogus top set out from under them and the roles it implied have
+      // to go too: 150, 155 and a mistyped 1550 classify as ramp, ramp, work,
+      // and dropping the 1550 leaves two ramps and no working set at all. The
+      // engine then reads the session as empty and the card calls a lift you
+      // did on Friday a first-timer. Re-infer on what's actually left — on a
+      // copy, so nothing the athlete logged is rewritten behind their back.
+      const sets = kept.length === logged.length
+        ? kept
+        : applyInferredRoles(kept.map((x) => ({ ...x })), entryPrescription(entry), movement);
       out.push({ date: s.date, sets, pain: !!entry.pain, deload: !!entry.deload, entry });
       break; // one entry per session is the movement's performance that day
     }
     if (out.length >= limit) break;
   }
   return out;
+}
+
+// History exists but the engine got nothing out of it. Distinct from "never
+// performed", and the card has to say which — one is a first session, the other
+// is a set that needs its role fixed or its typo confirmed.
+export function unreadableHistory(movementId) {
+  const last = lastPerformance(movementId);
+  if (!last) return null;
+  const sessions = movementSessions(movementId);
+  const movement = getMovement(movementId);
+  const readable = sessions.some((h) => workingSets(h.sets).length > 0);
+  if (readable) return null;
+  const logged = loggedSets(last.entry.sets);
+  return {
+    date: last.date,
+    flagged: logged.filter((x) => x.suspect).length,
+    load: logged.reduce((m, x) => Math.max(m, setLoad(x) || 0), 0) || null,
+    text: logged.map((x) => formatSet(movement, x)).join(", "),
+  };
 }
 
 // What today should ask for. `context` carries the things only the live session
