@@ -17,6 +17,7 @@
 // =============================================================================
 
 import { setAmount, setLoad, isLogged } from "./measures.js";
+import { invertLoad } from "./movements.js";
 
 export const ROLES = ["ramp", "work", "backoff"];
 
@@ -58,14 +59,21 @@ function loggedIndices(sets) {
 // alone. (RPE — #5, effort.js — answers the sharper version of the same
 // question, but it is optional and often absent; this reads what the reps
 // already say, so classification never depends on it.)
-export function inferSetRoles(sets = [], prescription = null) {
+//
+// `movement` is optional and only changes one thing: on an ASSIST stack the
+// heaviest set is the EASIEST one, so "which set was the top set" inverts (#9).
+export function inferSetRoles(sets = [], prescription = null, movement = null) {
   const idxs = loggedIndices(sets);
   const result = sets.map((_, index) => ({ index, role: "work", failed: false }));
   if (idxs.length < 2) return result;
 
+  const inverted = invertLoad(movement);
+  const hardest = (loads) => (inverted ? Math.min(...loads) : Math.max(...loads));
+  const isEasierThan = (a, b) => (inverted ? a > b : a < b);
+
   const loadAt = (i) => setLoad(sets[i]);
   const amountAt = (i) => setAmount(sets[i]);
-  const top = Math.max(...idxs.map(loadAt));
+  const top = hardest(idxs.map(loadAt));
   const topIdxs = idxs.filter((i) => loadAt(i) === top);
   const firstTop = topIdxs[0];
   const lastTop = topIdxs[topIdxs.length - 1];
@@ -90,11 +98,11 @@ export function inferSetRoles(sets = [], prescription = null) {
   const retreatedFromOpener =
     firstTop === idxs[0] && firstTop === lastTop && after.length >= 2 && !finishedTheJob;
 
-  const failedTop = after.length > 0 && after.every((i) => loadAt(i) < top) &&
+  const failedTop = after.length > 0 && after.every((i) => isEasierThan(loadAt(i), top)) &&
     (cameUpShort || retreatedFromOpener);
 
   if (failedTop) {
-    const settled = Math.max(...after.map(loadAt));
+    const settled = hardest(after.map(loadAt));
     for (const i of idxs) {
       if (i < firstTop) result[i] = { index: i, role: "ramp", failed: false };
       else if (loadAt(i) === top) result[i] = { index: i, role: "backoff", failed: true };
@@ -114,8 +122,8 @@ export function inferSetRoles(sets = [], prescription = null) {
 
 // Fill in roles in place, leaving anything the athlete set by hand alone.
 // Returns the same array so it composes.
-export function applyInferredRoles(sets = [], prescription = null) {
-  const inferred = inferSetRoles(sets, prescription);
+export function applyInferredRoles(sets = [], prescription = null, movement = null) {
+  const inferred = inferSetRoles(sets, prescription, movement);
   sets.forEach((s, i) => {
     if (!s || s.roleLocked) return;
     s.role = inferred[i].role;
@@ -152,8 +160,10 @@ export function lastWorkingIndex(sets = []) {
   return -1;
 }
 
-// The load progression decisions are made against: the heaviest WORKING set.
-export function topWorkingLoad(sets = []) {
+// The load progression decisions are made against: the hardest WORKING set.
+// Heaviest, except on an assist stack where the hardest set is the lightest (#9).
+export function topWorkingLoad(sets = [], movement = null) {
   const loads = workingSets(sets).map(setLoad).filter((w) => w != null && w > 0);
-  return loads.length ? Math.max(...loads) : null;
+  if (!loads.length) return null;
+  return invertLoad(movement) ? Math.min(...loads) : Math.max(...loads);
 }

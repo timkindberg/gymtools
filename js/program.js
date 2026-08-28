@@ -284,6 +284,14 @@ export const PROGRAM = {
           cues: ["Straight line head to heels", "Hips up, don't sag", "Breathe"],
           alternatives: ["suitcase-hold", "copenhagen-plank"],
         }),
+        ex({
+          id: "c8", movement: "dead-hang", name: "Dead Hang", target: "Grip / shoulder decompression",
+          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture"],
+          why: "You were already doing these off-program (\"25 seconds, I need more callouses\") with nowhere to log them. A hang builds the grip your carries and rows run out of first, and lets the shoulder hang long — which the pressing days appreciate.",
+          cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
+          techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't.",
+          alternatives: ["weighted-dead-hang"],
+        }),
       ],
       cooldown: [
         ...MOBILITY_ROUTINE.steps.slice(0, 6),

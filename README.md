@@ -23,7 +23,9 @@ to your home screen.
   follow your last workout?"** prompt. If something's flaring, the app warns you
   and points to the safer swaps. Then you go exercise-by-exercise: coach's
   notes, cues, injury flags, **superset** pairings, your **last performance**,
-  an **auto-progression suggestion**, a **🎲 swap** button to rotate the
+  an **auto-progression suggestion** (what to lift, and the reasoning behind
+  the number — including holding back on a flare day and prescribing a deload
+  when a lift stalls), a **🎲 swap** button to rotate the
   exercise for variety, a set grid to log weight × reps, and a built-in **rest
   timer** (sound + vibration). One tap on the last working set records **how
   many reps you had left in the tank** (RPE), which is what lets the app tell
@@ -116,10 +118,36 @@ The data model underneath it:
 | [`js/measures.js`](js/measures.js) | what the second column counts (reps / seconds / yards), structured prescriptions, the estimated-1RM guard, and the entry-time sanity checks. |
 | [`js/sets.js`](js/sets.js) | set roles — ramp-up, working, back-off — inferred as you log and overridable with a tap. Load suggestions read working sets only. |
 | [`js/effort.js`](js/effort.js) | RPE / reps in reserve, plus which side gave out first on unilateral work. One tap each on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
+| [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, and its own comparator for timed, bodyweight and carry work. |
 | [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, and the coach report. |
 
-These four are pure modules — no DOM, no storage — which is what makes them
-testable, and what the progression engine will be built on.
+These five are pure modules — no DOM, no storage — which is what makes them
+testable.
+
+### How the load suggestion is made
+
+`nextPrescription()` reads only the sets that were **work** (a ramp-up isn't a
+data point, and a weight you failed out of isn't your working weight), and
+decides in this order:
+
+1. **Pain flagged here last time** → hold the load. Twice in a row → swap the
+   lift out.
+2. **Today's check-in flares a joint this lift leans on** (or the tank is empty)
+   → hold. Keep the pattern, skip the PR.
+3. **A deload is due** — stalled twice, or four straight trained weeks — → drop
+   about 10%, cut a set, rebuild.
+4. **You failed out of the top set** → repeat the weight you settled at.
+5. **You topped the rep range on every working set** → add load, sized to the
+   lift and gated on how hard the last set was.
+6. **Anything else** → hold the load and chase the reps.
+
+The increment is a percentage of the working load — 5–10% on a lower-body
+barbell or machine, 2.5–5% on upper-body, dumbbell and cable work — rounded to
+the smallest step the gym has, and never more than 10% in a session. **When that
+smallest step is bigger than the target percentage** (a 5 lb dumbbell jump is
+17% of a 30 lb lunge; 2.5 lb is 20% of a 12.5 lb cuff cable) **the reps go up
+first**, and the load waits until the rep range is used up. Every suggestion
+says which sets it counted and why it picked the number.
 
 ## Running locally
 
@@ -135,9 +163,12 @@ python3 -m http.server 8000
 npm test   # node --test, no dependencies to install
 ```
 
-Unit tests cover the data model against a checked-in backup fixture
-(`test/fixtures/`): movement attribution, set-role inference, typed measures,
-effort-aware progression, and the migrations that bring an old export forward.
+Unit tests cover the data model and the engine against a checked-in backup
+fixture (`test/fixtures/`): movement attribution, set-role inference, typed
+measures, effort-aware progression, stalls and deloads, and the migrations that
+bring an old export forward. The fixture is run through the engine with an
+expected answer written down for **all 20 movements**, so a rule change that
+moves a number has to move it on purpose.
 
 ## Backups
 

@@ -10,7 +10,7 @@ import {
   measureInfo, prescriptionFor, formatPrescription, formatSet, setAmount,
   isLogged, validateSet,
 } from "./measures.js";
-import { applyInferredRoles, roleLabel, roleOf, nextRole, lastWorkingIndex } from "./sets.js";
+import { applyInferredRoles, roleLabel, roleOf, nextRole, lastWorkingIndex, topWorkingLoad } from "./sets.js";
 import {
   RIR_CHOICES, RIR_LABELS, RIR_HINTS, setRir, hasEffort, recordEffort,
   effortLabel, effortGlyph, targetRir,
@@ -259,9 +259,22 @@ route("session", () => {
     ]));
   }
 
+  // Is this a deload week? (#8) Computed once and handed to every card, so one
+  // session can't be half deloaded.
+  const deload = store.deloadStatus();
+  if (deload.due) {
+    view.appendChild(el("div.card.alert.deload", {}, [
+      el("strong", { text: "\u2193 Deload week" }),
+      el("p", { text: deload.reason === "symptoms"
+        ? `Your knee, shoulder and tightness scores have averaged ${deload.symptomLoad}/10 across this week's sessions after ${deload.streak} straight weeks of training. Every lift below is dropped about 10% and a set — take it, and come back at full load next week.`
+        : `That's ${deload.streak} consecutive weeks of training. Every lift below is dropped about 10% and a set. This is programmed, not a bad day \u2014 the loads you left are waiting next week.` }),
+      el("p.muted.small", { text: "Change the cadence, or switch it off, in Settings \u2192 Workout." }),
+    ]));
+  }
+
   // Exercises
   day.exercises.forEach((exDef, idx) => {
-    view.appendChild(exerciseCard(exDef, draft, idx));
+    view.appendChild(exerciseCard(exDef, draft, idx, { deload: deload.due, symptoms: draft.symptoms }));
   });
 
   // Cooldown
@@ -395,7 +408,7 @@ function blankEntry(exDef) {
   };
 }
 
-function exerciseCard(exDef, draft, idx) {
+function exerciseCard(exDef, draft, idx, session = {}) {
   const entry = entryForSlot(draft, exDef);
 
   // The movement actually being performed here — the slot's default, or
@@ -408,7 +421,25 @@ function exerciseCard(exDef, draft, idx) {
   const target = prescription.max;
   const card = el("div.card.exercise");
 
-  const sugg = store.suggestion(movementId, prescription);
+  // Everything the engine can't know from history alone: how the joints this
+  // lift leans on feel today, and whether the calendar says deload (#7, #8).
+  const sugg = store.suggestion(movementId, prescription, {
+    symptoms: session.symptoms || draft.symptoms,
+    flags: exDef.flags || [],
+    scheduledDeload: !!session.deload,
+  });
+  // A deload only counts as one if he actually takes it — the flag is confirmed
+  // against what he logs when the session is saved.
+  if (sugg && sugg.action === "deload") { entry.deload = true; entry.deloadTo = sugg.weight; }
+  else { delete entry.deload; delete entry.deloadTo; }
+  // A deload week cuts volume as well as load, so take the set off the card
+  // rather than asking him to remember to. Only before anything is logged, and
+  // only once — he can always tap "+ set" back.
+  if (sugg && sugg.dropSet && !entry.deloadTrimmed && entry.sets.length > 2 && !entry.sets.some(isLogged)) {
+    entry.sets.pop();
+    entry.deloadTrimmed = true;
+    store.saveDraft(draft);
+  }
   const last = store.lastPerformance(movementId);
   // What was last done in this SLOT, whatever it was. Context only — a barbell
   // incline number never becomes a dumbbell shoulder-press suggestion (#2).
@@ -527,7 +558,7 @@ function exerciseCard(exDef, draft, idx) {
     refreshRoles: () => {},
   };
   ctx.refreshRoles = () => {
-    applyInferredRoles(entry.sets, prescription);
+    applyInferredRoles(entry.sets, prescription, movement);
     badges.forEach((b, i) => paintRoleBadge(b, entry.sets[i]));
     renderEffort(effortHost, ctx);
   };
@@ -805,7 +836,7 @@ async function finishSession(draft, day) {
       const mv = getMovement(movementId);
       const prescription = prescriptionFor(findExercise(e.exerciseId), mv);
       const sets = e.sets.filter(isLogged);
-      applyInferredRoles(sets, prescription);
+      applyInferredRoles(sets, prescription, mv);
       // Anything still implausible and unconfirmed is flagged rather than
       // silently kept — the history view offers a one-tap correction (#4).
       const bests = store.movementBests(movementId);
@@ -814,10 +845,16 @@ async function finishSession(draft, day) {
         const warning = validateSet(mv, set, bests)[0];
         if (warning) set.suspect = warning.code; else delete set.suspect;
       });
+      // A deload is only recorded if he took it. Suggesting one and then
+      // loading the bar up anyway is a normal session, and the chart should
+      // read it as one (#8).
+      const tookDeload = !!e.deload && e.deloadTo != null &&
+        (topWorkingLoad(sets, mv) == null || topWorkingLoad(sets, mv) <= e.deloadTo * 1.02);
       return {
         exerciseId: e.exerciseId,
         movementId,
         name: e.name,
+        deload: tookDeload || undefined,
         variant: e.variant || null,
         variantName: e.variantName || null,
         prescription,
@@ -1080,6 +1117,23 @@ route("history", () => {
       if (mv && mv.measure !== "reps") {
         chartHost.appendChild(el("p.muted.tiny", { text: `Measured in ${info.label.toLowerCase()} — no estimated 1RM for this one.` }));
       }
+      // A dip the app asked for reads as a dip like any other on a line chart.
+      // Name the deloads so a planned reset isn't mistaken for losing ground (#8).
+      const deloads = hist.filter((h) => h.deload);
+      if (deloads.length) {
+        chartHost.appendChild(el("p.muted.tiny", {
+          text: `↓ Deload${deloads.length === 1 ? "" : "s"} on ${deloads.map((h) => fmtDate(h.date)).join(", ")} — a planned step back, not a regression.`,
+        }));
+      }
+      // Where the engine currently thinks this lift stands (#8).
+      const stall = store.movementStall(select.value);
+      if (stall.stalled) {
+        chartHost.appendChild(el("p.warn-text.small", {
+          text: stall.deloadDue
+            ? `⚠️ Stalled ${stall.consecutive} sessions — the next suggestion drops the load ~10% and rebuilds.`
+            : "⚠️ No gain last session in reps or load. One more and the app will deload it.",
+        }));
+      }
     };
     select.addEventListener("change", renderChart);
     progressCard.appendChild(select);
@@ -1267,6 +1321,14 @@ route("settings", () => {
   view.appendChild(bwCard);
 
   // workout prefs
+  const deloadLabel = (n) => n ? `Deload every ${n} trained week${n === 1 ? "" : "s"}` : "Deload weeks: off";
+  const deloadState = () => {
+    const d = store.deloadStatus();
+    if (!d.cadence) return "Nothing scheduled — the app still deloads a lift that stalls twice.";
+    return d.due
+      ? `You're due one now (${d.reason === "symptoms" ? "symptom load" : "cadence"}).`
+      : `${d.streak} week${d.streak === 1 ? "" : "s"} in.`;
+  };
   view.appendChild(el("div.card", {}, [
     el("h3", { text: "Workout" }),
     el("label.field-label", { text: `Default rest timer: ${st.restTimerDefault}s` }),
@@ -1276,6 +1338,10 @@ route("settings", () => {
       el("input", { type: "checkbox", checked: st.sound, onchange: (e) => store.setSettings({ sound: e.target.checked }) }),
       el("span", { text: "Rest-timer sound" }),
     ]),
+    el("label.field-label", { text: deloadLabel(st.deloadEveryWeeks) }),
+    el("input.slider", { type: "range", min: 0, max: 8, step: 1, value: st.deloadEveryWeeks,
+      oninput: (e) => { store.setSettings({ deloadEveryWeeks: Number(e.target.value) }); e.target.previousSibling.textContent = deloadLabel(Number(e.target.value)); } }),
+    el("p.muted.tiny", { text: `Counted in weeks you actually trained, so a skipped week is its own rest. ${deloadState()}` }),
   ]));
 
   // cloud sync

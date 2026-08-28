@@ -8,9 +8,10 @@ import {
   setAmount, setLoad, isLogged, estimate1RM, setVolume,
   formatSet, staticWarnings, measureInfo, prescriptionFor,
 } from "./measures.js";
-import { applyInferredRoles, workingSets, rampSets, topWorkingLoad, failedSets } from "./sets.js";
-import { workingEffort, effortVerdict, effortLabel, rirFromRpe, harderSideLabel } from "./effort.js";
-import { allExercises } from "./program.js";
+import { applyInferredRoles, workingSets } from "./sets.js";
+import { workingEffort, rirFromRpe, harderSideLabel } from "./effort.js";
+import { nextPrescription, summarize, stallState } from "./engine.js";
+import { allExercises, findExercise } from "./program.js";
 
 const KEY = "gymtools.v1";
 const DRAFT_KEY = "gymtools.draft.v1";
@@ -31,6 +32,10 @@ const DEFAULT_DATA = {
   settings: {
     restTimerDefault: 90, // seconds
     sound: true,
+    // How many CONSECUTIVE trained weeks before a deload week (#8). Counted in
+    // weeks he actually trained, so skipping a week is its own rest rather than
+    // something that pushes the deload further away. 0 turns it off.
+    deloadEveryWeeks: 4,
   },
 };
 
@@ -117,7 +122,7 @@ export function entryPrescription(entry) {
 function migrateSetRoles(data) {
   for (const session of data.sessions || []) {
     for (const entry of session.entries || []) {
-      applyInferredRoles(entry.sets || [], entryPrescription(entry));
+      applyInferredRoles(entry.sets || [], entryPrescription(entry), getMovement(entry.movementId));
     }
   }
 }
@@ -150,7 +155,7 @@ function migrateStampPrescriptions(data) {
   for (const session of data.sessions || []) {
     for (const entry of session.entries || []) {
       entry.prescription = entryPrescription(entry);
-      applyInferredRoles(entry.sets || [], entry.prescription);
+      applyInferredRoles(entry.sets || [], entry.prescription, getMovement(entry.movementId));
     }
   }
 }
@@ -215,7 +220,7 @@ function migrateDraft(draft, program) {
       const slot = program && program.find((e) => e.id === entry.exerciseId);
       entry.prescription = prescriptionFor(slot || null, getMovement(entry.movementId));
     }
-    applyInferredRoles(entry.sets || [], entry.prescription);
+    applyInferredRoles(entry.sets || [], entry.prescription, getMovement(entry.movementId));
   }
   return draft;
 }
@@ -396,9 +401,10 @@ export function movementHistory(movementId) {
   const mv = getMovement(movementId);
   const out = [];
   for (const s of getSessions().slice().reverse()) {
-    let vol = 0, bestE1rm = 0, topWeight = 0, bestAmount = 0, sets = 0, flagged = 0;
+    let vol = 0, bestE1rm = 0, topWeight = 0, bestAmount = 0, sets = 0, flagged = 0, deload = false;
     const counted = [];
     for (const entry of entriesFor(s, movementId)) {
+      if (entry.deload) deload = true;
       for (const set of workingSets(loggedSets(entry.sets))) {
         // A set flagged as a probable typo stays out of the trend until it is
         // either corrected or confirmed — one 140 × 120 ruins the whole line.
@@ -413,13 +419,16 @@ export function movementHistory(movementId) {
         if (e1 && e1 > bestE1rm) bestE1rm = e1;
       }
     }
-    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, rpe: null, measure: (mv && mv.measure) || "reps" }); continue; }
+    if (!sets) { if (flagged) out.push({ date: s.date, sets: 0, flagged, deload, volume: 0, topWeight: 0, bestAmount: 0, e1rm: null, rpe: null, measure: (mv && mv.measure) || "reps" }); continue; }
     // How hard it was (#5) — optional, and null until he logs it.
     const effort = workingEffort(counted);
     out.push({
       date: s.date,
       sets,
       flagged,
+      // A deload is a step DOWN taken on purpose. Charts and the report read
+      // this so a planned reset never looks like a lift falling apart (#8).
+      deload,
       volume: Math.round(vol),
       topWeight,
       bestAmount,
@@ -527,7 +536,7 @@ export function fixSuspectSet(sessionId, entryIndex, setIndex, amount) {
   return withSuspectSet(sessionId, entryIndex, setIndex, (set, entry) => {
     set.amount = Number(amount);
     delete set.suspect;
-    applyInferredRoles(entry.sets || [], entryPrescription(entry));
+    applyInferredRoles(entry.sets || [], entryPrescription(entry), getMovement(entry.movementId));
   });
 }
 
@@ -540,118 +549,120 @@ export function confirmSuspectSet(sessionId, entryIndex, setIndex) {
 }
 
 // ---- Suggestion -------------------------------------------------------------
-// Double progression, reading only the sets that were actually work, and now
-// reading how hard they were (#5) and which side did them (#6).
-// This is still the interim heuristic — the real engine (implement-aware
-// increments, stalls, deloads) is issue #7. What it no longer does is count
-// ramp-up sets as work, read a failed opener as the working weight, tell you to
-// repeat a load you had five reps left in, or tell you to grind out more reps at
-// a weight you already took to failure.
-export function suggestion(movementId, prescription) {
-  const last = lastPerformance(movementId);
-  if (!last) return null;
-  const mv = getMovement(movementId);
-  const measure = (prescription && prescription.measure) || (mv && mv.measure) || "reps";
-  const info = measureInfo(measure);
-  const logged = loggedSets(last.sets);
-  const work = workingSets(logged);
-  if (!work.length) return null;
+// The store's job here is only to assemble history and hand it to the engine
+// (js/engine.js, issues #7–#9), which owns every decision and is pure enough to
+// unit-test against a fixture. Nothing below reasons about loads.
 
-  const target = (prescription && prescription.max) || 10;
-  const ramps = rampSets(logged).length;
-  const failed = failedSets(logged);
-  const hitTarget = work.every((s) => (setAmount(s) || 0) >= target);
-
-  // How hard the last working set was, if he said. Absent → reps-only, exactly
-  // as before (#5: an omitted RPE never produces a worse suggestion).
-  const effort = workingEffort(work);
-  const verdict = effortVerdict({ rir: effort ? effort.rir : null, hitTarget });
-
-  const basis = `Counted ${work.length} working set${work.length === 1 ? "" : "s"}` +
-    (ramps ? `, ignored ${ramps} ramp-up set${ramps === 1 ? "" : "s"}` : "") +
-    (failed.length ? `, and skipped a failed set at ${Math.max(...failed.map((x) => setLoad(x) || 0))} ${getProfile().units}` : "") + "." +
-    (effort ? ` Last working set at ${effortLabel(effort.set)}.` : "");
-
-  const topWeight = topWorkingLoad(logged);
-
-  // Unloaded work (planks, bodyweight) progresses on the measure itself.
-  if (topWeight == null) {
-    const best = Math.max(...work.map((s) => setAmount(s) || 0));
-    const step = (measure === "reps" ? 1 : 5) * Math.max(1, verdict.steps);
-    if (verdict.steps > 0) {
-      return {
-        action: "increase", weight: null, amount: best + step, basis,
-        note: verdict.code === "too-light"
-          ? `You held ${best}${info.unit} with ${verdict.rir}+ left in the tank — go for ${best + step}${info.unit}.`
-          : `You held ${best}${info.unit} everywhere last time — push for ${best + step}${info.unit}.`,
-      };
+// Every performance of this movement, newest first, in the shape the engine
+// wants: logged sets only, typo-flagged sets excluded, pain and deload carried
+// through. A set flagged as implausible would otherwise decide the next load.
+export function movementSessions(movementId, limit = 12) {
+  if (!movementId) return [];
+  const out = [];
+  for (const s of getSessions()) {
+    for (const entry of entriesFor(s, movementId)) {
+      const sets = loggedSets(entry.sets).filter((x) => !x.suspect);
+      if (!sets.length) continue;
+      out.push({ date: s.date, sets, pain: !!entry.pain, deload: !!entry.deload, entry });
+      break; // one entry per session is the movement's performance that day
     }
-    return {
-      action: "repeat", weight: null, amount: target, basis,
-      note: verdict.code === "at-failure"
-        ? `You went to failure at ${best}${info.unit} — hold there until it stops being a fight.`
-        : `Work back up to ${target}${info.unit} before adding anything.`,
-    };
+    if (out.length >= limit) break;
   }
-
-  if (failed.length) {
-    const missed = Math.max(...failed.map((s) => setLoad(s) || 0));
-    const onTheOpener = logged.indexOf(failed[0]) === 0;
-    return {
-      action: "repeat", weight: topWeight, amount: target, basis,
-      note: onTheOpener
-        ? `You opened at ${missed} last time and backed off to ${topWeight} — repeat ${topWeight} and own all ${target} ${info.short}.`
-        : `You worked up to ${missed} last time and had to come back to ${topWeight} — repeat ${topWeight} and own all ${target} ${info.short}.`,
-    };
-  }
-
-  // TODO(#7): implement-aware increments. A flat +5 is 40% on a 12.5 lb cable.
-  const inc = topWeight >= 100 ? 10 : 5;
-  const next = topWeight + inc * verdict.steps;
-
-  if (verdict.steps > 0) {
-    return {
-      action: "increase", weight: next, amount: target, basis,
-      note: suggestionNote(verdict, { topWeight, next, inc, target, info, measure }),
-    };
-  }
-  return {
-    action: "repeat", weight: topWeight, amount: target, basis,
-    note: suggestionNote(verdict, { topWeight, next, inc, target, info, measure }),
-  };
+  return out;
 }
 
-// The sentence attached to the number. Effort is what makes these different
-// from each other — same reps, same weight, opposite advice.
-function suggestionNote(verdict, { topWeight, next, inc, target, info, measure }) {
-  const holdForReps = measure === "reps"
-    ? `Aim to add reps at ${topWeight} before adding weight.`
-    : `Stay at ${topWeight} and build to ${target}${info.unit} before adding weight.`;
+// What today should ask for. `context` carries the things only the live session
+// knows: today's check-in, the slot's injury flags, and whether the deload
+// cadence has come round.
+export function suggestion(movementId, prescription, context = {}) {
+  const movement = getMovement(movementId);
+  const slot = context.exerciseId ? findExercise(context.exerciseId) : null;
+  return nextPrescription({
+    movement,
+    prescription: prescription || (movement && movement.prescription) || null,
+    history: movementSessions(movementId),
+    symptoms: context.symptoms || null,
+    flags: context.flags || (slot && slot.flags) || [],
+    scheduledDeload: !!context.scheduledDeload,
+    units: getProfile().units,
+  });
+}
 
-  switch (verdict.code) {
-    case "too-light":
-      return verdict.hitTarget
-        ? `You topped the range with ${verdict.rir}+ ${info.short} still in the tank — that was too light. Go to ${next}.`
-        : `You stopped short of the range with ${verdict.rir}+ ${info.short} still in the tank — the load was the limiter, ` +
-          `not the ${info.short}. Try ${next}, and ${next + inc} if that still leaves ${verdict.rir}+ in the tank.`;
-    case "near-failure":
-      return verdict.hitTarget
-        ? `You topped the range with one left — a clean step up to ${next}.`
-        : holdForReps;
-    case "at-failure":
-      return verdict.hitTarget
-        ? `You topped the range, but that last set was to failure — repeat ${topWeight} and let it feel like an 8 before adding.`
-        : `You were already at failure short of ${target} ${info.short} — repeat ${topWeight}. The extra ${info.short} come from ` +
-          `getting stronger at this weight, not from grinding.`;
-    case "on-target":
-      return verdict.hitTarget
-        ? `You hit the top of the range at RPE ${10 - verdict.rir} — try ${next}.`
-        : holdForReps;
-    default: // reps-only — the pre-RPE behaviour, unchanged
-      return verdict.hitTarget
-        ? `You hit the top of the range on every working set — try ${next}.`
-        : holdForReps;
+// One stall definition, shared by the engine and the coach report (#8) — reps
+// and load, never e1RM, which is unreliable above ~10 reps and meaningless for
+// a carry or a plank.
+export function movementStall(movementId) {
+  const mv = getMovement(movementId);
+  const sessions = movementSessions(movementId);
+  const summaries = sessions
+    .map((h) => summarize(h, mv, entryPrescription(h.entry)))
+    .filter((s) => s.work.length > 0);
+  return stallState(summaries, mv);
+}
+
+// ---- Deload cadence (#8) ----------------------------------------------------
+// Counted in weeks he actually trained. Friday is explicitly skippable and whole
+// weeks go missing, so a calendar count would either never fire or fire on a
+// week he'd already taken off. A gap week resets the streak — that week WAS the
+// deload — and so does a logged deload.
+
+const WEEK_MS = 7 * 86400000;
+function weekStart(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
+  return d.getTime();
+}
+
+// Mean of the three joint/tightness trackers across a week's sessions — the
+// rolling trigger for a deload that the calendar hasn't reached yet.
+const SYMPTOM_LOAD = ["knee", "tightness", "shoulder"];
+export const SYMPTOM_DELOAD_AT = 5;
+
+function weekSymptomLoad(sessions) {
+  const vals = [];
+  for (const s of sessions) {
+    for (const id of SYMPTOM_LOAD) {
+      const v = s.symptoms && s.symptoms[id];
+      if (v != null) vals.push(Number(v));
+    }
   }
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
+export function deloadStatus() {
+  const cadence = Number(getSettings().deloadEveryWeeks) || 0;
+  const weeks = [];
+  for (const s of getSessions()) { // newest first
+    const key = weekStart(s.date);
+    let w = weeks.find((x) => x.key === key);
+    if (!w) { w = { key, sessions: [], deload: false }; weeks.push(w); }
+    w.sessions.push(s);
+    if ((s.entries || []).some((e) => e.deload)) w.deload = true;
+  }
+  if (!weeks.length) return { due: false, cadence, streak: 0, reason: "none" };
+
+  // A deload already under way stays under way: the rest of this week's
+  // sessions are part of it, not the start of the next block.
+  if (weeks[0].deload && weeks[0].key === weekStart(Date.now())) {
+    return { due: true, cadence, streak: 0, symptomLoad: null, reason: "in-progress" };
+  }
+
+  let streak = 0;
+  for (let i = 0; i < weeks.length; i++) {
+    if (weeks[i].deload) break;                                   // last reset
+    if (i > 0 && weeks[i - 1].key - weeks[i].key > WEEK_MS) break; // a week off
+    streak++;
+  }
+  const symptomLoad = weekSymptomLoad(weeks[0].sessions);
+  const flared = symptomLoad != null && symptomLoad >= SYMPTOM_DELOAD_AT && streak >= 2;
+  const scheduled = cadence > 0 && streak >= cadence;
+  return {
+    due: scheduled || flared,
+    cadence, streak,
+    symptomLoad: symptomLoad == null ? null : Math.round(symptomLoad * 10) / 10,
+    reason: scheduled ? "scheduled" : flared ? "symptoms" : "none",
+  };
 }
 
 // ---- Symptom trend ---------------------------------------------------------
@@ -710,13 +721,21 @@ export function coachReport() {
     const effortTag = l.rpe != null
       ? ` · last working set RPE ${l.rpe} (${rirFromRpe(l.rpe)} left)`
       : "";
+    // One stall definition, the engine's (#8): consecutive sessions with no gain
+    // in reps or load at a real effort. The old tag read e1RM, which drifts on
+    // high-rep work and doesn't exist at all for a carry or a plank — so the
+    // report and the app could disagree about whether a lift was stuck.
+    const stall = movementStall(id);
+    const deloads = h.filter((x) => x.deload);
+    const tag = stall.deloadDue
+      ? ` — ⚠️ STALLED ${stall.consecutive} sessions, deload suggested`
+      : stall.stalled ? ` — ⚠️ no gain last session (reps or load, at RPE 9+)`
+      : h.length >= 2 ? " — progressing ↑" : "";
+    const deloadTag = deloads.length
+      ? ` · deloaded ${deloads.length === 1 ? "on " + deloads[0].date.slice(0, 10) : deloads.length + "×"} (planned reset, not a regression)`
+      : "";
     if (l.e1rm != null && f.e1rm != null) {
-      let tag = "";
-      if (h.length >= 3) {
-        const prev = h[h.length - 3];
-        tag = l.e1rm > prev.e1rm ? " — progressing ↑" : " — ⚠️ STALLED (no e1RM gain in 3 sessions)";
-      }
-      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${effortTag}${tag}`);
+      L.push(`- **${label}**: top working set ${f.topWeight}→${l.topWeight}${p.units}, est 1RM ${f.e1rm}→${l.e1rm} over ${sessionCount(h)}${effortTag}${deloadTag}${tag}`);
     } else {
       // No meaningful e1RM here — report what the movement actually measures,
       // and say why there's no 1RM so the coach doesn't go looking for one.
@@ -753,6 +772,25 @@ export function coachReport() {
     L.push("- Qualitative, not load data: it says which side gave out first, not how much weaker it is.");
   } else {
     L.push("- Nothing flagged — on a unilateral lift, tap L or R when one side gives out first.");
+  }
+  L.push("");
+
+  // Where the engine is holding back, and why (#8). A coach reading this should
+  // never have to guess whether a step down was a decision or a bad day.
+  L.push("## Deloads & stalls");
+  const dl = deloadStatus();
+  L.push(dl.cadence
+    ? `- Cadence: deload after ${dl.cadence} consecutive trained weeks · currently ${dl.streak} week${dl.streak === 1 ? "" : "s"} in` +
+      (dl.due ? ` — **deload due now** (${dl.reason})` : "")
+    : "- Scheduled deloads are switched off.");
+  const stalled = loggedMovementIds()
+    .map((id) => ({ id, name: movementName(id, id), stall: movementStall(id) }))
+    .filter((x) => x.stall.stalled);
+  if (stalled.length) {
+    stalled.forEach((x) => L.push(`- **${x.name}**: ${x.stall.consecutive} session${x.stall.consecutive === 1 ? "" : "s"} without a gain in reps or load` +
+      (x.stall.deloadDue ? " — the app is prescribing a deload" : "")));
+  } else {
+    L.push("- Nothing stalled: every lift beat its last session, topped its range, or was left with reps in the tank.");
   }
   L.push("");
 

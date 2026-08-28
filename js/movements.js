@@ -19,6 +19,8 @@
 //   unilateral true when the prescription is naturally "per side"
 //   assisted   the load *reduces* effort (assist stack) — never an e1RM input
 //   addedLoad  the number is weight ADDED to bodyweight, not the total moved
+//   increment  smallest load step this movement can actually take, when it
+//              differs from what its implement usually offers (engine.js)
 // =============================================================================
 
 export const IMPLEMENTS = ["barbell", "dumbbell", "machine", "cable", "band", "bodyweight"];
@@ -129,6 +131,12 @@ const LIST = [
   m("suitcase-hold", "Suitcase Hold (isometric)", { implement: "dumbbell", loadMode: "per-side", measure: "time", pattern: "carry", unilateral: true }),
   m("side-plank", "Side Plank", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "anti-lateral-flexion", unilateral: true }),
   m("copenhagen-plank", "Copenhagen Plank", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "anti-lateral-flexion", unilateral: true }),
+
+  // ---- Grip / hang ---------------------------------------------------------
+  // He was already doing these off-program ("Dead hang for 25 seconds. I need
+  // more callouses.", 2026-08-24) with nowhere to log them — issue #9.
+  m("dead-hang", "Dead Hang", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "grip" }),
+  m("weighted-dead-hang", "Weighted Dead Hang", { implement: "bodyweight", measure: "time", pattern: "grip", addedLoad: true }),
 ];
 
 export const MOVEMENTS = Object.freeze(
@@ -166,6 +174,7 @@ const SWAP_GROUPS = {
   "anti-rotation": "anti-rotation",
   "anti-lateral-flexion": "lateral-core",
   carry: "lateral-core",
+  grip: "grip",
 };
 
 // What a movement can stand in for. Two movements are swappable when they
@@ -232,6 +241,12 @@ export function movementName(slug, fallback = null) {
 // The one place that answers "what did I actually do in this slot?".
 export function movementIdFor(exDef, variant) {
   return resolveMovementId(variant) || (exDef && (exDef.movement || resolveMovementId(exDef.name))) || null;
+}
+
+// Assist stacks run backwards: MORE weight on the pin is LESS work, so every
+// "which set was the hard one" and "did that go up?" comparison flips (#9).
+export function invertLoad(movement) {
+  return !!(movement && movement.assisted);
 }
 
 // Label for the weight column: a dumbbell number means something different from
