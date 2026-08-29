@@ -291,7 +291,8 @@ export function updateSession(id, patch) {
   return s;
 }
 
-// The most recent completed session (used for the "migraine after last?" prompt).
+// The most recent completed session (shown as the "Last session" recap, where
+// you can flag a migraine after the fact).
 export function lastSession() {
   return getSessions()[0] || null;
 }
@@ -307,12 +308,32 @@ export function sessionVolume(s) {
   }, 0);
 }
 
+// A migraine lands ~5 h after a taxing session, so a session still unflagged a
+// day later didn't cause one. That silence is what lets the app stop asking:
+// you flag the ones that hurt, and everything older than the window counts as a
+// clean session on its own.
+export const MIGRAINE_WINDOW_H = 24;
+
+// true = flagged, false = settled with no migraine, null = too soon to say.
+export function migraineState(s, now = Date.now()) {
+  if (s.causedMigraine === true) return true;
+  if (s.causedMigraine === false) return false;
+  const t = Date.parse(s.date);
+  if (Number.isNaN(t)) return null;
+  return now - t >= MIGRAINE_WINDOW_H * 3600 * 1000 ? false : null;
+}
+
+// Flag / unflag a past session from its recap card.
+export function setMigraine(id, caused) {
+  return updateSession(id, { causedMigraine: caused });
+}
+
 // Compare training load of sessions that triggered a migraine vs. those that
 // didn't — surfaces Tim's personal "too taxing" threshold once there's data.
-export function migraineInsight() {
-  const rated = getSessions().filter((s) => s.causedMigraine === true || s.causedMigraine === false);
-  const hit = rated.filter((s) => s.causedMigraine === true);
-  const ok = rated.filter((s) => s.causedMigraine === false);
+export function migraineInsight(now = Date.now()) {
+  const rated = getSessions().filter((s) => migraineState(s, now) != null);
+  const hit = rated.filter((s) => migraineState(s, now) === true);
+  const ok = rated.filter((s) => migraineState(s, now) === false);
   if (hit.length === 0 || ok.length === 0) {
     return { enough: false, migraineCount: hit.length, ratedCount: rated.length };
   }
@@ -1073,8 +1094,8 @@ export function coachReport() {
   };
   const at = avg("tightness");
   if (at != null) L.push(`- Right-side tightness averaging ${at}/10 across all sessions`);
-  const migCount = sessions.filter((s) => s.causedMigraine === true).length;
-  const rated = sessions.filter((s) => s.causedMigraine === true || s.causedMigraine === false).length;
+  const migCount = sessions.filter((s) => migraineState(s) === true).length;
+  const rated = sessions.filter((s) => migraineState(s) != null).length;
   if (rated) L.push(`- Migraines: ${migCount} of ${rated} rated sessions triggered one (logged as data, program not adjusted for it)`);
   const pains = [];
   sessions.slice(0, 12).forEach((s) => (s.entries || []).forEach((e) => {

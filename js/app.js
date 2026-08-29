@@ -399,22 +399,6 @@ function symptomCheck(draft) {
   card.appendChild(el("h2", { text: "Quick check-in" }));
   card.appendChild(el("p.muted", { text: "Two taps per slider. This tells the coach when to push and when to protect a joint." }));
 
-  // Migraine follow-up on the previous session (they hit ~5h later, so we ask now)
-  const prev = store.lastSession();
-  if (prev) {
-    const setMig = (v) => { store.updateSession(prev.id, { causedMigraine: v }); navigate("session"); };
-    card.appendChild(el("div.migraine-q", {}, [
-      // A session from an old backup or a cloud merge can arrive without a day
-      // name. Losing the label is fine; taking the check-in screen down with it
-      // — and with it the ability to start a workout at all — is not.
-      el("p.field-label", { text: `Did a migraine follow your last workout? (${sessionDayName(prev)}${fmtDate(prev.date)})` }),
-      el("div.seg", {}, [
-        el("button", { class: "seg-btn" + (prev.causedMigraine === false ? " active" : ""), text: "No", onclick: () => setMig(false) }),
-        el("button", { class: "seg-btn" + (prev.causedMigraine === true ? " active" : ""), text: "Yes 🤕", onclick: () => setMig(true) }),
-      ]),
-    ]));
-  }
-
   SYMPTOMS.forEach((s) => {
     const val = draft.symptoms[s.id] != null ? draft.symptoms[s.id] : (s.invert ? 7 : 0);
     draft.symptoms[s.id] = val;
@@ -512,13 +496,6 @@ function blankEntry(exDef) {
 // ---------------------------------------------------------------------------
 
 // Exercises, grouped so a ⇄ superset pair opens together.
-// "Bonus: Mobility, Single-Leg & Arms, " — trimmed of its "Day C — " prefix,
-// and empty rather than fatal when the session never recorded one.
-function sessionDayName(session) {
-  const name = session && session.dayName;
-  return name ? String(name).replace(/^Day [A-C] — /, "") + ", " : "";
-}
-
 function exerciseGroups(exercises) {
   const groups = [];
   const bySs = {};
@@ -1559,7 +1536,7 @@ route("history", () => {
         ? "Bigger/heavier sessions look like the trigger — we'll keep load under that line and back off when your neck score is up."
         : "No clear volume pattern yet — the trigger may be intensity or something outside the gym (alcohol, sleep). Keep logging." }));
     } else {
-      mCard.appendChild(el("p.muted", { text: `Logged ${mig.migraineCount} migraine follow-up${mig.migraineCount === 1 ? "" : "s"} so far. Once there's a mix of yes/no answers, this shows what session load tends to set one off.` }));
+      mCard.appendChild(el("p.muted", { text: `Logged ${mig.migraineCount} migraine${mig.migraineCount === 1 ? "" : "s"} so far. Flag one from any session's card on the Today or History tab; once some sessions have a migraine and some don't, this shows what session load tends to set one off.` }));
     }
     view.appendChild(mCard);
   }
@@ -1621,6 +1598,7 @@ function dataCheckCard(flagged) {
 }
 
 function sessionSummaryCard(s, withDelete) {
+  const flagged = s.causedMigraine === true;
   const totalSets = (s.entries || []).reduce((n, e) => n + (e.sets || []).length, 0);
   const vol = store.sessionVolume(s);
   const painFlags = (s.entries || []).filter((e) => e.pain).length;
@@ -1631,12 +1609,26 @@ function sessionSummaryCard(s, withDelete) {
       el("p.muted.small", { text: `${fmtDate(s.date)} · ${totalSets} sets · ${Math.round(vol).toLocaleString()} ${units()} volume` }),
     ]),
     el("div.session-badges", {}, [
-      s.causedMigraine === true ? el("span.pill.migraine", { text: "🤕" }) : null,
+      flagged ? el("span.pill.migraine", { text: "🤕" }) : null,
       s.symptoms ? severityBar(worstSymptom(s.symptoms), false) : null,
       painFlags ? el("span.pill.warn", { text: `⚠︎ ${painFlags}` }) : null,
     ]),
   ]);
   card.appendChild(head);
+
+  // Migraines land hours later, so this is flagged after the fact rather than
+  // asked about at the start of the next session: come back to the workout that
+  // did it and say so, whenever you figure it out.
+  card.appendChild(el("button", {
+    class: "btn ghost small migraine-toggle" + (flagged ? " on" : ""),
+    "aria-pressed": flagged ? "true" : "false",
+    text: flagged ? "🤕 Migraine logged — tap to undo" : "🤕 I got a migraine from this one",
+    onclick: () => {
+      store.setMigraine(s.id, !flagged);
+      toast(flagged ? "Migraine cleared" : "Logged 🤕");
+      refreshCurrent();
+    },
+  }));
 
   const det = el("details");
   det.appendChild(el("summary.muted.small", { text: "details" }));

@@ -5,6 +5,36 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-29 — Migraines: flag the workout that caused one, don't get asked
+
+Tim: "I don't want the next workout session to ask me if I had a headache on the
+previous one — I want to go to my last workout and say I have a headache from
+this workout."
+
+The follow-up prompt sat on the pre-workout check-in screen, which is the wrong
+moment twice over: it interrupts the session you're starting, and it asks about
+the one you already left. Migraines land ~5 h after a taxing session, so the
+knowledge arrives long before the next gym visit.
+
+- **Removed the "Did a migraine follow your last workout?" block** from the
+  check-in card. Nothing asks about migraines any more.
+- **Added a tap on the session card itself** — "🤕 I got a migraine from this
+  one" / tap again to undo. The card shows up as Today's "Last session" recap
+  and for every session in History, so you flag the workout that did it,
+  whenever you work it out.
+- **Silence now counts as a "no."** `store.migraineState()` reads a session
+  unflagged more than 24 h after it as migraine-free (`MIGRAINE_WINDOW_H`);
+  inside the window it's undecided and stays out of the stats. Without this the
+  threshold insight would only ever see "yes" answers, since nobody taps a
+  button to say nothing happened. Explicit `causedMigraine: false` from older
+  data still wins.
+- The Progress threshold insight and the coach report both read through
+  `migraineState`, so their yes/no split is unchanged in meaning.
+
+No program changes — `js/program.js` untouched.
+
+---
+
 ## 2026-08-29 — Day C rewritten: the missing press, and an optional leg slot
 
 Tim asked whether consistency alone would deliver, or whether the program needed

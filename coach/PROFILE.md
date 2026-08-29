@@ -105,8 +105,10 @@ takes over. No biceps/triceps DB data given; those were estimated.
 - **Migraines.** Triggered by **very taxing sessions (onset ~5 h later) or
   alcohol.** He treats them (ibuprofen, massage) and **explicitly does NOT want
   the program watered down for them.** → program at normal hard intensity; the
-  app logs whether a session triggered a migraine purely as *data* (one tap),
-  never to gate a workout.
+  app logs migraines purely as *data*, never to gate a workout. He flags them
+  himself, after the fact, on the session that caused one (one tap on its recap
+  card) — the app does not ask about the last workout before the next one. A
+  session left unflagged a day out counts as migraine-free.
 
 ## Coaching loop (how Claude stays his trainer)
 - Daily: he uses the PWA (check-in → lift → log). App auto-progresses loads.

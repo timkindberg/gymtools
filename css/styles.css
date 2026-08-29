@@ -489,9 +489,9 @@ textarea.input { resize: vertical; }
 .plate-note { font-size: 12.5px; font-weight: 600; color: var(--muted); background: var(--bg-elev); border: 1px dashed var(--line); border-radius: 8px; padding: 6px 10px; margin: 8px 0 4px; }
 .barbell-note { color: var(--muted); margin: 8px 0; padding: 8px 10px; background: var(--bg-elev); border-radius: var(--radius-sm); }
 
-/* migraine follow-up question */
-.migraine-q { padding: 12px 0; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
-.migraine-q .field-label { margin-bottom: 8px; }
+/* migraine flag on a past session */
+.migraine-toggle { width: 100%; margin: 8px 0 2px; }
+.migraine-toggle.on { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .pill.migraine { background: color-mix(in srgb, var(--danger) 18%, transparent); }
 
 /* mobility routine */
