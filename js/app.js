@@ -3,7 +3,7 @@
 // =============================================================================
 import {
   PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS,
-  dayForDate, alternativeNames, findExercise,
+  dayForDate, dayById, alternativeNames, findExercise,
 } from "./program.js";
 import { getMovement, movementName, loadLabel } from "./movements.js";
 import {
@@ -104,11 +104,20 @@ function schedulePush() {
 // ---------------------------------------------------------------------------
 // TODAY
 // ---------------------------------------------------------------------------
+// Which workout the Today card is showing. The calendar picks the default,
+// but you're the one who knows what you feel like training — tap another day
+// and it sticks until the app reloads.
+let pickedDayId = null;
+
 route("today", () => {
   const today = new Date();
   const sessions = store.getSessions();
-  const day = dayForDate(today, sessions);
   const draft = store.loadDraft();
+  const scheduled = dayForDate(today, sessions);
+  // A workout in progress wins the default slot so the big button resumes it.
+  const day = (pickedDayId && dayById(pickedDayId))
+    || (draft && dayById(draft.dayId))
+    || scheduled;
   const lastSession = sessions[0];
 
   const view = el("div.view");
@@ -132,10 +141,14 @@ route("today", () => {
 
   // Today's plan card
   const planCard = el("div.card.today-card");
-  planCard.appendChild(el("div.today-badge", { text: day.optional ? `Day ${day.id} · bonus` : `Day ${day.id}` }));
+  const badge = day.optional ? `Day ${day.id} · bonus` : `Day ${day.id}`;
+  planCard.appendChild(el("div.today-badge", { text: day.id === scheduled.id ? `${badge} · today` : badge }));
   planCard.appendChild(el("h2", { text: day.name.replace(/^Day [A-C] — /, "") }));
   planCard.appendChild(el("p.muted", { text: day.focus }));
   if (day.optional && day.note) planCard.appendChild(el("p.optional-note", { text: "🎈 " + day.note }));
+
+  // Pick any day — the schedule is a suggestion, not a lock.
+  planCard.appendChild(dayPicker(day, scheduled));
   const preview = el("ul.today-list");
   day.exercises.slice(0, 6).forEach((e) =>
     preview.appendChild(el("li", {}, [
@@ -144,8 +157,9 @@ route("today", () => {
     ])));
   if (day.exercises.length > 6) preview.appendChild(el("li.muted", { text: `+ ${day.exercises.length - 6} more…` }));
   planCard.appendChild(preview);
+  const resuming = !!draft && draft.dayId === day.id;
   planCard.appendChild(el("div.today-actions", {}, [
-    el("button.btn.primary.big", { text: draft ? "Resume workout" : "Start workout", onclick: () => startOrResume(day) }),
+    el("button.btn.primary.big", { text: resuming ? "Resume workout" : "Start workout", onclick: () => startOrResume(day) }),
     el("button.btn.ghost", { text: "View full plan", onclick: () => navigate("program/" + day.id) }),
   ]));
   view.appendChild(planCard);
@@ -168,8 +182,36 @@ route("today", () => {
   render(view);
 });
 
-function startOrResume(day) {
+// The day-chip strip: every workout in the program, the scheduled one marked.
+function dayPicker(current, scheduled) {
+  const wrap = el("div.day-picker", { role: "group", "aria-label": "Choose a workout" });
+  PROGRAM.days.forEach((d) => {
+    const active = d.id === current.id;
+    wrap.appendChild(el("button", {
+      class: "day-chip" + (active ? " active" : ""),
+      "aria-pressed": active ? "true" : "false",
+      title: d.name,
+      onclick: () => { pickedDayId = d.id; refreshCurrent(); },
+    }, [
+      el("span.day-chip-id", { text: "Day " + d.id }),
+      el("span.day-chip-name", { text: d.name.replace(/^Day [A-C] — /, "") }),
+      d.id === scheduled.id ? el("span.day-chip-dot", { title: "Today's scheduled day", text: "•" }) : null,
+    ]));
+  });
+  return wrap;
+}
+
+async function startOrResume(day) {
   const draft = store.loadDraft();
+  // A draft for a different day is real work — never blow it away silently.
+  if (draft && draft.dayId !== day.id) {
+    const ok = await confirmDialog(
+      `${draft.dayName} is still in progress. Discard it and start ${day.name}?`,
+      { okText: "Discard & start", cancelText: "Keep it", danger: true });
+    if (!ok) { navigate("session"); return; }
+    store.clearDraft();
+    return startOrResume(day);
+  }
   if (!draft) {
     resetSessionScroll(); // fresh workout starts at the top
     const newDraft = {
@@ -237,7 +279,7 @@ route("session", () => {
     ]),
     el("button.btn.ghost.small", { text: "Discard", onclick: async () => {
       if (await confirmDialog("Discard this in-progress workout? Logged sets will be lost.", { okText: "Discard", danger: true })) {
-        store.clearDraft(); navigate("today");
+        store.clearDraft(); pickedDayId = null; navigate("today");
       }
     }}),
   ]));
@@ -1185,6 +1227,7 @@ async function finishSession(draft, day) {
     notes: draft.notes,
   };
   store.addSession(session);
+  pickedDayId = null; // done — Today goes back to the calendar's suggestion
   toast("Workout saved 💪");
   navigate("history");
 }
@@ -1335,6 +1378,8 @@ route("program", (param) => {
     el("p.muted", { text: day.focus }),
     el("p.muted.small", { text: dayScheduleLabel(day) }),
     day.optional && day.note ? el("p.optional-note", { text: "🎈 " + day.note }) : null,
+    // Any day, any time — you don't have to wait for its slot on the calendar.
+    el("button.btn.primary.full", { text: "Start this workout", onclick: () => startOrResume(day) }),
   ]));
   view.appendChild(collapsible("🔥 Warm-up", day.warmup.map(warmItem), false));
   day.exercises.forEach((e, i) => view.appendChild(programExercise(e, i)));
@@ -1345,7 +1390,7 @@ route("program", (param) => {
 
 function dayScheduleLabel(day) {
   const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return `Scheduled: ${names[day.dow]} · ~60 min`;
+  return `Scheduled: ${names[day.dow]} · ~60 min · start it any day you like`;
 }
 
 function programExercise(e, i) {

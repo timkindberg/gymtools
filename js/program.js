@@ -339,6 +339,12 @@ export function dayForDate(date, sessions) {
   return PROGRAM.days[n % PROGRAM.days.length];
 }
 
+// Look a day template up by its id ("A" / "B" / "C"), for when you pick the
+// workout yourself instead of taking the one the calendar hands you.
+export function dayById(id) {
+  return PROGRAM.days.find((d) => d.id === id) || null;
+}
+
 // ---- Slot helpers -----------------------------------------------------------
 
 // Every slot in the program, flat and de-duplicated by slot id.
