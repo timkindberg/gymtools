@@ -17,7 +17,15 @@ to your home screen.
 
 - **Today** — shows the day's workout, a last-session recap, quick stats
   (weekly consistency, streak), and a one-tap **"Loosen up"** shortcut to the
-  mobility routine.
+  mobility routine. The calendar only picks the *default*: a strip of day chips
+  (the scheduled one marked with a dot) swaps the card to any workout in the
+  program, and every day's page in **Program** has its own **Start this
+  workout** button — so you train what you came to train, whatever day it is.
+- **Where you left off** — reopening the app returns you to the screen you were
+  last on (mid-workout, at your scroll position; or Progress, or a program day)
+  rather than resetting to the home screen. Routes older than 12h go stale, an
+  in-progress workout never does, and Settings / the coach report aren't
+  restored.
 - **Guided sessions** — a quick symptom check-in first (right knee, right-side
   tightness, shoulder, neck/headache, energy, sleep) plus a **"did a migraine
   follow your last workout?"** prompt. If something's flaring, the app warns you

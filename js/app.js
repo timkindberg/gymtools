@@ -3,7 +3,7 @@
 // =============================================================================
 import {
   PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS,
-  dayForDate, alternativeNames, findExercise,
+  dayForDate, dayById, alternativeNames, findExercise,
 } from "./program.js";
 import { getMovement, movementName, loadLabel } from "./movements.js";
 import {
@@ -52,6 +52,37 @@ function restoreSessionScroll() {
 function resetSessionScroll() {
   sessionScroll = 0;
   try { localStorage.removeItem("gymtools.sessionScroll"); } catch (e) { /* ignore */ }
+}
+
+// --- Last-screen memory ------------------------------------------------------
+// Closing the app (or iOS quietly reloading the PWA) shouldn't cost you your
+// place. Every navigation records the route; a cold start with no hash of its
+// own reopens it. Old routes go stale so that coming back days later still
+// starts you on Today, and screens that are one-shot flows aren't restored.
+const LAST_ROUTE_KEY = "gymtools.lastRoute";
+const LAST_ROUTE_MAX_AGE = 12 * 3600 * 1000; // 12h
+const RESTORABLE = new Set(["today", "session", "program", "history", "mobility"]);
+
+function rememberRoute(path, param) {
+  try {
+    // Left off somewhere we don't reopen (settings, the coach report)? Forget
+    // the older screen too, so the next launch starts clean on Today.
+    if (!RESTORABLE.has(path)) localStorage.removeItem(LAST_ROUTE_KEY);
+    else localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify({ path, param: param || "", at: Date.now() }));
+  } catch (e) { /* private mode / quota — the memory is a nicety, not a feature */ }
+}
+
+// The route a cold start should open, or null to take the default (today).
+function lastRoute() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LAST_ROUTE_KEY) || "null"); } catch (e) { return null; }
+  if (!saved || !RESTORABLE.has(saved.path)) return null;
+  // A workout in progress is worth coming back to however long you were gone;
+  // everything else expires.
+  const inProgress = saved.path === "session" && !!store.loadDraft();
+  if (!inProgress && (!saved.at || Date.now() - saved.at > LAST_ROUTE_MAX_AGE)) return null;
+  if (saved.path === "session" && !inProgress) return null; // draft is gone
+  return saved.path + (saved.param ? "/" + saved.param : "");
 }
 
 // --- Cloud sync orchestration (all additive; no-op unless signed in) ---------
@@ -104,11 +135,20 @@ function schedulePush() {
 // ---------------------------------------------------------------------------
 // TODAY
 // ---------------------------------------------------------------------------
+// Which workout the Today card is showing. The calendar picks the default,
+// but you're the one who knows what you feel like training — tap another day
+// and it sticks until the app reloads.
+let pickedDayId = null;
+
 route("today", () => {
   const today = new Date();
   const sessions = store.getSessions();
-  const day = dayForDate(today, sessions);
   const draft = store.loadDraft();
+  const scheduled = dayForDate(today, sessions);
+  // A workout in progress wins the default slot so the big button resumes it.
+  const day = (pickedDayId && dayById(pickedDayId))
+    || (draft && dayById(draft.dayId))
+    || scheduled;
   const lastSession = sessions[0];
 
   const view = el("div.view");
@@ -132,10 +172,14 @@ route("today", () => {
 
   // Today's plan card
   const planCard = el("div.card.today-card");
-  planCard.appendChild(el("div.today-badge", { text: day.optional ? `Day ${day.id} · bonus` : `Day ${day.id}` }));
+  const badge = day.optional ? `Day ${day.id} · bonus` : `Day ${day.id}`;
+  planCard.appendChild(el("div.today-badge", { text: day.id === scheduled.id ? `${badge} · today` : badge }));
   planCard.appendChild(el("h2", { text: day.name.replace(/^Day [A-C] — /, "") }));
   planCard.appendChild(el("p.muted", { text: day.focus }));
   if (day.optional && day.note) planCard.appendChild(el("p.optional-note", { text: "🎈 " + day.note }));
+
+  // Pick any day — the schedule is a suggestion, not a lock.
+  planCard.appendChild(dayPicker(day, scheduled));
   const preview = el("ul.today-list");
   day.exercises.slice(0, 6).forEach((e) =>
     preview.appendChild(el("li", {}, [
@@ -144,8 +188,9 @@ route("today", () => {
     ])));
   if (day.exercises.length > 6) preview.appendChild(el("li.muted", { text: `+ ${day.exercises.length - 6} more…` }));
   planCard.appendChild(preview);
+  const resuming = !!draft && draft.dayId === day.id;
   planCard.appendChild(el("div.today-actions", {}, [
-    el("button.btn.primary.big", { text: draft ? "Resume workout" : "Start workout", onclick: () => startOrResume(day) }),
+    el("button.btn.primary.big", { text: resuming ? "Resume workout" : "Start workout", onclick: () => startOrResume(day) }),
     el("button.btn.ghost", { text: "View full plan", onclick: () => navigate("program/" + day.id) }),
   ]));
   view.appendChild(planCard);
@@ -168,8 +213,36 @@ route("today", () => {
   render(view);
 });
 
-function startOrResume(day) {
+// The day-chip strip: every workout in the program, the scheduled one marked.
+function dayPicker(current, scheduled) {
+  const wrap = el("div.day-picker", { role: "group", "aria-label": "Choose a workout" });
+  PROGRAM.days.forEach((d) => {
+    const active = d.id === current.id;
+    wrap.appendChild(el("button", {
+      class: "day-chip" + (active ? " active" : ""),
+      "aria-pressed": active ? "true" : "false",
+      title: d.name,
+      onclick: () => { pickedDayId = d.id; refreshCurrent(); },
+    }, [
+      el("span.day-chip-id", { text: "Day " + d.id }),
+      el("span.day-chip-name", { text: d.name.replace(/^Day [A-C] — /, "") }),
+      d.id === scheduled.id ? el("span.day-chip-dot", { title: "Today's scheduled day", text: "•" }) : null,
+    ]));
+  });
+  return wrap;
+}
+
+async function startOrResume(day) {
   const draft = store.loadDraft();
+  // A draft for a different day is real work — never blow it away silently.
+  if (draft && draft.dayId !== day.id) {
+    const ok = await confirmDialog(
+      `${draft.dayName} is still in progress. Discard it and start ${day.name}?`,
+      { okText: "Discard & start", cancelText: "Keep it", danger: true });
+    if (!ok) { navigate("session"); return; }
+    store.clearDraft();
+    return startOrResume(day);
+  }
   if (!draft) {
     resetSessionScroll(); // fresh workout starts at the top
     const newDraft = {
@@ -237,7 +310,7 @@ route("session", () => {
     ]),
     el("button.btn.ghost.small", { text: "Discard", onclick: async () => {
       if (await confirmDialog("Discard this in-progress workout? Logged sets will be lost.", { okText: "Discard", danger: true })) {
-        store.clearDraft(); navigate("today");
+        store.clearDraft(); pickedDayId = null; navigate("today");
       }
     }}),
   ]));
@@ -1185,6 +1258,7 @@ async function finishSession(draft, day) {
     notes: draft.notes,
   };
   store.addSession(session);
+  pickedDayId = null; // done — Today goes back to the calendar's suggestion
   toast("Workout saved 💪");
   navigate("history");
 }
@@ -1335,6 +1409,8 @@ route("program", (param) => {
     el("p.muted", { text: day.focus }),
     el("p.muted.small", { text: dayScheduleLabel(day) }),
     day.optional && day.note ? el("p.optional-note", { text: "🎈 " + day.note }) : null,
+    // Any day, any time — you don't have to wait for its slot on the calendar.
+    el("button.btn.primary.full", { text: "Start this workout", onclick: () => startOrResume(day) }),
   ]));
   view.appendChild(collapsible("🔥 Warm-up", day.warmup.map(warmItem), false));
   day.exercises.forEach((e, i) => view.appendChild(programExercise(e, i)));
@@ -1345,7 +1421,7 @@ route("program", (param) => {
 
 function dayScheduleLabel(day) {
   const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return `Scheduled: ${names[day.dow]} · ~60 min`;
+  return `Scheduled: ${names[day.dow]} · ~60 min · start it any day you like`;
 }
 
 function programExercise(e, i) {
@@ -1912,12 +1988,16 @@ function highlightNav(path) {
 
 store.onSave(schedulePush); // push local changes to the cloud when signed in
 buildNav();
-// If a workout is in progress, reopening the app drops you straight back into
-// it (at your scroll position) instead of the home screen.
-if (store.loadDraft() && ["", "#", "#/", "#/today"].includes(location.hash)) {
-  location.hash = "/session";
+// Cold start with no route of its own (home-screen icon, a relaunch): pick up
+// where you left off — the workout you were mid-way through, at your scroll
+// position, or whatever screen you were last reading. A URL that names a
+// screen (a link, a bookmark) always wins over the memory.
+if (["", "#", "#/"].includes(location.hash)) {
+  const back = lastRoute();
+  if (back && back !== "today") location.hash = "/" + back;
 }
-startRouter((path) => {
+startRouter((path, param) => {
+  rememberRoute(path, param);
   highlightNav(path);
   // The rest timer lives outside #app, so make sure it never lingers on a
   // non-workout screen.
