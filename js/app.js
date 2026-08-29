@@ -54,6 +54,37 @@ function resetSessionScroll() {
   try { localStorage.removeItem("gymtools.sessionScroll"); } catch (e) { /* ignore */ }
 }
 
+// --- Last-screen memory ------------------------------------------------------
+// Closing the app (or iOS quietly reloading the PWA) shouldn't cost you your
+// place. Every navigation records the route; a cold start with no hash of its
+// own reopens it. Old routes go stale so that coming back days later still
+// starts you on Today, and screens that are one-shot flows aren't restored.
+const LAST_ROUTE_KEY = "gymtools.lastRoute";
+const LAST_ROUTE_MAX_AGE = 12 * 3600 * 1000; // 12h
+const RESTORABLE = new Set(["today", "session", "program", "history", "mobility"]);
+
+function rememberRoute(path, param) {
+  try {
+    // Left off somewhere we don't reopen (settings, the coach report)? Forget
+    // the older screen too, so the next launch starts clean on Today.
+    if (!RESTORABLE.has(path)) localStorage.removeItem(LAST_ROUTE_KEY);
+    else localStorage.setItem(LAST_ROUTE_KEY, JSON.stringify({ path, param: param || "", at: Date.now() }));
+  } catch (e) { /* private mode / quota — the memory is a nicety, not a feature */ }
+}
+
+// The route a cold start should open, or null to take the default (today).
+function lastRoute() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LAST_ROUTE_KEY) || "null"); } catch (e) { return null; }
+  if (!saved || !RESTORABLE.has(saved.path)) return null;
+  // A workout in progress is worth coming back to however long you were gone;
+  // everything else expires.
+  const inProgress = saved.path === "session" && !!store.loadDraft();
+  if (!inProgress && (!saved.at || Date.now() - saved.at > LAST_ROUTE_MAX_AGE)) return null;
+  if (saved.path === "session" && !inProgress) return null; // draft is gone
+  return saved.path + (saved.param ? "/" + saved.param : "");
+}
+
 // --- Cloud sync orchestration (all additive; no-op unless signed in) ---------
 let cloudUser = null;                 // signed-in Supabase user, or null
 let cloudStatus = "local";            // local | syncing | synced | error
@@ -1957,12 +1988,16 @@ function highlightNav(path) {
 
 store.onSave(schedulePush); // push local changes to the cloud when signed in
 buildNav();
-// If a workout is in progress, reopening the app drops you straight back into
-// it (at your scroll position) instead of the home screen.
-if (store.loadDraft() && ["", "#", "#/", "#/today"].includes(location.hash)) {
-  location.hash = "/session";
+// Cold start with no route of its own (home-screen icon, a relaunch): pick up
+// where you left off — the workout you were mid-way through, at your scroll
+// position, or whatever screen you were last reading. A URL that names a
+// screen (a link, a bookmark) always wins over the memory.
+if (["", "#", "#/"].includes(location.hash)) {
+  const back = lastRoute();
+  if (back && back !== "today") location.hash = "/" + back;
 }
-startRouter((path) => {
+startRouter((path, param) => {
+  rememberRoute(path, param);
   highlightNav(path);
   // The rest timer lives outside #app, so make sure it never lingers on a
   // non-workout screen.
