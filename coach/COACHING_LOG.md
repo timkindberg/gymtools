@@ -5,6 +5,47 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-29 — Day C rewritten: the missing press, and an optional leg slot
+
+Tim asked whether consistency alone would deliver, or whether the program needed
+changing. Volume audit of a guaranteed-Friday week found the real hole: **chest
+was 4 sets/week** (Monday's bench, full stop) while hamstrings/glutes ran ~13
+and back ~10 — and Day C, the "bonus" day, had **no press at all** and four of
+eight slots on lower body, stacked on top of two already leg-heavy days.
+
+He scoped the fix himself: rewrite C only, add the press, make the least
+important leg movement optional. **A and B untouched.** Friday remains a
+possible skip.
+
+- **New slot `c9` — Neutral-Grip DB Incline Press**, 4×8–12 @ RPE 8, start 45
+  (per-hand, from the OTF incline seed). Placed FIRST on the day so it gets
+  fresh effort. Takes chest from 4 → 8 sets on a week he trains Friday, and adds
+  a second weekly pressing exposure at a different angle. Neutral grip + ~30°
+  incline for the right shoulder; 🎲 to barbell incline (he chose it in session
+  1 and may prefer it), machine chest press, or flat neutral DB.
+- **`c2` DB Lateral Lunge → "(optional if time)" and moved LAST.** His heel lift
+  is back in and the right-side symptoms have settled, so frontal-plane adductor
+  work is the least urgent thing on the day; Monday's reverse lunge and
+  Wednesday's single-leg press already carry single-leg strength. Sitting last
+  means a lunch-break Friday drops this, not the press — and he can run it on a
+  weekend when he has more time. Follows the existing `b7` convention (name
+  suffix), so no UI change was needed.
+- Day renamed **"Day C — Bonus: Press, Glutes & Arms"**; note rewritten from
+  pure leftovers ("no guilt") to "still skippable, but it holds your second
+  press of the week." Day order is now c9, c1, c3, c4, c5+c6 (S1), c7, c8, c2.
+- `c4` Single-Leg DB RDL explicitly kept despite the heel-lift improvement — his
+  hamstrings are tight independent of the leg-length issue.
+- **Slot ids are permanent.** Logged entries carry `exerciseId`, and
+  `store.lastPerformanceInSlot()` / overrides read it, so c1–c8 were NOT
+  renumbered to match the new order; the new press is c9, out of sequence, with
+  a comment in the file saying why.
+- v31 → v32 (version.js + sw.js cache). `validateProgram()` clean, 138 tests pass.
+
+Next report to watch: whether Friday actually happens, whether chest starts
+moving now that it has two exposures, right-shoulder response to the added
+pressing volume, and whether right-side tightness stays down with the lateral
+lunge demoted (reinstate it if the trend turns).
+
 ## 2026-08-28 — A ramp you can load
 
 `js/plates.js`, and the first thing in the app that knows a bar is *loaded*
