@@ -11,7 +11,10 @@
 //
 // SCHEDULE
 //   ~50 min, 3x/week at lunch. Mon & Wed are complete anchor sessions; FRIDAY
-//   is a skippable bonus day (Tim's most-skipped). Nothing essential on Friday.
+//   is a skippable bonus day (Tim's most-skipped). Nothing essential on Friday —
+//   but as of 2026-08-29 it carries the week's SECOND chest press, the one thing
+//   a two-day week can't supply. Its own least-urgent item (the lateral lunge)
+//   is marked optional and sits last, so a short Friday drops that, not the press.
 //
 // CONSTRAINTS baked in
 //   - Leg-length discrepancy = THE priority (progressive right-side tightening).
@@ -103,7 +106,7 @@ export const MOBILITY_ROUTINE = {
 
 export const PROGRAM = {
   name: "Tim's Rebuild — MWF Full Body",
-  updated: "2026-08-17",
+  updated: "2026-08-29",
   days: [
     // ---------------------------------------------------------------- MONDAY
     {
@@ -227,13 +230,24 @@ export const PROGRAM = {
     // ---------------------------------------------------------------- FRIDAY
     {
       id: "C",
-      name: "Day C — Bonus: Mobility, Single-Leg & Arms",
+      name: "Day C — Bonus: Press, Glutes & Arms",
       dow: 5,
       optional: true,
-      note: "The skip-friendly day. Mon + Wed already cover the essentials — Friday is where you chip away at the leg-length asymmetry, hit arms, and loosen everything up. Make it when you can; no guilt when you can't.",
-      focus: "Leg-length weak points, glutes, arms, and a long loosen-out",
+      note: "Still the skip-friendly day — Mon + Wed cover the essentials and nothing here is load-bearing. But it's no longer leftovers: it holds your second chest press of the week, which is the one thing two days can't give you. Make it when you can; no guilt when you can't.",
+      focus: "A second press, glutes, unilateral back and hinge, arms, and a long loosen-out",
       warmup: PRIMER,
       exercises: [
+        // Out of id sequence on purpose: c9 is the newest slot (2026-08-29) and
+        // ids are permanent — logged entries carry the slot they filled, so
+        // renumbering c1–c8 to make this read tidily would misattribute history.
+        ex({
+          id: "c9", movement: "db-incline-press-neutral", name: "Neutral-Grip DB Incline Press", target: "Chest / front delts / triceps", start: 45,
+          sets: 4, prescription: repRange(8, 12), rpe: "8", rest: "90s", flags: ["shoulder"],
+          why: "The reason this day is worth making. Monday's bench is your only chest work in a two-day week — 4 sets, and that's the whole dose. This is a second pressing exposure at a different angle, and frequency is what actually grows a press. Neutral grip and an incline keep the shoulder comfortable, and dumbbells are where you're strongest.",
+          cues: ["Bench at ~30°, not steep — this is a chest press, not a shoulder press", "Palms facing each other the whole way", "Elbows tucked ~45°, stretch at the bottom", "Drive up and slightly together, don't clank the bells"],
+          techNote: "First fresh, before the glutes and arms — this slot is the day's priority. You liked the barbell incline in session 1; it's a 🎲 swap away if you'd rather have the bar.",
+          alternatives: ["barbell-incline-press", "machine-chest-press", "db-bench-press-neutral"],
+        }),
         ex({
           id: "c1", movement: "barbell-hip-thrust", name: "Barbell Hip Thrust", target: "Glutes", start: 135,
           sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "90s", flags: ["knee", "posture"], learn: true,
@@ -241,13 +255,6 @@ export const PROGRAM = {
           cues: ["Upper back on the bench, pad the bar", "Chin tucked, ribs down", "Drive through the heels, squeeze at the top", "Don't hyperextend the low back"],
           techNote: "Get the bench height and bar pad set before loading. 🎲 machine or DB hip thrust works too.",
           alternatives: ["machine-hip-thrust", "db-hip-thrust", "glute-bridge"],
-        }),
-        ex({
-          id: "c2", movement: "db-lateral-lunge", name: "DB Lateral Lunge", target: "Adductors / frontal plane", start: 25,
-          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
-          why: "Side-to-side loading trains the inner hip and frontal-plane control that a leg-length difference neglects. Stay in a pain-free depth.",
-          cues: ["Sit into the bending hip, keep the other leg straight", "Only as deep as stays pain-free", "Push back to center through the heel"],
-          alternatives: ["adductor-abductor-machine", "cossack-squat"],
         }),
         ex({
           id: "c3", movement: "db-row-single-arm", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
@@ -259,7 +266,7 @@ export const PROGRAM = {
         ex({
           id: "c4", movement: "single-leg-db-rdl", name: "Single-Leg DB RDL", target: "Unilateral hinge / balance", start: 35,
           sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "60s", flags: ["hamstring", "leglength"],
-          why: "Loaded stretching for the right hamstring and glute plus a big balance and hip-control demand — a direct hit on the asymmetry.",
+          why: "Loaded stretching for the right hamstring and glute plus a big balance and hip-control demand. Your hamstrings are tight whatever the heel lift is doing, so this one stays.",
           cues: ["Hinge on one leg, back leg reaches behind", "Hips stay level (don't let them open)", "Control beats load here"],
           alternatives: ["b-stance-rdl", "back-extension-45"],
         }),
@@ -291,6 +298,13 @@ export const PROGRAM = {
           cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
           techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't.",
           alternatives: ["weighted-dead-hang"],
+        }),
+        ex({
+          id: "c2", movement: "db-lateral-lunge", name: "DB Lateral Lunge (optional if time)", target: "Adductors / frontal plane", start: 25,
+          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
+          why: "Side-to-side loading trains the inner hip and frontal-plane control that a leg-length difference neglects — and with the heel lift back in and the right side behaving (2026-08), it's the least urgent thing on this day. It sits last on purpose: run it on a weekend when you have the time, skip it on a lunch break when you don't. Monday's reverse lunge and Wednesday's single-leg press already cover single-leg strength.",
+          cues: ["Sit into the bending hip, keep the other leg straight", "Only as deep as stays pain-free", "Push back to center through the heel"],
+          alternatives: ["adductor-abductor-machine", "cossack-squat"],
         }),
       ],
       cooldown: [

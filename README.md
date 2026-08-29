@@ -68,8 +68,11 @@ to your home screen.
 ## The program (why it looks the way it does)
 
 Full-body, ~50 min, 3×/week. **Mon and Wed are complete anchor sessions;
-Friday is a skippable bonus day** (leg-length work, single-leg, arms, mobility)
-— so missing Friday, the most-skipped day, costs you nothing essential. It's a
+Friday is a skippable bonus day** (a second chest press, glutes, unilateral
+back/hinge, arms, mobility) — so missing Friday, the most-skipped day, costs you
+nothing essential, though the second press is the thing worth showing up for.
+Its least urgent item (the lateral lunge) is marked *optional if time* and sits
+last, so a rushed Friday drops that rather than the press. It's a
 **rotating hybrid** — machines, dumbbells, and barbells are all tools, none is
 "the program"; the emphasis changes block to block to keep the body adapting and
 the training interesting. Barbell lifts carry a 🎥 *technique focus* flag with

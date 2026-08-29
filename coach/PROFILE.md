@@ -10,7 +10,9 @@
 - Coming from Orange Theory; switching to a regular gym.
 - Trains at **Blue Ash Rec Center**, Ohio. Lunchtime, **~50 min**, 3×/week
   (Mon / Wed / Fri). **Friday is the day he most often skips** — so Mon & Wed
-  must each be complete; Friday is a bonus day.
+  must each be complete; Friday is a bonus day. Confirmed again 2026-08-29:
+  Friday stays a possible skip, so nothing essential may move onto it. He does
+  sometimes make it up on a weekend, when he has more time than a lunch break.
 
 ## Experience & preferences
 - Solid technique with **dumbbells and machines**. Interested in **all of it**,
@@ -82,9 +84,13 @@ takes over. No biceps/triceps DB data given; those were estimated.
   of the right hip, leg, and back. He's "constantly trying to loosen it."
   Feels good after time off. → unilateral emphasis, loaded stretching for the
   right side, anti-lateral-flexion carries, daily "Loosen up" mobility routine,
-  right-side-tightness tracker. **Heel lift: Tim confirmed he will have one
-  (2026-08).** That handles the structural base, so training now builds balance
-  ON TOP of it (unilateral work, carries, mobility) rather than damage-control.
+  right-side-tightness tracker. **Heel lift: in use, and working
+  (confirmed 2026-08-29 — "my leg length problems have not been so bad since I
+  started wearing my heel lift again").** That handles the structural base, so
+  training now builds balance ON TOP of it (unilateral work, carries, mobility)
+  rather than damage-control. Frontal-plane/adductor work has been de-prioritized
+  accordingly (Day C lateral lunge is now optional); if the tightness trend turns
+  back up in the coach report, that's the first thing to reinstate.
 - **Right knee (meniscus).** Only really hurts at **deep loaded flexion**;
   otherwise robust, rarely flares (occasionally with running). Stable lately.
   → cap squat/press depth (box squats, limited-ROM leg press), build quad +
