@@ -27,8 +27,7 @@ to your home screen.
   in-progress workout never does, and Settings / the coach report aren't
   restored.
 - **Guided sessions** — a quick symptom check-in first (right knee, right-side
-  tightness, shoulder, neck/headache, energy, sleep) plus a **"did a migraine
-  follow your last workout?"** prompt. If something's flaring, the app warns you
+  tightness, shoulder, neck/headache, energy, sleep). If something's flaring, the app warns you
   and points to the safer swaps. Then it's **one lift at a time**: the session is
   a focus stack, so everything but the exercise you're on collapses to a line
   (name, what it asks for, a dot per set), with a progress bar and a **Next lift**
@@ -61,6 +60,11 @@ to your home screen.
   **symptom trend lines**, a **migraine-threshold** insight (compares training
   load on days that triggered a migraine vs. days that didn't), cardio/HR
   charts, and your full session log.
+- **Migraine flagging** — no one asks you at the start of your next workout.
+  When one shows up, open the session that caused it (Today's "Last session"
+  recap, or any card in History) and tap **🤕 I got a migraine from this one**;
+  tap again to undo. A session still unflagged a day later counts as
+  migraine-free on its own, so the threshold insight fills in without prompts.
 - **Settings** — units (lb/kg), bodyweight tracking, rest-timer prefs,
   **coach adjustments** (paste back what your review decided), and
   **export/import** your data as JSON (your backup — do this regularly!).
@@ -86,7 +90,7 @@ hard intensity (top sets RPE 8–9). Designed around the constraints from the in
 | Tight hamstrings | Hip-hinge patterning, hips-square cueing, mobility work |
 | Right shoulder wear | Cuff + face pulls in volume; overhead pressing is fine (warm the cuff, autoregulate) — the move to avoid is the **upright row** (and behind-the-neck) |
 | Right knee (meniscus, hurts only at deep loaded flexion) | Depth-capped box squats & limited-ROM single-leg work, quad focus, strong posterior chain, no deep loaded flexion or twisting |
-| Migraines (triggered by very taxing sessions or alcohol) | **Not** programmed around — trained normally; the app just logs whether a session triggered one, as data |
+| Migraines (triggered by very taxing sessions or alcohol) | **Not** programmed around — trained normally; you flag the session that caused one after the fact, as data |
 
 > ⚠️ **Not medical advice.** This app was built around the injuries you
 > described but can't examine you. Sharp, pinching, or radiating pain means

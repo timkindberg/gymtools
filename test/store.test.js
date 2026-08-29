@@ -482,3 +482,43 @@ test("an unrecognisable entry name still lands on the slot's movement", () => {
   const entry = store.getSessions().find((s) => s.id === "s1").entries.find((e) => e.exerciseId === "b2");
   assert.equal(entry.movementId, "lat-pulldown");
 });
+
+// ---- migraines are flagged after the fact, never asked about ----------------
+
+test("a session you flag counts as a migraine; a settled one you didn't counts as clean", () => {
+  fresh();
+  const day = 24 * 3600 * 1000;
+  const old = { id: "sx", date: new Date(Date.now() - 3 * day).toISOString(), entries: [] };
+  const fresh24 = { id: "sy", date: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), entries: [] };
+  assert.equal(store.migraineState(old), false);          // silence past the window = no migraine
+  assert.equal(store.migraineState(fresh24), null);       // still inside the ~5h onset window
+  assert.equal(store.migraineState({ ...old, causedMigraine: true }), true);
+  assert.equal(store.migraineState({ ...fresh24, causedMigraine: true }), true);
+});
+
+test("flagging a migraine from a past session's card sticks", () => {
+  fresh();
+  store.setMigraine("s2", true);
+  assert.equal(store.getSessions().find((s) => s.id === "s2").causedMigraine, true);
+  store.setMigraine("s2", false);
+  assert.equal(store.migraineState(store.getSessions().find((s) => s.id === "s2")), false);
+});
+
+test("the threshold insight compares flagged sessions against the settled rest", () => {
+  fresh();
+  assert.equal(store.migraineInsight().enough, false);    // nothing flagged yet
+  store.setMigraine("s1", true);
+  const mig = store.migraineInsight();
+  assert.equal(mig.enough, true);                         // s2/s3 settled unflagged = the "no" side
+  assert.equal(mig.migraineCount, 1);
+  assert.equal(mig.ratedCount, 3);
+  assert.ok(mig.avgVolMigraine > 0 && mig.avgVolOk > 0);
+});
+
+test("a session logged today isn't counted as migraine-free before the window is up", () => {
+  const data = fixture();
+  data.sessions[0].date = new Date().toISOString();
+  delete data.sessions[0].causedMigraine;
+  store.importData(data);
+  assert.equal(store.migraineInsight().ratedCount, 2);
+});
