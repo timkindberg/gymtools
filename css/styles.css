@@ -232,6 +232,8 @@ textarea.input { resize: vertical; }
   padding-left: 10px; border-left: 3px solid var(--good);
 }
 .rx-seed { font-size: 13px; color: var(--accent2); font-style: italic; margin-bottom: 8px; }
+/* History the engine can't read is a problem to fix, not an estimate to act on. */
+.rx-seed.unreadable { color: var(--warn); font-style: normal; font-weight: 600; }
 
 /* The engine's verdict at a glance; the reasoning is one tap away. */
 .why-line {

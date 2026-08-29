@@ -270,3 +270,67 @@ test("guarded and deloaded lifts are told to hold, with nothing dangled", () => 
   );
   assert.equal(progressionTerms(null, opts), null);
 });
+
+// ---- History the engine can't read ------------------------------------------
+// Reported from the gym: the Barbell Hip Thrust card said "First time on this
+// one" while its Last chip showed Friday's session.
+
+const oneSession = (sets) => {
+  fresh();
+  const d = store.load();
+  d.sessions = [{
+    id: "x", date: "2026-08-21T18:00:00.000Z", dayId: "c",
+    entries: [{ exerciseId: "c1", movementId: "barbell-hip-thrust", measure: "reps", sets }],
+  }];
+  store.save();
+  return store;
+};
+
+test("a flagged top set doesn't leave every set under it looking like a ramp", () => {
+  // 150, 155, and a mistyped 1550. Roles were inferred with the 1550 as the top
+  // set, so the two real sets classify as ramps; dropping the typo used to
+  // leave zero working sets, which the engine read as no history at all.
+  oneSession([
+    { weight: 150, amount: 10, role: "ramp" },
+    { weight: 155, amount: 10, role: "ramp" },
+    { weight: 1550, amount: 10, role: "work", suspect: "load" },
+  ]);
+  const sugg = store.suggestion("barbell-hip-thrust", repRange(8, 12));
+  assert.ok(sugg, "the session is still readable without the typo");
+  assert.equal(sugg.weight, 155);            // the real top set
+  assert.match(sugg.basis, /Counted 1 working set/);
+  assert.equal(store.unreadableHistory("barbell-hip-thrust"), null);
+});
+
+test("re-inferred roles are never written back to the stored session", () => {
+  const s = oneSession([
+    { weight: 150, amount: 10, role: "ramp" },
+    { weight: 155, amount: 10, role: "ramp" },
+    { weight: 1550, amount: 10, role: "work", suspect: "load" },
+  ]);
+  store.suggestion("barbell-hip-thrust", repRange(8, 12));
+  const stored = s.getSessions()[0].entries[0].sets;
+  assert.deepEqual(stored.map((x) => x.role), ["ramp", "ramp", "work"]);
+  assert.equal(stored[2].suspect, "load");   // still flagged for review
+});
+
+test("history with nothing readable in it is reported as such, not as a first session", () => {
+  // Every set flagged: there is genuinely nothing to progress from, but the
+  // athlete did perform the lift and the card must not claim otherwise.
+  oneSession([
+    { weight: 150, amount: 10, role: "work", suspect: "load" },
+    { weight: 155, amount: 10, role: "work", suspect: "load" },
+  ]);
+  assert.equal(store.suggestion("barbell-hip-thrust", repRange(8, 12)), null);
+  const un = store.unreadableHistory("barbell-hip-thrust");
+  assert.ok(un, "the card is told this is not a first-timer");
+  assert.equal(un.flagged, 2);
+  assert.equal(un.load, 155);                 // something to pick up from
+  assert.match(un.text, /150×10/);
+});
+
+test("a movement never performed still reads as a first session", () => {
+  fresh();
+  assert.equal(store.unreadableHistory("nordic-curl"), null);
+  assert.equal(store.suggestion("nordic-curl", repRange(5, 8)), null);
+});

@@ -331,7 +331,10 @@ function symptomCheck(draft) {
   if (prev) {
     const setMig = (v) => { store.updateSession(prev.id, { causedMigraine: v }); navigate("session"); };
     card.appendChild(el("div.migraine-q", {}, [
-      el("p.field-label", { text: `Did a migraine follow your last workout? (${prev.dayName.replace(/^Day [A-C] — /, "")}, ${fmtDate(prev.date)})` }),
+      // A session from an old backup or a cloud merge can arrive without a day
+      // name. Losing the label is fine; taking the check-in screen down with it
+      // — and with it the ability to start a workout at all — is not.
+      el("p.field-label", { text: `Did a migraine follow your last workout? (${sessionDayName(prev)}${fmtDate(prev.date)})` }),
       el("div.seg", {}, [
         el("button", { class: "seg-btn" + (prev.causedMigraine === false ? " active" : ""), text: "No", onclick: () => setMig(false) }),
         el("button", { class: "seg-btn" + (prev.causedMigraine === true ? " active" : ""), text: "Yes 🤕", onclick: () => setMig(true) }),
@@ -436,6 +439,13 @@ function blankEntry(exDef) {
 // ---------------------------------------------------------------------------
 
 // Exercises, grouped so a ⇄ superset pair opens together.
+// "Bonus: Mobility, Single-Leg & Arms, " — trimmed of its "Day C — " prefix,
+// and empty rather than fatal when the session never recorded one.
+function sessionDayName(session) {
+  const name = session && session.dayName;
+  return name ? String(name).replace(/^Day [A-C] — /, "") + ", " : "";
+}
+
 function exerciseGroups(exercises) {
   const groups = [];
   const bySs = {};
@@ -650,9 +660,14 @@ function exerciseCard(exDef, draft, idx, session = {}) {
   // A movement with no history of its own can still be seeded from a related
   // one (#12). Never mixed into `sugg`: a seed is a guess, not a data point.
   const seed = sugg ? null : store.seedFor(movementId, prescription);
+  // Performed before, but nothing in it the engine can read as a working set.
+  // That is not a first session, and saying it is sends you hunting for a bug
+  // in the wrong place.
+  const unreadable = sugg ? null : store.unreadableHistory(movementId);
   const startWeight = sugg && sugg.weight != null
     ? sugg.weight
     : seed ? seed.weight
+    : unreadable && unreadable.load ? unreadable.load
     : (!entry.variant && exDef.start != null ? exDef.start : null);
   const startAmount = sugg && sugg.amount != null ? sugg.amount : target;
 
@@ -751,7 +766,14 @@ function exerciseCard(exDef, draft, idx, session = {}) {
     const amountHint = measure === "reps" ? `${target} reps` : `${target}${info.unit}`;
     card.appendChild(seed
       ? el("p.rx-seed", { text: "≈ " + seed.note })
-      : el("p.rx-seed", { text: `First time on ${entry.variant ? displayName : "this one"} — pick a weight where ${amountHint} is genuinely hard, with a rep or two left. I'll suggest the load from next session.` }));
+      : unreadable
+        ? el("p.rx-seed.unreadable", { text:
+            `You did this ${relDay(unreadable.date)} (${unreadable.text}), but nothing in that session counts as a working set, ` +
+            `so there's nothing to progress from. ` +
+            (unreadable.flagged
+              ? `${unreadable.flagged} set${unreadable.flagged === 1 ? " is" : "s are"} flagged as a possible typo — fix or confirm ${unreadable.flagged === 1 ? "it" : "them"} in History.`
+              : `Tap a set's role badge to mark one as work.`) })
+        : el("p.rx-seed", { text: `First time on ${entry.variant ? displayName : "this one"} — pick a weight where ${amountHint} is genuinely hard, with a rep or two left. I'll suggest the load from next session.` }));
   }
 
   // ---- CONSULT. One strip, one drawer at a time.
