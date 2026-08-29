@@ -64,6 +64,10 @@ const LIST = [
   m("b-stance-rdl", "B-Stance RDL", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge", unilateral: true }),
   m("back-extension-45", "45° Back Extension", { implement: "bodyweight", loadMode: "none", pattern: "hinge" }),
   m("cable-pull-through", "Cable Pull-Through", { implement: "cable", pattern: "hinge" }),
+  // Added 2026-08-29: he pulled these mid-session with nowhere to log them.
+  // The trap bar is listed first on purpose — see the b1 alternatives.
+  m("trap-bar-deadlift", "Trap-Bar Deadlift", { implement: "barbell", pattern: "hinge" }),
+  m("barbell-deadlift", "Barbell Deadlift", { implement: "barbell", pattern: "hinge" }),
 
   // ---- Hip extension -------------------------------------------------------
   m("barbell-hip-thrust", "Barbell Hip Thrust", { implement: "barbell", pattern: "hip-extension" }),
@@ -212,6 +216,8 @@ const LINKS = [
   ["barbell-overhead-press", "db-shoulder-press-seated", 1.7, "seated dumbbells press less than the standing bar"],
   // Hinge: grip, not the hamstrings, caps a dumbbell RDL.
   ["barbell-rdl", "db-rdl", 2.0, "the bar isn't grip-limited the way two dumbbells are"],
+  ["barbell-deadlift", "barbell-rdl", 1.25, "off the floor you get the legs; an RDL is hamstrings only"],
+  ["barbell-deadlift", "trap-bar-deadlift", 0.95, "the trap bar sits you more upright, so it usually pulls a touch heavier"],
   ["db-rdl", "single-leg-db-rdl", 1.6, "one leg at a time is a balance lift before it's a load lift"],
   // Squat pattern: the safety bar sits a touch below the straight bar.
   ["barbell-box-squat", "safety-bar-box-squat", 1.1, "the yoke shifts the load forward"],

@@ -178,7 +178,7 @@ export const PROGRAM = {
           why: "The big posterior-chain builder and a fantastic hinge to learn. Keeping the hips level here is direct anti-tightening work for your right side.",
           cues: ["Soft knees, push the hips back", "Bar drags close to the legs", "Hips stay square — don't hike the right", "Flat back; stop when hamstrings tension, before the back rounds"],
           techNote: "Start moderate and own the hinge before chasing load — this is where form matters most. 🎲 DB RDL is a fine substitute.",
-          alternatives: ["db-rdl", "back-extension-45", "cable-pull-through"],
+          alternatives: ["trap-bar-deadlift", "barbell-deadlift", "db-rdl", "back-extension-45", "cable-pull-through"],
         }),
         ex({
           id: "b2", movement: "lat-pulldown", name: "Pull-up / Lat Pulldown", target: "Lats / upper back", start: 120,

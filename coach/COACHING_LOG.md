@@ -5,6 +5,32 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-08-29 — Deadlifts have a home now
+
+Mid-session, Tim asked if he could deadlift — he'd started Day B by accident and
+wanted to pull. Answer was yes (nothing in his constraint set rules it out; the
+setup isn't deep loaded flexion), but the registry had no deadlift, so the only
+way to log it was to pollute the `barbell-rdl` slot's history — the same
+cross-implement quirk that bit the b3 slot in session 1.
+
+- Added `trap-bar-deadlift` and `barbell-deadlift` to the registry (hinge →
+  posterior-chain), and both to the **b1 RDL slot's 🎲 alternatives**, trap bar
+  FIRST. At 6'3" with tight hamstrings, the trap bar is the better default: more
+  upright torso, less lumbar shear, and far easier to keep the hips square,
+  which matters more than usual for him.
+- Seed links: deadlift ≈ 1.25 × his RDL, trap bar ≈ 1.05 × straight bar. So a
+  first-time pull gets a suggested load off his logged RDL instead of nothing.
+- Guidance given: deadlift INSTEAD of the RDL on Day B, never both — 8 heavy
+  hinge sets in one session is a hole he'd spend the week climbing out of.
+- Flagged as data, not a veto (per his standing instruction): heavy pulls are
+  the most systemically taxing thing he can do, and his migraines follow very
+  taxing sessions by ~5 h. Log the migraine prompt honestly and the app's
+  threshold insight will eventually have something to say about it.
+- v32 → v33.
+
+If deadlifts stick, the question for the next block is whether they replace the
+RDL as Day B's hinge or rotate with it. Waiting on data.
+
 ## 2026-08-29 — Day C rewritten: the missing press, and an optional leg slot
 
 Tim asked whether consistency alone would deliver, or whether the program needed
