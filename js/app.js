@@ -22,7 +22,7 @@ import * as store from "./store.js";
 import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
 import {
-  el, clear, fmtDate, fmtDateTime, relDay, lineChart, severityBar,
+  el, clear, fmtDate, fmtDateTime, relDay, lineChart, sparkline, barChart, severityBar,
   route, startRouter, navigate, toast, confirmDialog, promptDialog, currentRoute, keepScroll,
 } from "./ui.js";
 
@@ -821,7 +821,7 @@ function exerciseCard(exDef, draft, idx, session = {}) {
             `You did this ${relDay(unreadable.date)} (${unreadable.text}), but nothing in that session counts as a working set, ` +
             `so there's nothing to progress from. ` +
             (unreadable.flagged
-              ? `${unreadable.flagged} set${unreadable.flagged === 1 ? " is" : "s are"} flagged as a possible typo — fix or confirm ${unreadable.flagged === 1 ? "it" : "them"} in History.`
+              ? `${unreadable.flagged} set${unreadable.flagged === 1 ? " is" : "s are"} flagged as a possible typo — fix or confirm ${unreadable.flagged === 1 ? "it" : "them"} on the Progress tab.`
               : `Tap a set's role badge to mark one as work.`) })
         : el("p.rx-seed", { text: `First time on ${entry.variant ? displayName : "this one"} — pick a weight where ${amountHint} is genuinely hard, with a rep or two left. I'll suggest the load from next session.` }));
   }
@@ -1432,12 +1432,41 @@ function programExercise(e, i) {
 }
 
 // ---------------------------------------------------------------------------
-// HISTORY
+// PROGRESS  (history + trends)
 // ---------------------------------------------------------------------------
+// The old screen was one long scroll: a single chart behind a dropdown, then
+// symptoms, then every session ever. You could see one lift at a time and
+// nothing about training as a whole. This is four tabs over the same data, led
+// by the one number that answers "am I getting stronger" without picking a lift.
+
+const PROGRESS_TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "lifts", label: "Lifts" },
+  { id: "body", label: "Body" },
+  { id: "log", label: "Log" },
+];
+const TAB_KEY = "gymtools.progressTab";
+let progressTab = (() => {
+  try { return localStorage.getItem(TAB_KEY) || "overview"; } catch { return "overview"; }
+})();
+// Set by the route so anything on screen can switch tab without a full re-render.
+let showProgressTab = (id) => { progressTab = id; };
+
+const patternLabel = (p) => String(p || "other").replace(/-/g, " ").replace(/^./, (c) => c.toUpperCase());
+const num = (n) => Math.round(n).toLocaleString();
+
+// A signed percentage, coloured, with the arrow doing the talking.
+function deltaPill(pct, { flat = "no change" } = {}) {
+  const v = Math.round(pct * 10) / 10;
+  const cls = v > 0 ? "up" : v < 0 ? "down" : "flat";
+  const text = v === 0 ? flat : `${v > 0 ? "▲" : "▼"} ${Math.abs(v)}%`;
+  return el("span.delta." + cls, { text });
+}
+
 route("history", () => {
   const sessions = store.getSessions();
   const view = el("div.view");
-  view.appendChild(el("header.subhead", {}, [el("h1.subhead-title", { text: "History & progress" })]));
+  view.appendChild(el("header.subhead", {}, [el("h1.subhead-title", { text: "Progress" })]));
 
   if (!sessions.length) {
     view.appendChild(el("div.card.empty", {}, [
@@ -1447,121 +1476,353 @@ route("history", () => {
     render(view); return;
   }
 
-  // Anything logged that can't be right gets surfaced here for correction,
-  // rather than quietly skewing the charts (#4).
+  // Anything logged that can't be right gets surfaced above the tabs for
+  // correction, rather than quietly skewing the charts (#4).
   const flagged = store.suspectSets();
   if (flagged.length) view.appendChild(dataCheckCard(flagged));
 
-  // Progress explorer — one series per MOVEMENT, so the same lift performed in
-  // two different slots shares a single chart (#2).
-  view.appendChild(sectionTitle("Exercise progress"));
-  const withData = store.loggedMovementIds().filter((id) => store.movementHistory(id).some((h) => h.sets > 0));
-  const progressCard = el("div.card");
-  if (withData.length) {
-    const select = el("select.input", {}, withData.map((id) => el("option", { value: id, text: movementName(id, id) })));
-    const chartHost = el("div.chart-host");
-    const renderChart = () => {
-      clear(chartHost);
-      const hist = store.movementHistory(select.value).filter((h) => h.sets > 0);
-      const mv = getMovement(select.value);
-      const info = measureInfo(hist.length ? hist[0].measure : "reps");
-      // Epley only means something for loaded rep work below the rep ceiling.
-      // Carries, planks and assisted work chart what they actually measure.
-      const series = hist.some((h) => h.e1rm != null)
-        ? { key: "e1rm", label: "Estimated 1-rep-max over time (working sets)", unit: units() }
-        : hist[0] && hist[0].measure !== "reps"
-          ? { key: "bestAmount", label: `Best working set over time (${info.label.toLowerCase()})`, unit: info.unit }
-          : { key: "volume", label: "Working-set volume over time", unit: units() };
-      // A session can be missing the chosen series (all-high-rep work has no
-      // e1RM) — those are gaps in the line, not zeroes.
-      const points = hist.filter((h) => h[series.key] != null).map((h) => ({ date: h.date, value: h[series.key] }));
-      chartHost.appendChild(el("p.muted.small", { text: series.label }));
-      chartHost.appendChild(lineChart(points, { color: "var(--accent)" }));
-      const latest = hist.filter((h) => h[series.key] != null).at(-1), first = hist.filter((h) => h[series.key] != null)[0];
-      if (latest && first) {
-        const delta = latest[series.key] - first[series.key];
-        const top = latest.topWeight ? `top working set ${latest.topWeight}${units()} · ` : "";
-        chartHost.appendChild(el("p.muted.small", {
-          text: `${points.length} data point${points.length === 1 ? "" : "s"} · ${top}${Math.round(latest[series.key])}${series.unit} ${delta >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(delta))} since start`,
-        }));
-      }
-      if (mv && mv.measure !== "reps") {
-        chartHost.appendChild(el("p.muted.tiny", { text: `Measured in ${info.label.toLowerCase()} — no estimated 1RM for this one.` }));
-      }
-      // A dip the app asked for reads as a dip like any other on a line chart.
-      // Name the deloads so a planned reset isn't mistaken for losing ground (#8).
-      const deloads = hist.filter((h) => h.deload);
-      if (deloads.length) {
-        chartHost.appendChild(el("p.muted.tiny", {
-          text: `↓ Deload${deloads.length === 1 ? "" : "s"} on ${deloads.map((h) => fmtDate(h.date)).join(", ")} — a planned step back, not a regression.`,
-        }));
-      }
-      // Where the engine currently thinks this lift stands (#8).
-      const stall = store.movementStall(select.value);
-      if (stall.stalled) {
-        chartHost.appendChild(el("p.warn-text.small", {
-          text: stall.deloadDue
-            ? `⚠️ Stalled ${stall.consecutive} sessions — the next suggestion drops the load ~10% and rebuilds.`
-            : "⚠️ No gain last session in reps or load. One more and the app will deload it.",
-        }));
-      }
-    };
-    select.addEventListener("change", renderChart);
-    progressCard.appendChild(select);
-    progressCard.appendChild(chartHost);
-    renderChart();
-  } else {
-    progressCard.appendChild(el("p.muted", { text: "Log a couple sessions and your strength charts will appear here." }));
-  }
-  view.appendChild(progressCard);
+  const body = el("div.tab-body");
+  const tabs = el("div.seg.seg-full", {}, PROGRESS_TABS.map((t) => el("button", {
+    class: "seg-btn" + (t.id === progressTab ? " active" : ""),
+    text: t.label,
+    onclick: () => showProgressTab(t.id),
+  })));
+  const draw = () => {
+    clear(body);
+    ({ overview: overviewTab, lifts: liftsTab, body: bodyTab, log: logTab }[progressTab] || overviewTab)(body, sessions);
+  };
+  showProgressTab = (id) => {
+    progressTab = id;
+    try { localStorage.setItem(TAB_KEY, id); } catch (e) { /* ignore */ }
+    tabs.querySelectorAll(".seg-btn").forEach((b, i) => b.classList.toggle("active", PROGRESS_TABS[i].id === id));
+    draw();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  view.appendChild(tabs);
+  view.appendChild(body);
+  draw();
+  render(view);
+});
 
-  // Symptom trends
-  view.appendChild(sectionTitle("Symptom trends"));
-  const symCard = el("div.card");
+// ---- Overview ---------------------------------------------------------------
+function overviewTab(host, sessions) {
+  host.appendChild(strengthCard());
+
+  const sum = store.trainingSummary();
+  const prs = store.personalRecords({ limit: 30 });
+  const prs30 = prs.filter((p) => Date.now() - Date.parse(p.date) <= 30 * 86400000);
+  const volDelta = sum.volumePrev28 ? Math.round(((sum.volume28 / sum.volumePrev28) - 1) * 100) : null;
+  host.appendChild(el("div.stat-grid", {}, [
+    statTile(String(sum.last28), "sessions · 4 wks"),
+    statTile(sum.streakWeeks ? `${sum.streakWeeks}w` : "—", "training streak"),
+    statTile(num(sum.volume28), `${units()} lifted · 4 wks`),
+    statTile(String(prs30.length), "PRs · 30 days"),
+  ]));
+
+  // Consistency. Volume per week with the skipped weeks left in.
+  const weeks = store.weeklyTraining(8);
+  if (weeks.length > 1) {
+    const card = el("div.card", {}, [
+      el("h3", { text: "Consistency" }),
+      el("p.muted.small", { text: `Weekly volume · ${weeks.filter((w) => w.sessions).length} of the last ${weeks.length} weeks trained` }),
+    ]);
+    card.appendChild(barChart(weeks.map((w) => ({
+      value: w.volume,
+      label: new Date(w.weekStart).toLocaleDateString(undefined, { month: "numeric", day: "numeric" }),
+      muted: w.deload,
+    })), { color: "var(--accent2)" }));
+    if (volDelta != null) {
+      card.appendChild(el("p.muted.small", {
+        text: `${num(sum.volume28)} ${units()} in the last 4 weeks — ${volDelta >= 0 ? "up" : "down"} ${Math.abs(volDelta)}% on the 4 before.`,
+      }));
+    }
+    host.appendChild(card);
+  }
+
+  // What's moving and what isn't — the two lists worth acting on.
+  const trends = store.movementTrends();
+  const movers = trends.filter((t) => t.sessions >= 2 && t.deltaPct > 0).sort((a, b) => b.deltaPct - a.deltaPct).slice(0, 3);
+  const stuck = trends.filter((t) => t.stalled);
+  if (movers.length || stuck.length) {
+    const card = el("div.card", {}, [el("h3", { text: "Moving / stuck" })]);
+    movers.forEach((t) => card.appendChild(el("div.mini-row", {}, [
+      el("span", { text: t.name }),
+      deltaPill(t.deltaPct),
+    ])));
+    stuck.forEach((t) => card.appendChild(el("div.mini-row.warn-row", {}, [
+      el("span", { text: `⚠︎ ${t.name}` }),
+      el("span.muted.small", { text: t.deloadDue ? `stalled ${t.consecutive} — deload next` : "no gain last time" }),
+    ])));
+    if (!movers.length) card.appendChild(el("p.muted.small", { text: "Nothing with two sessions of the same lift yet." }));
+    host.appendChild(card);
+  }
+
+  // Recent PRs.
+  const card = el("div.card", {}, [el("h3", { text: "Recent records" })]);
+  if (prs.length) {
+    prs.slice(0, 5).forEach((p) => card.appendChild(el("div.mini-row", {}, [
+      el("span", {}, [el("strong", { text: p.name }), el("span.muted.small", { text: " · " + relDay(p.date) })]),
+      el("span.pr-value", { text: prValue(p) }),
+    ])));
+  } else {
+    card.appendChild(el("p.muted", { text: "Beat a previous best on any lift and it lands here." }));
+  }
+  host.appendChild(card);
+
+  // Balance across movement patterns — six charts' worth of "is my push
+  // keeping up with my pull" in one block.
+  const patterns = store.strengthByPattern().filter((p) => p.deltaPct !== 0 || p.lifts > 1);
+  if (patterns.length > 1) {
+    const pc = el("div.card", {}, [
+      el("h3", { text: "Balance by pattern" }),
+      el("p.muted.small", { text: "Average change since each lift's first session." }),
+    ]);
+    const span = Math.max(5, ...patterns.map((p) => Math.abs(p.deltaPct)));
+    patterns.forEach((p) => {
+      pc.appendChild(el("div.bar-row", {}, [
+        el("span.bar-label", { text: patternLabel(p.pattern) }),
+        el("span.bar-track", {}, [el("span", {
+          class: "bar-fill" + (p.deltaPct < 0 ? " down" : ""),
+          style: `width:${Math.max(2, (Math.abs(p.deltaPct) / span) * 100)}%`,
+        })]),
+        el("span.bar-value", { text: `${p.deltaPct > 0 ? "+" : ""}${p.deltaPct}%` }),
+      ]));
+    });
+    host.appendChild(pc);
+  }
+
+  // The most recent session, so the tab still answers "what did I just do".
+  host.appendChild(sectionTitle("Last session"));
+  host.appendChild(sessionSummaryCard(sessions[0], false));
+  host.appendChild(el("button.btn.ghost.wide", { text: "See all sessions", onclick: () => showProgressTab("log") }));
+}
+
+function prValue(p) {
+  const info = measureInfo(p.measure);
+  if (p.kind === "e1rm") return `${p.value}${units()} est. 1RM`;
+  if (p.kind === "amount") return `${p.value}${info.unit || " " + info.short}`;
+  return `${p.value}${units()}`;
+}
+
+// The headline: one index across every lift with an estimated 1RM.
+function strengthCard() {
+  const idx = store.strengthIndex();
+  const card = el("div.card.strength-card", {}, [el("h3", { text: "Overall strength" })]);
+  if (!idx.enough) {
+    card.appendChild(el("p.muted", {
+      text: idx.tracked
+        ? "One more session on a lift you've already done and this starts moving."
+        : "Log a few loaded sets and an overall strength trend appears here.",
+    }));
+    return card;
+  }
+  card.appendChild(el("div.strength-head", {}, [
+    el("span.strength-value", { text: `${idx.deltaPct > 0 ? "+" : ""}${idx.deltaPct}%` }),
+    el("div", {}, [
+      el("p.muted.small", { text: `since ${fmtDate(idx.since, { month: "short", day: "numeric" })}` }),
+      el("p.muted.small", { text: `${idx.tracked} lift${idx.tracked === 1 ? "" : "s"} in the index` }),
+    ]),
+  ]));
+  card.appendChild(lineChart(idx.points, { color: "var(--accent)", fill: true, ends: true, height: 130 }));
+  card.appendChild(el("p.small", { text: `${num(idx.total)} ${units()} of estimated 1RM across those lifts` }));
+  card.appendChild(el("p.muted.tiny", {
+    text: "Every lift with an honest 1RM estimate, each measured against its own history and averaged — " +
+      "so it moves when you get stronger, not when the week's exercises change. Lifts you haven't trained in two months drop out.",
+  }));
+  const best = idx.lifts.filter((l) => l.active && l.sessions > 1);
+  if (best.length) {
+    const top = best[0], worst = best[best.length - 1];
+    card.appendChild(el("p.muted.small", {
+      text: best.length > 1
+        ? `Best: ${top.name} ${top.deltaPct > 0 ? "+" : ""}${top.deltaPct}% · Worst: ${worst.name} ${worst.deltaPct > 0 ? "+" : ""}${worst.deltaPct}%`
+        : `${top.name} ${top.deltaPct > 0 ? "+" : ""}${top.deltaPct}%`,
+    }));
+  }
+  return card;
+}
+
+// ---- Lifts ------------------------------------------------------------------
+// Every lift at once, ranked, each with its own shape — instead of one chart
+// hidden behind a <select> you had to page through to find the stalled one.
+function liftsTab(host) {
+  const trends = store.movementTrends();
+  if (!trends.length) {
+    host.appendChild(el("div.card", {}, [el("p.muted", { text: "Log a couple sessions and your lifts appear here." })]));
+    return;
+  }
+  const sorts = [
+    { id: "recent", label: "Recent", fn: (a, b) => (a.lastDate < b.lastDate ? 1 : -1) },
+    { id: "gain", label: "Biggest gain", fn: (a, b) => b.deltaPct - a.deltaPct },
+    { id: "stuck", label: "Stuck first", fn: (a, b) => (b.stalled - a.stalled) || (a.lastDate < b.lastDate ? 1 : -1) },
+  ];
+  let sortId = "recent";
+  const list = el("div.lift-list");
+  const bar = el("div.seg.seg-full.seg-sub", {}, sorts.map((s) => el("button", {
+    class: "seg-btn" + (s.id === sortId ? " active" : ""), text: s.label,
+    onclick: () => {
+      sortId = s.id;
+      bar.querySelectorAll(".seg-btn").forEach((b, i) => b.classList.toggle("active", sorts[i].id === s.id));
+      fill();
+    },
+  })));
+  const fill = () => {
+    clear(list);
+    trends.slice().sort(sorts.find((s) => s.id === sortId).fn).forEach((t) => list.appendChild(liftRow(t)));
+  };
+  host.appendChild(bar);
+  host.appendChild(list);
+  fill();
+}
+
+// The number on a row has to say what it is: 200 lb of estimated 1RM and 200 lb
+// of session volume are not the same claim.
+function liftValue(t, value) {
+  const info = measureInfo(t.measure);
+  if (t.key === "e1rm") return `${Math.round(value)}${units()} 1RM`;
+  if (t.key === "bestAmount") return `${value}${info.unit || " " + info.short}`;
+  return `${num(value)} ${units()} vol`;
+}
+
+function liftRow(t) {
+  const row = el("details.card.lift-row");
+  const badge = t.deloadDue ? el("span.pill.warn", { text: "deload due" })
+    : t.stalled ? el("span.pill.warn", { text: "stalled" })
+    : null;
+  row.appendChild(el("summary.lift-head", {}, [
+    el("div.lift-name", {}, [
+      el("strong", { text: t.name }),
+      el("p.muted.tiny", { text: `${t.sessions} session${t.sessions === 1 ? "" : "s"} · ${relDay(t.lastDate)}` }),
+    ]),
+    sparkline(t.points, { color: t.stalled ? "var(--warn)" : "var(--accent)" }),
+    el("div.lift-nums", {}, [
+      el("strong", { text: liftValue(t, t.latest) }),
+      t.sessions > 1 ? deltaPill(t.deltaPct, { flat: "flat" }) : el("span.muted.tiny", { text: "first" }),
+    ]),
+    badge,
+  ]));
+  // The full chart is built only when the row is opened — a dozen lifts is a
+  // dozen charts otherwise.
+  let built = false;
+  row.addEventListener("toggle", () => {
+    if (!row.open || built) return;
+    built = true;
+    row.appendChild(liftDetail(t.movementId));
+  });
+  return row;
+}
+
+// The old dropdown chart, now the expanded state of a row.
+function liftDetail(movementId) {
+  const wrap = el("div.chart-host");
+  const hist = store.movementHistory(movementId).filter((h) => h.sets > 0);
+  const mv = getMovement(movementId);
+  const info = measureInfo(hist.length ? hist[0].measure : "reps");
+  // Epley only means something for loaded rep work below the rep ceiling.
+  // Carries, planks and assisted work chart what they actually measure.
+  const series = hist.some((h) => h.e1rm != null)
+    ? { key: "e1rm", label: "Estimated 1-rep-max (working sets)", unit: units() }
+    : hist[0] && hist[0].measure !== "reps"
+      ? { key: "bestAmount", label: `Best working set (${info.label.toLowerCase()})`, unit: info.unit }
+      : { key: "volume", label: "Working-set volume", unit: " " + units() };
+  // A session can be missing the chosen series (all-high-rep work has no
+  // e1RM) — those are gaps in the line, not zeroes.
+  const rows = hist.filter((h) => h[series.key] != null);
+  const points = rows.map((h) => ({ date: h.date, value: h[series.key] }));
+  const deloads = hist.filter((h) => h.deload);
+  wrap.appendChild(el("p.muted.small", { text: series.label }));
+  wrap.appendChild(lineChart(points, { color: "var(--accent)", ends: true, fill: true, markers: deloads.map((d) => d.date) }));
+  const latest = rows[rows.length - 1], first = rows[0];
+  if (latest && first) {
+    const delta = latest[series.key] - first[series.key];
+    const top = latest.topWeight ? `top working set ${latest.topWeight}${units()} · ` : "";
+    wrap.appendChild(el("p.muted.small", {
+      text: `${points.length} data point${points.length === 1 ? "" : "s"} · ${top}${Math.round(latest[series.key])}${series.unit} ${delta >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(delta))} since start`,
+    }));
+  }
+  if (mv && mv.measure !== "reps") {
+    wrap.appendChild(el("p.muted.tiny", { text: `Measured in ${info.label.toLowerCase()} — no estimated 1RM for this one.` }));
+  }
+  // A dip the app asked for reads as a dip like any other on a line chart.
+  // Name the deloads so a planned reset isn't mistaken for losing ground (#8).
+  if (deloads.length) {
+    wrap.appendChild(el("p.muted.tiny", {
+      text: `○ Deload${deloads.length === 1 ? "" : "s"} on ${deloads.map((h) => fmtDate(h.date)).join(", ")} — a planned step back, not a regression.`,
+    }));
+  }
+  // Where the engine currently thinks this lift stands (#8).
+  const stall = store.movementStall(movementId);
+  if (stall.stalled) {
+    wrap.appendChild(el("p.warn-text.small", {
+      text: stall.deloadDue
+        ? `⚠️ Stalled ${stall.consecutive} sessions — the next suggestion drops the load ~10% and rebuilds.`
+        : "⚠️ No gain last session in reps or load. One more and the app will deload it.",
+    }));
+  }
+  return wrap;
+}
+
+// ---- Body -------------------------------------------------------------------
+function bodyTab(host) {
+  const bw = store.getBodyweight();
+  if (bw.length) {
+    host.appendChild(el("div.card", {}, [
+      el("h3", { text: "Bodyweight" }),
+      lineChart(bw.map((b) => ({ date: b.date, value: b.weight })), { color: "var(--accent2)", height: 110, ends: true, fill: true }),
+      el("p.muted.small", { text: `Latest ${bw[bw.length - 1].weight} ${units()} · ${bw.length} entries · log one in Settings` }),
+    ]));
+  }
+
+  const symCard = el("div.card", {}, [el("h3", { text: "Symptoms" })]);
   SYMPTOMS.filter((s) => !s.invert).forEach((s) => {
     const hist = store.symptomHistory(s.id);
     if (!hist.length) return;
     symCard.appendChild(el("p.muted.small", { text: s.label + " (lower = better)" }));
     symCard.appendChild(lineChart(hist, { color: "var(--warn)", height: 90 }));
   });
-  if (!symCard.children.length) symCard.appendChild(el("p.muted", { text: "Symptom trends appear after a few check-ins." }));
-  view.appendChild(symCard);
+  if (symCard.children.length === 1) symCard.appendChild(el("p.muted", { text: "Symptom trends appear after a few check-ins." }));
+  host.appendChild(symCard);
 
   // Migraine threshold insight
   const mig = store.migraineInsight();
   if (mig.ratedCount >= 1) {
-    view.appendChild(sectionTitle("Migraine threshold"));
-    const mCard = el("div.card");
+    const mCard = el("div.card", {}, [el("h3", { text: "Migraine threshold" })]);
     if (mig.enough) {
       mCard.appendChild(el("p", { html: `Sessions that triggered a migraine averaged <strong>${mig.avgVolMigraine.toLocaleString()} ${units()}</strong> of volume; sessions that didn't averaged <strong>${mig.avgVolOk.toLocaleString()} ${units()}</strong>.` }));
       mCard.appendChild(el("p.muted.small", { text: mig.avgVolMigraine > mig.avgVolOk
         ? "Bigger/heavier sessions look like the trigger — we'll keep load under that line and back off when your neck score is up."
         : "No clear volume pattern yet — the trigger may be intensity or something outside the gym (alcohol, sleep). Keep logging." }));
     } else {
-      mCard.appendChild(el("p.muted", { text: `Logged ${mig.migraineCount} migraine${mig.migraineCount === 1 ? "" : "s"} so far. Flag one from any session's card on the Today or History tab; once some sessions have a migraine and some don't, this shows what session load tends to set one off.` }));
+      mCard.appendChild(el("p.muted", { text: `Logged ${mig.migraineCount} migraine${mig.migraineCount === 1 ? "" : "s"} so far. Flag one from any session's card on the Today tab or the Log tab; once some sessions have a migraine and some don't, this shows what session load tends to set one off.` }));
     }
-    view.appendChild(mCard);
+    host.appendChild(mCard);
   }
 
-  // Cardio & heart rate (from Watch)
   const cardioMetrics = WATCH_METRICS.filter((m) => store.metricHistory(m.id).length);
   if (cardioMetrics.length) {
-    view.appendChild(sectionTitle("Cardio & heart rate"));
-    const cCard = el("div.card");
+    const cCard = el("div.card", {}, [el("h3", { text: "Cardio & heart rate" })]);
     cardioMetrics.forEach((m) => {
       const hist = store.metricHistory(m.id);
       cCard.appendChild(el("p.muted.small", { text: `${m.label} (${m.unit})` }));
       cCard.appendChild(lineChart(hist, { color: "var(--accent2)", height: 90 }));
     });
-    view.appendChild(cCard);
+    host.appendChild(cCard);
   }
+}
 
-  // Session log
-  view.appendChild(sectionTitle("Sessions"));
-  sessions.forEach((s) => view.appendChild(sessionSummaryCard(s, true)));
-
-  render(view);
-});
+// ---- Log --------------------------------------------------------------------
+function logTab(host, sessions) {
+  const sum = store.trainingSummary();
+  host.appendChild(el("p.muted.small", {
+    text: `${sum.total} session${sum.total === 1 ? "" : "s"} · ${sum.last28} in the last 4 weeks · last one ${relDay(sum.lastDate)}`,
+  }));
+  // Months are the natural chapter break once there's more than a few weeks.
+  let month = null;
+  sessions.forEach((s) => {
+    const label = new Date(s.date).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    if (label !== month) { month = label; host.appendChild(sectionTitle(label)); }
+    host.appendChild(sessionSummaryCard(s, true));
+  });
+}
 
 // A logged number that almost certainly isn't real (140 × 120 reps) gets one
 // tap to correct and one tap to keep. Until it's resolved it stays out of the
@@ -1621,7 +1882,7 @@ function sessionSummaryCard(s, withDelete) {
   // Migraines land hours later, so this is flagged after the fact rather than
   // asked about at the start of the next session: come back to the workout that
   // did it and say so, whenever you figure it out.
-  card.appendChild(el("button", {
+  const migraineBtn = el("button", {
     class: "btn ghost small migraine-toggle" + (flagged ? " on" : ""),
     "aria-pressed": flagged ? "true" : "false",
     text: flagged ? "🤕 Migraine logged — tap to undo" : "🤕 I got a migraine from this one",
@@ -1630,7 +1891,12 @@ function sessionSummaryCard(s, withDelete) {
       toast(flagged ? "Migraine cleared" : "Logged 🤕");
       refreshCurrent();
     },
-  }));
+  });
+  // …but only while the answer is still open. A session old enough to have
+  // settled clean keeps the toggle inside its details, so a long log isn't a
+  // column of buttons asking a question that's already been answered.
+  const pending = store.migraineState(s) !== false;
+  if (pending) card.appendChild(migraineBtn);
 
   const det = el("details");
   det.appendChild(el("summary.muted.small", { text: "details" }));
@@ -1648,6 +1914,7 @@ function sessionSummaryCard(s, withDelete) {
     det.appendChild(el("p.muted.small", { text: "⌚ " + parts.join(" · ") }));
   }
   if (s.notes) det.appendChild(el("p.muted.small.note", { text: "“" + s.notes + "”" }));
+  if (!pending) det.appendChild(migraineBtn);
   if (s.symptoms) {
     const sc = el("div.sym-grid");
     SYMPTOMS.forEach((sym) => {
