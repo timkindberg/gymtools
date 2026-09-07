@@ -3,7 +3,7 @@
 // =============================================================================
 import {
   PROGRAM, PRINCIPLES, DISCLAIMER, SYMPTOMS, WATCH_METRICS, MOBILITY_ROUTINE, FLAG_LABELS,
-  dayForDate, dayById, alternativeNames, findExercise,
+  dayForDate, dayById, alternativeNames, findExercise, restSeconds,
 } from "./program.js";
 import { getMovement, movementName, loadLabel } from "./movements.js";
 import {
@@ -1071,7 +1071,7 @@ function setRow(ctx, setData, si) {
     }
     store.saveDraft(draft);
     ctx.refreshRoles();
-    if (setData.done) startRest();
+    if (setData.done) startRest(restSeconds(ctx.exDef && ctx.exDef.rest));
   });
   row.appendChild(el("span.set-col", {}, [check]));
   return row;
@@ -1242,8 +1242,10 @@ async function finishSession(draft, day) {
 
 // ---- Rest timer (floating) --------------------------------------------------
 let restState = { end: 0, interval: null, duration: 90 };
+// The prescribed rest for the exercise wins; the setting is the fallback for
+// anything that doesn't prescribe one (issue: every set rested 90s).
 function startRest(sec) {
-  const s = sec || store.getSettings().restTimerDefault || 90;
+  const s = (Number(sec) > 0 ? Math.round(Number(sec)) : null) || store.getSettings().restTimerDefault || 90;
   restState.duration = s;
   restState.end = Date.now() + s * 1000;
   const bar = document.getElementById("rest-timer");

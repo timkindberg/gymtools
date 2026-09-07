@@ -403,3 +403,21 @@ export function validateProgram() {
   });
   return problems;
 }
+
+// Rest is written the way it reads on a coaching sheet ("75s", "2–3 min"), so
+// the timer has to parse it. A range is the window you may come back in, and
+// the timer's job is to tell you when the window opens — so a range takes its
+// low end, and the +15 button covers the rest of it.
+export function restSeconds(rest) {
+  if (typeof rest === "number") return Number.isFinite(rest) && rest > 0 ? Math.round(rest) : null;
+  if (typeof rest !== "string") return null;
+  // en dash, em dash and "to" all show up in hand-written prescriptions
+  const first = rest.replace(/[–—]|\bto\b/g, "-").split("-")[0];
+  const m = first.match(/(\d+(?:\.\d+)?)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes)?/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  // A bare number in a range ("2–3 min") inherits the unit from the far end.
+  const unit = (m[2] || (rest.match(/(s|sec|secs|second|seconds|m|min|mins|minute|minutes)\s*$/i) || [])[1] || "s").toLowerCase();
+  return Math.round(unit.startsWith("m") ? n * 60 : n);
+}
