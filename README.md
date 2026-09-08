@@ -56,13 +56,23 @@ to your home screen.
   can pull up any day, especially rest days.
 - **Program** — browse the full A/B/C program with the reasoning behind every
   exercise choice.
-- **Progress** — strength charts (estimated 1-rep-max & volume) per exercise,
-  **symptom trend lines**, a **migraine-threshold** insight (compares training
-  load on days that triggered a migraine vs. days that didn't), cardio/HR
-  charts, and your full session log.
+- **Progress** — four tabs over the same data. **Overview** leads with an
+  **overall strength index**: every lift with an honest 1RM estimate, each
+  measured against its own history and chain-linked into one number, so it moves
+  when you get stronger rather than when the week's exercise mix changes (lifts
+  untrained for two months drop out). Under it: 4-week sessions/volume/PR tiles,
+  a weekly consistency chart with the skipped weeks left in, what's moving vs.
+  what's stalled, recent records, and balance by movement pattern. **Lifts** is
+  every exercise at once — sparkline, current estimated 1RM and change, stalled
+  badge, sortable by recency, gain, or stuck — each row expanding to the full
+  chart with deloads marked. **Body** holds bodyweight, symptom trend lines, the
+  **migraine-threshold** insight (training load on days that triggered a
+  migraine vs. days that didn't) and cardio/HR. **Log** is every session, by
+  month.
 - **Migraine flagging** — no one asks you at the start of your next workout.
   When one shows up, open the session that caused it (Today's "Last session"
-  recap, or any card in History) and tap **🤕 I got a migraine from this one**;
+  recap, or any card in the Progress log) and tap **🤕 I got a migraine from
+  this one**;
   tap again to undo. A session still unflagged a day later counts as
   migraine-free on its own, so the threshold insight fills in without prompts.
 - **Settings** — units (lb/kg), bodyweight tracking, rest-timer prefs,
@@ -157,7 +167,7 @@ The data model underneath it:
 | [`js/effort.js`](js/effort.js) | RPE / reps in reserve, plus which side gave out first on unilateral work. One tap each on the last working set, asked as "reps left in the tank" and stored on the RPE scale the program prescribes in. Optional everywhere: no RPE falls back to the reps-only behaviour. |
 | [`js/engine.js`](js/engine.js) | the progression engine — what to lift next, and why. Percentage-based increments rounded to what the gym actually has, RPE gating, pain and symptom guard rails, stall detection and deloads, its own comparator for timed, bodyweight and carry work, the warm-up ramp, the cross-implement seed for a lift with no history, and the sentence stating what topping the rep range earns. |
 | [`js/plates.js`](js/plates.js) | what goes on the bar, and in what order. A ramp isn't a set of percentages, it's a sequence of loads you have to build: every step above the first is a prefix of the working set's stack, so plates go on and stay on. Where one bridge step has to come back off, the ramp says so. |
-| [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, the coach report, and the review's corrections coming back in. |
+| [`js/store.js`](js/store.js) | persistence, versioned migrations, movement history, the progress analytics (the chain-linked strength index, personal records, weekly training load, per-lift trends), the coach report, and the review's corrections coming back in. |
 
 These six are pure modules — no DOM, no storage — which is what makes them
 testable.

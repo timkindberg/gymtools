@@ -889,6 +889,279 @@ export function metricHistory(metricId) {
     .map((s) => ({ date: s.date, value: Number(s.metrics[metricId]) }));
 }
 
+// ---- Overall strength, session to session ----------------------------------
+// "Am I getting stronger?" shouldn't require picking a lift out of a dropdown
+// and eyeballing a line. Every lift with an estimated 1RM is folded into ONE
+// index so a training block has a single number that moves.
+//
+// Two things it deliberately does NOT do:
+//   * sum pounds — a 300 lb leg press would swamp a 40 lb press, and the index
+//     would jump whenever the week's movement mix changed rather than when you
+//     got stronger;
+//   * re-baseline on new lifts — an index that averages "current ÷ first" would
+//     dip every time a new lift entered at exactly 1.00.
+// So it is CHAIN-LINKED: between two consecutive sessions it only measures
+// lifts present on BOTH sides and multiplies that change onto the running
+// index. A lift joining or dropping out moves the index by nothing at all.
+//
+// A lift untouched for STRENGTH_STALE_DAYS stops contributing: this is meant to
+// say what your current training is doing, not what you could lift last spring.
+export const STRENGTH_STALE_DAYS = 60;
+export const STRENGTH_BASE = 100;
+
+const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+
+// Per-movement estimated-1RM series (working sets, typos excluded), oldest
+// first. Movements Epley can't speak for — carries, planks, assisted work —
+// have no e1rm and simply aren't part of the index.
+function e1rmSeries() {
+  const out = [];
+  for (const id of loggedMovementIds()) {
+    const points = movementHistory(id)
+      .filter((h) => h.e1rm != null)
+      .map((h) => ({ date: h.date, e1rm: h.e1rm, deload: h.deload }));
+    if (points.length) {
+      out.push({
+        movementId: id,
+        name: movementName(id, id),
+        pattern: (getMovement(id) || {}).pattern || "other",
+        points,
+      });
+    }
+  }
+  return out;
+}
+
+// What each lift stood at on a given date: its most recent e1RM at or before
+// that date, dropped once it has gone stale.
+function snapshotAt(lifts, t, staleMs) {
+  const snap = new Map();
+  for (const lift of lifts) {
+    let latest = null;
+    for (const p of lift.points) {
+      if (Date.parse(p.date) <= t) latest = p; else break;
+    }
+    if (!latest) continue;
+    if (t - Date.parse(latest.date) > staleMs) continue;
+    snap.set(lift.movementId, latest.e1rm);
+  }
+  return snap;
+}
+
+export function strengthIndex({ staleDays = STRENGTH_STALE_DAYS, now = Date.now() } = {}) {
+  const lifts = e1rmSeries();
+  const empty = { enough: false, points: [], lifts: [], tracked: 0, total: 0 };
+  if (!lifts.length) return empty;
+
+  const staleMs = staleDays * 86400000;
+  const dates = [...new Set(lifts.flatMap((l) => l.points.map((p) => p.date)))].sort();
+  const points = [];
+  let value = STRENGTH_BASE, prevSnap = null;
+  for (const date of dates) {
+    const snap = snapshotAt(lifts, Date.parse(date), staleMs);
+    if (!snap.size) continue;
+    if (prevSnap) {
+      // Only lifts on both sides of the step can say anything about the change.
+      const factors = [];
+      for (const [id, cur] of snap) {
+        const before = prevSnap.get(id);
+        if (before) factors.push(cur / before);
+      }
+      if (factors.length) value *= mean(factors);
+    }
+    points.push({ date, value: Math.round(value * 10) / 10, lifts: snap.size });
+    prevSnap = snap;
+  }
+
+  // Where each lift stands right now, against its own first recorded session.
+  const nowSnap = snapshotAt(lifts, now, staleMs);
+  const detail = lifts.map((l) => {
+    const first = l.points[0], last = l.points[l.points.length - 1];
+    return {
+      movementId: l.movementId,
+      name: l.name,
+      pattern: l.pattern,
+      baseline: first.e1rm,
+      current: last.e1rm,
+      date: last.date,
+      sessions: l.points.length,
+      deltaPct: Math.round(((last.e1rm / first.e1rm) - 1) * 1000) / 10,
+      active: nowSnap.has(l.movementId),
+    };
+  }).sort((a, b) => b.deltaPct - a.deltaPct);
+
+  const active = detail.filter((l) => l.active);
+  const total = active.reduce((n, l) => n + l.current, 0);
+  const latest = points.length ? points[points.length - 1].value : STRENGTH_BASE;
+  return {
+    enough: points.length >= 2,
+    points,
+    lifts: detail,
+    tracked: active.length,
+    total: Math.round(total),
+    latest,
+    first: points.length ? points[0].value : STRENGTH_BASE,
+    deltaPct: points.length ? Math.round((latest - points[0].value) * 10) / 10 : 0,
+    since: points.length ? points[0].date : null,
+  };
+}
+
+// Same idea, split by movement pattern, so "my push is stalling while my hinge
+// climbs" is visible without reading six charts.
+export function strengthByPattern(opts = {}) {
+  const { lifts } = strengthIndex(opts);
+  const groups = new Map();
+  for (const l of lifts) {
+    if (!l.active) continue;
+    if (!groups.has(l.pattern)) groups.set(l.pattern, []);
+    groups.get(l.pattern).push(l);
+  }
+  return [...groups.entries()].map(([pattern, ls]) => ({
+    pattern,
+    lifts: ls.length,
+    deltaPct: Math.round(mean(ls.map((l) => l.deltaPct)) * 10) / 10,
+    names: ls.map((l) => l.name),
+  })).sort((a, b) => b.deltaPct - a.deltaPct);
+}
+
+// ---- Personal records -------------------------------------------------------
+// A PR feed answers "did anything good happen lately" faster than any chart.
+// One headline record per movement per session: its estimated 1RM where Epley
+// applies, otherwise the best time/distance, otherwise the heaviest load. The
+// first session of a movement isn't a record — everything is a PR when nothing
+// came before.
+export function personalRecords({ limit = 12 } = {}) {
+  const best = new Map(); // movementId -> { e1rm, load, amount }
+  const out = [];
+  for (const s of getSessions().slice().reverse()) { // oldest first
+    const perMovement = new Map();
+    for (const entry of s.entries || []) {
+      const id = entry.movementId;
+      if (!id) continue;
+      const mv = getMovement(id);
+      const agg = perMovement.get(id) || { e1rm: 0, load: 0, amount: 0, measure: (mv && mv.measure) || "reps" };
+      for (const set of workingSets(loggedSets(entry.sets))) {
+        if (set.suspect) continue;
+        agg.e1rm = Math.max(agg.e1rm, estimate1RM(mv, set) || 0);
+        agg.load = Math.max(agg.load, setLoad(set) || 0);
+        agg.amount = Math.max(agg.amount, setAmount(set) || 0);
+      }
+      perMovement.set(id, agg);
+    }
+    for (const [id, agg] of perMovement) {
+      if (!agg.e1rm && !agg.load && !agg.amount) continue;
+      const prev = best.get(id);
+      const kind = agg.e1rm ? "e1rm" : agg.measure !== "reps" ? "amount" : "load";
+      const value = kind === "e1rm" ? Math.round(agg.e1rm) : kind === "amount" ? agg.amount : agg.load;
+      const was = prev ? (kind === "e1rm" ? Math.round(prev.e1rm) : kind === "amount" ? prev.amount : prev.load) : 0;
+      if (prev && value > was) {
+        out.push({
+          date: s.date, sessionId: s.id, movementId: id, name: movementName(id, id),
+          kind, value, prev: was, measure: agg.measure,
+          gain: Math.round((value - was) * 10) / 10,
+        });
+      }
+      best.set(id, {
+        e1rm: Math.max(agg.e1rm, prev ? prev.e1rm : 0),
+        load: Math.max(agg.load, prev ? prev.load : 0),
+        amount: Math.max(agg.amount, prev ? prev.amount : 0),
+      });
+    }
+  }
+  return out.reverse().slice(0, limit);
+}
+
+// ---- Consistency ------------------------------------------------------------
+// Weekly buckets, gaps included — a missed week is the most useful thing on a
+// consistency chart, so it is a zero, not a hole in the axis.
+export function weeklyTraining(weeks = 8) {
+  const sessions = getSessions();
+  if (!sessions.length) return [];
+  const thisWeek = weekStart(Date.now());
+  const oldest = weekStart(sessions[sessions.length - 1].date);
+  const start = Math.max(oldest, thisWeek - (weeks - 1) * WEEK_MS);
+  const out = [];
+  for (let k = start; k <= thisWeek; k += WEEK_MS) {
+    const inWeek = sessions.filter((s) => weekStart(s.date) === k);
+    out.push({
+      weekStart: new Date(k).toISOString(),
+      sessions: inWeek.length,
+      sets: inWeek.reduce((n, s) => n + (s.entries || []).reduce((m, e) => m + loggedSets(e.sets).length, 0), 0),
+      volume: Math.round(inWeek.reduce((n, s) => n + sessionVolume(s), 0)),
+      deload: inWeek.some((s) => (s.entries || []).some((e) => e.deload)),
+    });
+  }
+  return out;
+}
+
+// Headline numbers for the top of the progress screen: how much training is
+// actually happening, and whether that is more or less than the month before.
+export function trainingSummary({ now = Date.now() } = {}) {
+  const sessions = getSessions(); // newest first
+  const in28 = sessions.filter((s) => now - Date.parse(s.date) <= 28 * 86400000);
+  const prev28 = sessions.filter((s) => {
+    const age = now - Date.parse(s.date);
+    return age > 28 * 86400000 && age <= 56 * 86400000;
+  });
+  const vol = (arr) => Math.round(arr.reduce((n, s) => n + sessionVolume(s), 0));
+  // Weeks trained back to back, counting from this week or last (a week still
+  // in progress shouldn't break a streak on a Monday).
+  const trained = new Set(sessions.map((s) => weekStart(s.date)));
+  const here = weekStart(now);
+  let streak = 0;
+  let cursor = trained.has(here) ? here : here - WEEK_MS;
+  while (trained.has(cursor)) { streak++; cursor -= WEEK_MS; }
+  return {
+    total: sessions.length,
+    last28: in28.length,
+    prev28: prev28.length,
+    volume28: vol(in28),
+    volumePrev28: vol(prev28),
+    streakWeeks: streak,
+    lastDate: sessions.length ? sessions[0].date : null,
+    daysSince: sessions.length ? Math.floor((now - Date.parse(sessions[0].date)) / 86400000) : null,
+  };
+}
+
+// ---- Per-lift trend rows ----------------------------------------------------
+// Everything the progress list needs for one row: the series it should chart,
+// where it started, where it is, and whether the engine thinks it is stuck.
+export function movementTrends() {
+  const out = [];
+  for (const id of loggedMovementIds()) {
+    const hist = movementHistory(id).filter((h) => h.sets > 0);
+    if (!hist.length) continue;
+    const mv = getMovement(id);
+    const measure = hist[0].measure;
+    // Epley where it applies; the movement's own units where it doesn't;
+    // volume for high-rep loaded work that has no honest 1RM.
+    const key = hist.some((h) => h.e1rm != null) ? "e1rm"
+      : measure !== "reps" ? "bestAmount"
+      : "volume";
+    const points = hist.filter((h) => h[key] != null).map((h) => ({ date: h.date, value: h[key] }));
+    if (!points.length) continue;
+    const first = points[0].value, latest = points[points.length - 1].value;
+    const stall = movementStall(id);
+    out.push({
+      movementId: id,
+      name: movementName(id, id),
+      pattern: (mv && mv.pattern) || "other",
+      measure, key, points,
+      first, latest,
+      delta: Math.round((latest - first) * 10) / 10,
+      deltaPct: first ? Math.round(((latest / first) - 1) * 1000) / 10 : 0,
+      sessions: hist.length,
+      lastDate: hist[hist.length - 1].date,
+      topWeight: hist[hist.length - 1].topWeight,
+      deloads: hist.filter((h) => h.deload).length,
+      stalled: stall.stalled,
+      deloadDue: stall.deloadDue,
+      consecutive: stall.consecutive,
+    });
+  }
+  return out;
+}
+
 // ---- Next-session proposals (#11) -------------------------------------------
 // What the app will actually put on the card next time this movement comes
 // round — the thing a review has to be able to correct BEFORE he trains. The
