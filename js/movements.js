@@ -71,10 +71,24 @@ const LIST = [
   m("db-hip-thrust", "DB Hip Thrust", { implement: "dumbbell", pattern: "hip-extension" }),
   m("glute-bridge", "Glute Bridge", { implement: "bodyweight", loadMode: "none", pattern: "hip-extension" }),
 
+  // ---- Knee extension ------------------------------------------------------
+  // Quad isolation. Same muscle group as the squat slots, so it can fill one,
+  // but the seat puts the knee through its whole range — hence the partial.
+  m("leg-extension", "Leg Extension (top half)", { pattern: "knee-extension" }),
+
   // ---- Knee flexion --------------------------------------------------------
   m("seated-leg-curl", "Seated Leg Curl", { pattern: "knee-flexion" }),
   m("lying-leg-curl", "Lying Leg Curl", { pattern: "knee-flexion" }),
   m("nordic-curl", "Nordic Curl (negatives)", { implement: "bodyweight", loadMode: "none", pattern: "knee-flexion" }),
+
+  // ---- Calves --------------------------------------------------------------
+  // Nothing in the program trained plantarflexion at all until 2026-09-14. The
+  // leg-press version is the one that costs no time: same machine, same seat as
+  // the single-leg press, feet slid down to the edge of the platform.
+  m("leg-press-calf-raise", "Leg Press Calf Raise", { pattern: "plantarflexion" }),
+  m("standing-calf-raise", "Standing Calf Raise", { pattern: "plantarflexion" }),
+  m("seated-calf-raise", "Seated Calf Raise (soleus)", { pattern: "plantarflexion" }),
+  m("single-leg-calf-raise", "Single-Leg Calf Raise", { implement: "dumbbell", loadMode: "per-side", pattern: "plantarflexion", unilateral: true }),
 
   // ---- Horizontal push -----------------------------------------------------
   m("barbell-bench-press", "Barbell Bench Press", { implement: "barbell", pattern: "horizontal-push" }),
@@ -104,6 +118,14 @@ const LIST = [
   m("assisted-pull-up", "Assisted Pull-up", { pattern: "vertical-pull", assisted: true }),
   m("weighted-pull-up", "Weighted Pull-up", { implement: "bodyweight", pattern: "vertical-pull", addedLoad: true }),
 
+  // ---- Side delts ----------------------------------------------------------
+  // The upright row is out for good (it is THE confirmed right-shoulder
+  // aggravator). This is the job it used to do, without the impingement: the
+  // arm stays below shoulder height and never internally rotates.
+  m("db-lateral-raise", "DB Lateral Raise", { implement: "dumbbell", loadMode: "per-hand", pattern: "lateral-raise" }),
+  m("cable-lateral-raise", "Cable Lateral Raise", { implement: "cable", loadMode: "per-side", pattern: "lateral-raise", unilateral: true }),
+  m("machine-lateral-raise", "Machine Lateral Raise", { pattern: "lateral-raise" }),
+
   // ---- Shoulder health / rear delt ----------------------------------------
   m("face-pull", "Face Pull", { implement: "cable", pattern: "rear-delt" }),
   m("band-face-pull", "Band Face Pull", { implement: "band", loadMode: "none", pattern: "rear-delt" }),
@@ -129,6 +151,12 @@ const LIST = [
   m("bird-dog", "Bird Dog", { implement: "bodyweight", loadMode: "none", pattern: "anti-rotation", unilateral: true }),
   m("suitcase-carry", "Suitcase Carry", { implement: "dumbbell", loadMode: "per-side", measure: "distance", pattern: "carry", unilateral: true }),
   m("suitcase-hold", "Suitcase Hold (isometric)", { implement: "dumbbell", loadMode: "per-side", measure: "time", pattern: "carry", unilateral: true }),
+  // Anti-extension: the plane the core work was missing entirely. The hanging
+  // version shares the bar with the dead hang, so it costs one station, not two.
+  m("hanging-knee-raise", "Hanging Knee Raise", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
+  m("plank", "Plank", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "anti-extension" }),
+  m("dead-bug", "Dead Bug", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
+  m("ab-wheel-rollout", "Ab Wheel Rollout", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
   m("side-plank", "Side Plank", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "anti-lateral-flexion", unilateral: true }),
   m("copenhagen-plank", "Copenhagen Plank", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "anti-lateral-flexion", unilateral: true }),
 
@@ -157,21 +185,25 @@ export const MOVEMENT_SLUGS = Object.keys(MOVEMENTS);
 const SWAP_GROUPS = {
   squat: "knee-dominant",
   lunge: "knee-dominant",
+  "knee-extension": "knee-dominant",
   "lunge-frontal": "frontal-plane-hips",
   adduction: "frontal-plane-hips",
   hinge: "posterior-chain",
   "hip-extension": "posterior-chain",
   "knee-flexion": "hamstrings",
+  plantarflexion: "calves",
   "horizontal-push": "chest-press",
   "incline-push": "chest-press",
   "vertical-push": "shoulder-press",
   "horizontal-pull": "horizontal-pull",
   "vertical-pull": "vertical-pull",
   "rear-delt": "rear-delt",
+  "lateral-raise": "side-delt",
   "shoulder-external-rotation": "rotator-cuff",
   "elbow-flexion": "biceps",
   "elbow-extension": "triceps",
   "anti-rotation": "anti-rotation",
+  "anti-extension": "anti-extension",
   "anti-lateral-flexion": "lateral-core",
   carry: "lateral-core",
   grip: "grip",
@@ -224,6 +256,7 @@ const LINKS = [
   ["triceps-rope-pushdown", "overhead-rope-extension", 1.4, "overhead is the weaker position"],
   ["cable-external-rotation", "db-external-rotation-side-lying", 1.0, "same cuff, same tiny numbers"],
   ["lat-pulldown", "lat-pulldown-neutral", 1.0, "same stack, different handle"],
+  ["db-lateral-raise", "cable-lateral-raise", 1.0, "same tiny raise, one arm's worth either way"],
   ["suitcase-carry", "suitcase-hold", 1.0, "carrying it and holding it are the same load"],
 ];
 

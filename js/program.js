@@ -11,10 +11,12 @@
 //
 // SCHEDULE
 //   ~50 min, 3x/week at lunch. Mon & Wed are complete anchor sessions; FRIDAY
-//   is a skippable bonus day (Tim's most-skipped). Nothing essential on Friday —
-//   but as of 2026-08-29 it carries the week's SECOND chest press, the one thing
-//   a two-day week can't supply. Its own least-urgent item (the lateral lunge)
-//   is marked optional and sits last, so a short Friday drops that, not the press.
+//   is the bonus day. Tim reported 2026-09-14 that he actually makes 2 of 3 to
+//   3 of 4 Fridays — ~70-75%, a real training day, not a coin flip. So Day C
+//   may hold work that matters (the second chest press, the arms, the glutes)
+//   without the week falling over when it's missed; what it still may not hold
+//   is anything the week CANNOT do without. Its least-urgent item (the lateral
+//   lunge) stays optional and last, so a short Friday drops that first.
 //
 // CONSTRAINTS baked in
 //   - Leg-length discrepancy = THE priority (progressive right-side tightening).
@@ -32,6 +34,14 @@
 //
 //   Progression: double progression. Hit the top of the rep range on every
 //   working set at target RPE -> add load next time. Push the top sets.
+//
+// COVERAGE (audited 2026-09-14). The muscle-group sweep found four zeros:
+// calves, side delts, anti-extension core, and quad isolation. Three now have
+// a slot (b8, a7, c10) and every one of them shares a station with the
+// exercise before it, so the fix costs ~4 minutes a day, not ~12. Quad
+// isolation rides along as a 🎲 option on b4. Still deliberately absent:
+// direct hip abduction (heel lift is working; first thing back if the
+// tightness trend turns) and shrugs (carries and hangs cover the girdle).
 // =============================================================================
 
 import { getMovement, movementName, resolveMovementId, swapGroup } from "./movements.js";
@@ -106,7 +116,7 @@ export const MOBILITY_ROUTINE = {
 
 export const PROGRAM = {
   name: "Tim's Rebuild — MWF Full Body",
-  updated: "2026-08-29",
+  updated: "2026-09-14",
   days: [
     // ---------------------------------------------------------------- MONDAY
     {
@@ -154,8 +164,16 @@ export const PROGRAM = {
           alternatives: ["band-face-pull", "reverse-pec-deck"],
         }),
         ex({
+          id: "a7", movement: "db-lateral-raise", name: "DB Lateral Raise", target: "Side delts", start: 20,
+          sets: 3, prescription: repRange(12, 15), rpe: "9", rest: "60s", flags: ["shoulder"], ss: "S2",
+          why: "This is the job the upright row used to do, minus the part that hurt you. Nothing else in the week trains the side of the delt — presses hit the front, face pulls hit the back, and the middle was a hole. It's also what makes shoulders look wide. Supersets straight into the face pull, same corner of the gym.",
+          cues: ["Lead with the elbow, not the hand", "Stop at shoulder height — no higher", "Thumbs level with (or slightly above) the pinkies, never poured out", "Light weight, slow down, no swinging"],
+          techNote: "If you feel a pinch, you're going too high or rotating the arm in. Lower the weight before you shorten the range.",
+          alternatives: ["cable-lateral-raise", "machine-lateral-raise"],
+        }),
+        ex({
           id: "a6", movement: "pallof-press-half-kneeling", name: "Half-Kneeling Pallof Press", target: "Anti-rotation core",
-          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"], ss: "S2",
+          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"],
           why: "Half-kneeling stretches the down-leg hip flexor while you train the core to resist twisting — a two-for-one for your posture and pelvis.",
           cues: ["Hips square, ribs down", "Press straight out, resist the rotation", "Breathe normally"],
           alternatives: ["pallof-press-standing", "cable-chop", "bird-dog"],
@@ -173,12 +191,21 @@ export const PROGRAM = {
       warmup: PRIMER,
       exercises: [
         ex({
-          id: "b1", movement: "barbell-rdl", name: "Barbell Romanian Deadlift", target: "Hamstrings / glutes / back", start: 135,
-          sets: 4, prescription: repRange(6, 8), rpe: "8", rest: "2–3 min", flags: ["hamstring", "leglength"], learn: true,
-          why: "The big posterior-chain builder and a fantastic hinge to learn. Keeping the hips level here is direct anti-tightening work for your right side.",
-          cues: ["Soft knees, push the hips back", "Bar drags close to the legs", "Hips stay square — don't hike the right", "Flat back; stop when hamstrings tension, before the back rounds"],
-          techNote: "Start moderate and own the hinge before chasing load — this is where form matters most. 🎲 DB RDL is a fine substitute.",
-          alternatives: ["db-rdl", "back-extension-45", "cable-pull-through"],
+          // 2026-09-14: the barbell RDL held this slot and earned its way from 165
+          // to 210 in five sessions — then flagged right-side low-back pain two
+          // sessions running (09-02, 09-11). Load is not the problem to solve
+          // twice; this is a one-block detour, not a demotion. The bar comes
+          // back at 165 with a hard 6-rep cap once a block goes through clean.
+          id: "b1", movement: "cable-pull-through", name: "Cable Pull-Through", target: "Hamstrings / glutes", start: 110,
+          sets: 4, prescription: repRange(10, 12), rpe: "8", rest: "90s", flags: ["hamstring", "leglength", "posture"],
+          why: "Same hinge, same hamstrings and glutes — but the cable pulls you horizontally instead of stacking load on your spine, so your low back gets a block off while the pattern keeps training. Your right low back tweaked twice under the bar; we don't get to ignore that twice.",
+          cues: ["Face away from the stack, rope between your legs", "Push the hips back, let the rope drag you into the stretch", "Finish by squeezing the glutes — not by leaning back", "Hips stay square, ribs down"],
+          techNote: "This should burn in the glutes and hamstrings, never in the low back. If the back talks at all, stop the set and tell the coach report.",
+          // The bar is deliberately NOT a 🎲 option here. A swapped-in movement
+          // inherits the SLOT's rep range, so a 🎲 back to the RDL would ask for
+          // 10-12 reps at a load built for 6 — which is how you re-injure the
+          // thing. It returns by a program edit, at 165 with a 6-rep cap.
+          alternatives: ["machine-hip-thrust", "db-rdl"],
         }),
         ex({
           id: "b2", movement: "lat-pulldown", name: "Pull-up / Lat Pulldown", target: "Lats / upper back", start: 120,
@@ -200,7 +227,15 @@ export const PROGRAM = {
           sets: 3, prescription: repRange(10, 12, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
           why: "One leg at a time forces your weaker/tighter side to pull its weight, and the machine keeps the meniscus on a safe, guided track — the convenient, sit-down way to hammer the asymmetry hard.",
           cues: ["Don't let the knee cave inward", "Stop before the knee bends past ~90°", "Push through the whole foot", "Match reps and effort side to side"],
-          alternatives: ["bulgarian-split-squat", "db-step-up", "split-squat-to-box"],
+          alternatives: ["bulgarian-split-squat", "db-step-up", "split-squat-to-box", "leg-extension"],
+        }),
+        ex({
+          id: "b8", movement: "leg-press-calf-raise", name: "Leg Press Calf Raise", target: "Calves", start: 180,
+          sets: 3, prescription: repRange(10, 15), rpe: "9", rest: "60s",
+          why: "The program had zero calf work, which at 6'3\" and 235 lb is a real hole — the calves are half of how your ankle handles load, and the right-side chain starts at the floor. This costs you no setup at all: you're already in the seat from the last exercise, just slide your feet down to the bottom edge of the platform.",
+          cues: ["Legs stay nearly straight — this is an ankle exercise, not a press", "Push all the way up onto the toes, pause a beat", "Let the heels sink for a full stretch, slowly", "Safety catches ON before you move your feet"],
+          techNote: "Knee stays extended here, so it never enters the range your meniscus dislikes. 🎲 the seated version hits the soleus instead — good to alternate blocks.",
+          alternatives: ["seated-calf-raise", "standing-calf-raise", "single-leg-calf-raise"],
         }),
         ex({
           id: "b5", movement: "seated-leg-curl", name: "Seated Leg Curl", target: "Hamstrings",
@@ -233,7 +268,7 @@ export const PROGRAM = {
       name: "Day C — Bonus: Press, Glutes & Arms",
       dow: 5,
       optional: true,
-      note: "Still the skip-friendly day — Mon + Wed cover the essentials and nothing here is load-bearing. But it's no longer leftovers: it holds your second chest press of the week, which is the one thing two days can't give you. Make it when you can; no guilt when you can't.",
+      note: "You make 2 of 3 to 3 of 4 of these, so this is a real training day, not a bonus. It holds your second chest press, your only direct arm work, and your only heavy glute work — treat it as part of the week. Mon + Wed still cover the essentials if life eats a Friday.",
       focus: "A second press, glutes, unilateral back and hinge, arms, and a long loosen-out",
       warmup: PRIMER,
       exercises: [
@@ -293,11 +328,19 @@ export const PROGRAM = {
         }),
         ex({
           id: "c8", movement: "dead-hang", name: "Dead Hang", target: "Grip / shoulder decompression",
-          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture"],
+          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture"], ss: "S2",
           why: "You were already doing these off-program (\"25 seconds, I need more callouses\") with nowhere to log them. A hang builds the grip your carries and rows run out of first, and lets the shoulder hang long — which the pressing days appreciate.",
           cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
           techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't.",
           alternatives: ["weighted-dead-hang"],
+        }),
+        ex({
+          id: "c10", movement: "hanging-knee-raise", name: "Hanging Knee Raise", target: "Anti-extension core / grip",
+          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "60s", flags: ["posture"], ss: "S2",
+          why: "Your core work covered rotation (Pallof) and side-bending (carries, side plank) and nothing at all in the front-to-back plane. This fills it — and it costs no station, because you're already hanging on the bar from the last exercise. Free grip work on top.",
+          cues: ["Hang tall, shoulders active", "Curl the pelvis up — knees to chest, not just hips to 90°", "Lower slowly, don't drop and swing", "Stop the set when you start swinging"],
+          techNote: "Grip dies before the abs do at first — that's the point of pairing it with the hang. 🎲 to a plank or dead bug once the grip is cooked.",
+          alternatives: ["plank", "dead-bug", "ab-wheel-rollout"],
         }),
         ex({
           id: "c2", movement: "db-lateral-lunge", name: "DB Lateral Lunge (optional if time)", target: "Adductors / frontal plane", start: 25,

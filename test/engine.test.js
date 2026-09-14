@@ -72,7 +72,13 @@ const EXPECTED = {
   c6: ["db-skullcrusher", "repeat", 30, 15],
   // 45s and 45s at the top of 30–45. The old engine had nothing to say (#9).
   c7: ["side-plank", "increase", null, 55],
-  b1: ["barbell-rdl", "increase", 175, 6],
+  // Slot b1 held the Barbell RDL at 6-8 reps until the 2026-09-14 review moved
+  // the slot to a Cable Pull-Through at 10-12 (right-side low-back pain, flagged
+  // twice). A movement inherits the SLOT's rep range, so the backup's RDL
+  // history is now read against 10-12: 165x6 is no longer a topped range, so
+  // it's a repeat at 165 until 10 reps land. The engine rule did not change —
+  // the range it was asked about did.
+  b1: ["barbell-rdl", "repeat", 165, 10],
   b2: ["lat-pulldown", "repeat", 160, 10],
   b3: ["barbell-incline-press", "repeat", 135, 10],
   b4: ["single-leg-leg-press", "repeat", 130, 12],
