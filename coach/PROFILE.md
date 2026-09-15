@@ -127,11 +127,33 @@ an unreachable registry entry helps nobody).
 - **Right low back (NEW, 2026-09-14).** Right-side low-back tweak flagged on the
   Barbell RDL two sessions running (09-02 "tiny tweak, didn't linger", 09-11
   "lower back right tweaked a bit"), after the bar climbed 165 → 210 in five
-  sessions. Same side as the leg-length chain — treat as related, not random.
-  → `b1` moved to Cable Pull-Through for a block; the bar is intentionally NOT
-  a 🎲 option in that slot (a swapped movement inherits the slot's 10-12 rep
-  range, which would be wrong and dangerous for a heavy hinge). The RDL returns
-  by program edit at 165 with a 6-rep cap once a block runs clean.
+  sessions (+27% in three weeks) at RPE 9. Same side as the leg-length chain.
+  Both flags were MINOR and neither lingered — this is a load-and-fatigue
+  problem, not a structural one.
+  → **The RDL stays in `b1`** (Tim pushed back 2026-09-15: he likes the lift, and
+  he was right — the first pass swapped it out, which was more conservative than
+  the evidence justified). Fixed at the cause instead: **155 lb, 3×6–8, RPE
+  capped at 7** (was 4×6–8 at RPE 8). Hex-Bar RDL and Cable Pull-Through are
+  🎲 options for cranky-back days.
+
+  **Re-entry ladder** — hold each rung until it's clean, never add more than
+  10 lb a session, and never push past RPE 8 on this lift again:
+  | Session | Load | Pass condition |
+  | --- | --- | --- |
+  | 1 | 155 × 3×6 | no back sensation during or next day |
+  | 2 | 165 × 3×6 | same |
+  | 3 | 175 × 3×6–8 | same |
+  | 4+ | +5–10/session, RPE 8 ceiling | normal double progression resumes |
+
+  **Traffic lights (the "am I ready" test):**
+  - 🟢 Nothing in the back during the set or the next morning → move up a rung.
+  - 🟡 Tightness or a pump that's gone by next morning → hold the load, don't add.
+  - 🔴 Sharp, pinching, anything radiating into the glute or down the leg, or
+    anything still there 24 h later → stop the SET (not the rep), log it, drop
+    20 lb. Radiating or lingering pain is a doctor/PT conversation, not a
+    load conversation.
+  - **Two more tweaks in a block → the bar comes out for real**, and then it's
+    the hex bar or the pull-through for a full block.
 - **Migraines.** Triggered by **very taxing sessions (onset ~5 h later) or
   alcohol.** He treats them (ibuprofen, massage) and **explicitly does NOT want
   the program watered down for them.** → program at normal hard intensity; the

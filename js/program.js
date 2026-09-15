@@ -191,21 +191,21 @@ export const PROGRAM = {
       warmup: PRIMER,
       exercises: [
         ex({
-          // 2026-09-14: the barbell RDL held this slot and earned its way from 165
-          // to 210 in five sessions — then flagged right-side low-back pain two
-          // sessions running (09-02, 09-11). Load is not the problem to solve
-          // twice; this is a one-block detour, not a demotion. The bar comes
-          // back at 165 with a hard 6-rep cap once a block goes through clean.
-          id: "b1", movement: "cable-pull-through", name: "Cable Pull-Through", target: "Hamstrings / glutes", start: 110,
-          sets: 4, prescription: repRange(10, 12), rpe: "8", rest: "90s", flags: ["hamstring", "leglength", "posture"],
-          why: "Same hinge, same hamstrings and glutes — but the cable pulls you horizontally instead of stacking load on your spine, so your low back gets a block off while the pattern keeps training. Your right low back tweaked twice under the bar; we don't get to ignore that twice.",
-          cues: ["Face away from the stack, rope between your legs", "Push the hips back, let the rope drag you into the stretch", "Finish by squeezing the glutes — not by leaning back", "Hips stay square, ribs down"],
-          techNote: "This should burn in the glutes and hamstrings, never in the low back. If the back talks at all, stop the set and tell the coach report.",
-          // The bar is deliberately NOT a 🎲 option here. A swapped-in movement
-          // inherits the SLOT's rep range, so a 🎲 back to the RDL would ask for
-          // 10-12 reps at a load built for 6 — which is how you re-injure the
-          // thing. It returns by a program edit, at 165 with a 6-rep cap.
-          alternatives: ["machine-hip-thrust", "db-rdl"],
+          // 2026-09-14/15: the RDL earned its way 165 -> 210 in five sessions
+          // (+27% in three weeks) and flagged right-side low-back pain twice
+          // along the way. The first pass pulled the bar out of this slot; that
+          // was more conservative than the evidence — both flags were minor and
+          // neither lingered. The cause is legible: too much load too fast, at
+          // RPE 9, on the lift where fatigue rounds your back first. So we fix
+          // the cause. Load reset to 155, RPE capped at 7, a set cut, and a
+          // re-entry ladder in PROFILE.md. If it tweaks twice more, THEN the
+          // bar comes out — and the pull-through is a 🎲 away any day it's cranky.
+          id: "b1", movement: "barbell-rdl", name: "Barbell Romanian Deadlift", target: "Hamstrings / glutes / back", start: 155,
+          sets: 3, prescription: repRange(6, 8), rpe: "7", rest: "2–3 min", flags: ["hamstring", "leglength", "posture"], learn: true,
+          why: "The big posterior-chain builder, and you like it — that counts. Keeping the hips level here is direct anti-tightening work for your right side. It's back at a lighter load and a lower RPE cap on purpose: this lift punished you for grinding it, not for existing.",
+          cues: ["Soft knees, push the hips back", "Bar drags close to the legs", "Hips stay square — don't hike the right", "Flat back; stop when the hamstrings tension, BEFORE the back rounds", "Rack it at RPE 7 — the last rep should still look like the first"],
+          techNote: "Stop rule: any low-back sensation, the set is over — not the rep, the set. Log it and drop 20 lb next session. Cranky back day? 🎲 to the Hex-Bar RDL (load sits at your sides, much easier on the low back) or the Cable Pull-Through.",
+          alternatives: ["hex-bar-rdl", "cable-pull-through", "db-rdl", "machine-hip-thrust"],
         }),
         ex({
           id: "b2", movement: "lat-pulldown", name: "Pull-up / Lat Pulldown", target: "Lats / upper back", start: 120,

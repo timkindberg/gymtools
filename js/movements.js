@@ -62,6 +62,11 @@ const LIST = [
   m("db-rdl", "DB Romanian Deadlift", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge" }),
   m("single-leg-db-rdl", "Single-Leg DB RDL", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge", unilateral: true }),
   m("b-stance-rdl", "B-Stance RDL", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge", unilateral: true }),
+  // The hex/trap bar puts the load in line with your body instead of out in
+  // front of it, so the lever arm on the low back is much shorter. The
+  // friendliest way to keep hinging heavy when the back is the limiter.
+  m("hex-bar-rdl", "Hex-Bar RDL", { implement: "barbell", pattern: "hinge" }),
+  m("hex-bar-deadlift", "Hex-Bar Deadlift", { implement: "barbell", pattern: "hinge" }),
   m("back-extension-45", "45° Back Extension", { implement: "bodyweight", loadMode: "none", pattern: "hinge" }),
   m("cable-pull-through", "Cable Pull-Through", { implement: "cable", pattern: "hinge" }),
 
@@ -244,6 +249,8 @@ const LINKS = [
   ["barbell-overhead-press", "db-shoulder-press-seated", 1.7, "seated dumbbells press less than the standing bar"],
   // Hinge: grip, not the hamstrings, caps a dumbbell RDL.
   ["barbell-rdl", "db-rdl", 2.0, "the bar isn't grip-limited the way two dumbbells are"],
+  ["barbell-rdl", "hex-bar-rdl", 0.9, "the handles sit at your sides, so the hex bar usually lets you hold a little more"],
+  ["hex-bar-rdl", "hex-bar-deadlift", 0.85, "from the floor is the stronger position"],
   ["db-rdl", "single-leg-db-rdl", 1.6, "one leg at a time is a balance lift before it's a load lift"],
   // Squat pattern: the safety bar sits a touch below the straight bar.
   ["barbell-box-squat", "safety-bar-box-squat", 1.1, "the yoke shifts the load forward"],

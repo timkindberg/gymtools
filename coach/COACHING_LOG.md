@@ -5,6 +5,41 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-15 — The RDL stays; fix the cause, not the exercise
+
+Tim pushed back on yesterday's `b1` swap: he likes the RDL, and the pull-through
+is a narrower lift. He's right on the substance, and the swap is reverted.
+
+Re-reading his own flags: both were "tiny tweak," neither lingered, nothing
+radiating. Meanwhile the bar went **165 → 210 in five sessions (+27% in three
+weeks) at RPE 9** — on a hinge, at RPE 9, the back rounds, and that is where a
+tweak comes from. That is a load-and-fatigue problem with an obvious fix.
+Removing the lift treats it like a structural injury, which the evidence does
+not support. The rule this pass encodes: **eliminate a lift for sharp,
+radiating, or lingering pain; deload it for a tweak.**
+
+`b1` is the Barbell RDL again at **155, 3×6–8, RPE capped at 7** (was 4×6–8 at
+RPE 8) — load reset, a set removed, and an RPE ceiling that is the actual
+intervention. A re-entry ladder and red/yellow/green criteria are in
+`PROFILE.md`; the escalation is explicit (two more tweaks and the bar comes out
+for a full block, not a session).
+
+**Hex-Bar RDL and Hex-Bar Deadlift added to the registry**, and the hex bar is
+now `b1`'s first 🎲 option. He asked about it and it's a good instinct — the
+handles put the load in line with the body instead of out in front, so the lever
+arm on the lumbar spine is far shorter. Unverified whether Blue Ash has one; the
+Cable Pull-Through stays as the second 🎲 option either way. Seed ratios added
+(bar → hex 0.9, hex RDL → hex deadlift 0.85).
+
+Yesterday's engine-test expectation change is reverted with the slot: b1 is back
+at 6–8 reps, so the backup's `165×6` reads as "increase to 175" again.
+
+**Note for future sessions on the coach-adjustment mechanism:** an override is
+deliberately single-session (`getOverrides()` retires it as soon as the movement
+is trained again). So a multi-week plan like the re-entry ladder CANNOT live in
+an adjustment block — the durable part has to be the program edit plus this log.
+Adjustments are for "today's number is wrong," nothing longer.
+
 ## 2026-09-14 — Coverage audit: the four zeros, and the RDL comes off the bar
 
 First full muscle-group sweep of the program, prompted by Tim asking "any gaps?".
