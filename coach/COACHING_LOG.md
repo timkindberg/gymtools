@@ -5,6 +5,115 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-15 — The RDL stays; fix the cause, not the exercise
+
+Tim pushed back on yesterday's `b1` swap: he likes the RDL, and the pull-through
+is a narrower lift. He's right on the substance, and the swap is reverted.
+
+Re-reading his own flags: both were "tiny tweak," neither lingered, nothing
+radiating. Meanwhile the bar went **165 → 210 in five sessions (+27% in three
+weeks) at RPE 9** — on a hinge, at RPE 9, the back rounds, and that is where a
+tweak comes from. That is a load-and-fatigue problem with an obvious fix.
+Removing the lift treats it like a structural injury, which the evidence does
+not support. The rule this pass encodes: **eliminate a lift for sharp,
+radiating, or lingering pain; deload it for a tweak.**
+
+`b1` is the Barbell RDL again at **155, 3×6–8, RPE capped at 7** (was 4×6–8 at
+RPE 8) — load reset, a set removed, and an RPE ceiling that is the actual
+intervention. A re-entry ladder and red/yellow/green criteria are in
+`PROFILE.md`; the escalation is explicit (two more tweaks and the bar comes out
+for a full block, not a session).
+
+**Hex-Bar RDL and Hex-Bar Deadlift added to the registry**, and the hex bar is
+now `b1`'s first 🎲 option. He asked about it and it's a good instinct — the
+handles put the load in line with the body instead of out in front, so the lever
+arm on the lumbar spine is far shorter. Unverified whether Blue Ash has one; the
+Cable Pull-Through stays as the second 🎲 option either way. Seed ratios added
+(bar → hex 0.9, hex RDL → hex deadlift 0.85).
+
+Yesterday's engine-test expectation change is reverted with the slot: b1 is back
+at 6–8 reps, so the backup's `165×6` reads as "increase to 175" again.
+
+**Note for future sessions on the coach-adjustment mechanism:** an override is
+deliberately single-session (`getOverrides()` retires it as soon as the movement
+is trained again). So a multi-week plan like the re-entry ladder CANNOT live in
+an adjustment block — the durable part has to be the program edit plus this log.
+Adjustments are for "today's number is wrong," nothing longer.
+
+## 2026-09-14 — Coverage audit: the four zeros, and the RDL comes off the bar
+
+First full muscle-group sweep of the program, prompted by Tim asking "any gaps?".
+Graded every group on weekly **direct** sets. Most of the program graded well
+(quads A, hamstrings A, rotator cuff A, front delts A, lats A−). Four groups
+graded **F — literally zero sets**, and three of them were missing from the
+movement registry entirely, so they weren't even loggable:
+
+| Gap | Fix | New grade |
+| --- | --- | --- |
+| Calves / plantarflexion | `b8` Leg Press Calf Raise | F → B |
+| Side delts | `a7` DB Lateral Raise | F → A− |
+| Anti-extension core | `c10` Hanging Knee Raise | F → B |
+| Quad isolation | Leg Extension as a 🎲 option on `b4` | — |
+
+**The design constraint that shaped all three:** his sessions are ~50 min and
+the first one ran 1:10. Three new slots could not cost three new stations. Each
+one is therefore attached to the exercise before it — the calf raise is done in
+the same leg-press seat with the feet slid down, the lateral raise supersets the
+face pull in the same corner, the knee raise uses the same bar as the dead hang.
+Real cost ≈ 4 min/day.
+
+The side-delt hole was the most structural: the upright row was removed (it is
+THE confirmed right-shoulder aggravator) and **nothing ever took over its job**.
+A lateral raise is its safe replacement — arm stays below shoulder height, no
+internal rotation. It went on Monday on purpose, the day that never gets skipped.
+
+**Friday attendance corrected.** Tim reports he makes 2 of 3 to 3 of 4 Fridays
+(~70-75%), not the coin flip the program's comments assumed. That dissolved the
+audit's fourth finding — arms and glutes living only on Day C is acceptable at
+that rate — so nothing was moved off Friday, and Day C's note now says it is a
+real training day. Biceps/triceps at ~2.2 effective sets/week stays light; that
+is a known tradeoff against a 50-minute day, not an oversight.
+
+### The RDL: pain twice, so it stops being the b1 movement
+
+Right-side low-back pain flagged two sessions running (09-02, 09-11) after the
+bar went 165 → 210 in five sessions — roughly +27% in three weeks, fast even for
+a lift that was clearly under-loaded to begin with. Same side as the leg-length
+chain, so it is treated as related. The app's own verdict was "don't load it
+again"; this is the durable version of that.
+
+`b1` becomes **Cable Pull-Through**, 4×10–12 @ RPE 8, start 110. Same hinge,
+same hamstrings and glutes, load applied horizontally instead of stacked on the
+spine.
+
+**The bar is deliberately not a 🎲 option in that slot.** `prescriptionFor()`
+hands a swapped-in movement the SLOT's rep range, so a 🎲 back to the RDL would
+prescribe 10–12 reps on a lift whose load was built for 6 — the exact way to
+re-injure it. It returns by a program edit, at 165 with a hard 6-rep cap, after
+one clean block. Alternatives are `machine-hip-thrust` and `db-rdl`.
+
+That same inheritance rule moved a test expectation: `test/engine.test.js` reads
+the 2026-08-25 backup's RDL history through slot b1, which now asks 10–12 instead
+of 6–8, so `165×6` reads as "repeat 165, get to 10" rather than "increase to 175".
+The engine rule did not change; the range it was asked about did. Expectation
+updated with that note inline.
+
+### Also flagged to Tim from the same report (coach adjustments, not code)
+
+- **Both chest presses are being ground to RPE 10 against an RPE 8 target** and
+  both have stalled (bench 175 → 7/8/6/4 reps; DB incline 70 at failure). Nothing
+  else in the program is stalled. Backed both off.
+- **Leg curl and hip thrust are being sandbagged** — RPE 6 with 4+ left, and 1
+  and 2 working sets logged respectively against 3 programmed.
+- **Face pull 52.5 decays 20 → 17 → 13 across sets** — too heavy for a 15–20
+  range, dropped to 47.5.
+- **Suitcase carry regressed to 30 yd at RPE 7** — grip failing, not core.
+  Dropped to 50 to finish the distance; the new hangs/knee raises attack the
+  cause.
+- **Single-Arm DB Row: LEFT side harder in 2 of 3 sessions.** Worth watching —
+  his tight side is the right, so the weaker-arm side does not match the
+  asymmetry story and may be independent.
+
 ## 2026-08-29 — Migraines: flag the workout that caused one, don't get asked
 
 Tim: "I don't want the next workout session to ask me if I had a headache on the

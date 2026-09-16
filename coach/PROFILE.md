@@ -9,10 +9,13 @@
 - On Lexapro (SSRI). No blood-pressure or heart issues. Cleared to train.
 - Coming from Orange Theory; switching to a regular gym.
 - Trains at **Blue Ash Rec Center**, Ohio. Lunchtime, **~50 min**, 3×/week
-  (Mon / Wed / Fri). **Friday is the day he most often skips** — so Mon & Wed
-  must each be complete; Friday is a bonus day. Confirmed again 2026-08-29:
-  Friday stays a possible skip, so nothing essential may move onto it. He does
-  sometimes make it up on a weekend, when he has more time than a lunch break.
+  (Mon / Wed / Fri). **Friday attendance corrected 2026-09-14: he makes 2 of 3
+  to 3 of 4 Fridays (~70-75%)** — a real training day, not a coin flip. Earlier
+  notes calling it "the day he most often skips" understated it; Day C may
+  therefore carry work that matters (second chest press, arms, glutes), and only
+  work the week genuinely CANNOT do without stays off it. Mon & Wed must still
+  each be complete. He does sometimes make a missed Friday up on a weekend,
+  when he has more time than a lunch break.
 
 ## Experience & preferences
 - Solid technique with **dumbbells and machines**. Interested in **all of it**,
@@ -74,6 +77,25 @@ single-arm row 55, single-leg RDL 35, incline curl 30, triceps pushdown 40.
 These are STARTING anchors — expect to adjust session 1, then double-progression
 takes over. No biceps/triceps DB data given; those were estimated.
 
+## Muscle-group coverage audit (2026-09-14)
+Full sweep of every muscle group against weekly direct sets. Four zeros found;
+three now have a slot, each attached to a station he is already standing at so
+the cost is ~4 min/day rather than ~12:
+- **Calves** (was zero, program AND registry) → `b8` Leg Press Calf Raise, done
+  in the same seat as the single-leg press. Knee stays extended, so it never
+  enters the meniscus range.
+- **Side delts** (was zero) → `a7` DB Lateral Raise, supersetted with the face
+  pull on Monday, the never-skipped day. This is the job the banned upright row
+  used to do, without the impingement mechanics.
+- **Anti-extension core** (was zero — he had rotation and side-bending only)
+  → `c10` Hanging Knee Raise, on the same bar as the dead hang.
+- **Quad isolation** → Leg Extension (top half) added as a 🎲 option on `b4`.
+Deliberately still absent: direct hip abduction (heel lift is working; first
+thing to reinstate if right-side tightness trends up), shrugs/upper traps
+(carries and hangs cover the girdle for the minutes available), and chest
+flies (no slot they can honestly fill — a fly can't do a press slot's job, and
+an unreachable registry entry helps nobody).
+
 ## Goals
 1. Muscle & strength
 2. Fat loss (driven by diet/steps, since in-session cardio is minimal)
@@ -102,6 +124,36 @@ takes over. No biceps/triceps DB data given; those were estimated.
   cuff, keep form clean, autoregulate (his shoulder-press strength drops fast
   when the shoulder's tired — 40s fresh → 20–25 when tapped). No behind-the-neck.
   Keep the big dose of rotator-cuff + scapular work.
+- **Right low back (NEW, 2026-09-14).** Right-side low-back tweak flagged on the
+  Barbell RDL two sessions running (09-02 "tiny tweak, didn't linger", 09-11
+  "lower back right tweaked a bit"), after the bar climbed 165 → 210 in five
+  sessions (+27% in three weeks) at RPE 9. Same side as the leg-length chain.
+  Both flags were MINOR and neither lingered — this is a load-and-fatigue
+  problem, not a structural one.
+  → **The RDL stays in `b1`** (Tim pushed back 2026-09-15: he likes the lift, and
+  he was right — the first pass swapped it out, which was more conservative than
+  the evidence justified). Fixed at the cause instead: **155 lb, 3×6–8, RPE
+  capped at 7** (was 4×6–8 at RPE 8). Hex-Bar RDL and Cable Pull-Through are
+  🎲 options for cranky-back days.
+
+  **Re-entry ladder** — hold each rung until it's clean, never add more than
+  10 lb a session, and never push past RPE 8 on this lift again:
+  | Session | Load | Pass condition |
+  | --- | --- | --- |
+  | 1 | 155 × 3×6 | no back sensation during or next day |
+  | 2 | 165 × 3×6 | same |
+  | 3 | 175 × 3×6–8 | same |
+  | 4+ | +5–10/session, RPE 8 ceiling | normal double progression resumes |
+
+  **Traffic lights (the "am I ready" test):**
+  - 🟢 Nothing in the back during the set or the next morning → move up a rung.
+  - 🟡 Tightness or a pump that's gone by next morning → hold the load, don't add.
+  - 🔴 Sharp, pinching, anything radiating into the glute or down the leg, or
+    anything still there 24 h later → stop the SET (not the rep), log it, drop
+    20 lb. Radiating or lingering pain is a doctor/PT conversation, not a
+    load conversation.
+  - **Two more tweaks in a block → the bar comes out for real**, and then it's
+    the hex bar or the pull-through for a full block.
 - **Migraines.** Triggered by **very taxing sessions (onset ~5 h later) or
   alcohol.** He treats them (ibuprofen, massage) and **explicitly does NOT want
   the program watered down for them.** → program at normal hard intensity; the
