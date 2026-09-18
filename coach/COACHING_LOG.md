@@ -27,6 +27,21 @@ The "shares a station" design still holds; only the label and the sequence
 changed. `a7`/`a5` (lateral raise + face pull) remains a genuine superset —
 different implements, non-competing muscles.
 
+**Follow-on, same day:** Tim pointed out the arms would be fried by then, and he
+was right — the fix above was incomplete. The bar work sat at #8-9, AFTER the
+incline curls at RPE 10. Fixing the order within the pair while leaving arm
+failure work ahead of it solved nothing. `c10`/`c8` moved up to #5-6, ahead of
+the c5/c6 arm superset. Curls and pushdowns are isolation taken to failure and
+nothing in the session depends on them, so they belong last among the working
+lifts. General rule for this day: **anything grip-dependent goes before anything
+that trains the arms to failure.**
+
+Day C is now 10 slots against a ~50 min lunch break. The order is the safety
+valve — a short day drops the lateral lunge (optional, last), then the side
+plank, and the things that matter are already done. Worth watching in the next
+report whether Day C actually completes; if it doesn't, the day needs a cut, not
+a reshuffle.
+
 ## 2026-09-15 — The RDL stays; fix the cause, not the exercise
 
 Tim pushed back on yesterday's `b1` swap: he likes the RDL, and the pull-through
