@@ -5,6 +5,28 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-18 — The hang and the knee raise are not a superset
+
+Tim asked whether `c10`/`c8` were one compound movement or two — fair question,
+because the ⇄ S2 badge said superset and the order said otherwise.
+
+Two corrections:
+
+1. **Order flipped: knee raise first, hang second.** A superset pairs
+   NON-competing movements. These compete hard — both are grip-limited — so a
+   dead hang taken near failure would end the knee raises early. The knee raise
+   is the exercise being trained; the hang is a finisher and a decompression,
+   and it's the one that can safely run the grip to empty. Original order had
+   that exactly backwards.
+2. **Both lost the `ss: "S2"` badge.** You cannot alternate two exercises that
+   use the same bar and the same grip — that badge promised a work pattern the
+   pairing can't deliver. They are straight sets done back to back at one
+   station, which was always the real point (no second station, ~no setup).
+
+The "shares a station" design still holds; only the label and the sequence
+changed. `a7`/`a5` (lateral raise + face pull) remains a genuine superset —
+different implements, non-competing muscles.
+
 ## 2026-09-15 — The RDL stays; fix the cause, not the exercise
 
 Tim pushed back on yesterday's `b1` swap: he likes the RDL, and the pull-through
