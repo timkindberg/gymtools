@@ -7,7 +7,7 @@ import {
 } from "./program.js";
 import { getMovement, movementName, loadLabel } from "./movements.js";
 import {
-  measureInfo, prescriptionFor, formatSet, setAmount,
+  measureInfo, prescriptionFor, formatSet, setAmount, setLoad,
   isLogged, validateSet,
 } from "./measures.js";
 import { applyInferredRoles, roleLabel, roleOf, nextRole, lastWorkingIndex, topWorkingLoad } from "./sets.js";
@@ -1062,12 +1062,19 @@ function setRow(ctx, setData, si) {
     setData.done = !setData.done;
     check.classList.toggle("on", setData.done);
     check.innerHTML = setData.done ? "✓" : "";
-    // autofill blanks from placeholder-ish previous set
-    if (setData.done && setAmount(setData) == null && si > 0) {
-      const prev = entry.sets[si - 1];
-      const prevAmount = setAmount(prev);
-      if (prevAmount != null) { setData.amount = prevAmount; aInput.value = prevAmount; }
-      if (setData.weight == null && prev.weight != null) { setData.weight = prev.weight; wInput.value = prev.weight; }
+    // Ticking a blank row means "did what it said": the greyed-out placeholder
+    // becomes the real value, so the set counts as logged and the effort
+    // question appears. Previous set only when there's no placeholder.
+    if (setData.done) {
+      const prev = si > 0 ? entry.sets[si - 1] : null;
+      if (setData.weight == null) {
+        const w = ctx.phWeight != null ? ctx.phWeight : setLoad(prev);
+        if (w != null) { setData.weight = w; wInput.value = w; }
+      }
+      if (setAmount(setData) == null) {
+        const a = ctx.phAmount != null ? ctx.phAmount : setAmount(prev);
+        if (a != null) { setData.amount = a; aInput.value = a; }
+      }
     }
     store.saveDraft(draft);
     ctx.refreshRoles();
