@@ -874,6 +874,9 @@ function weekStart(date) {
 
 // Mean of the three joint/tightness trackers across a week's sessions — the
 // rolling trigger for a deload that the calendar hasn't reached yet.
+// The left wrist is deliberately NOT in here: it's a long-running, local
+// problem, and a sore forearm shouldn't deload his squat. It gates the
+// grip-loaded lifts through the "wrist" flag instead.
 const SYMPTOM_LOAD = ["knee", "tightness", "shoulder"];
 export const SYMPTOM_DELOAD_AT = 5;
 
@@ -1407,7 +1410,7 @@ export function coachReport() {
   const latest = sessions[0];
   if (latest.symptoms) {
     const s = latest.symptoms;
-    L.push(`- Latest check-in — knee ${s.knee ?? "—"}, right-side tightness ${s.tightness ?? "—"}, shoulder ${s.shoulder ?? "—"}, neck/head ${s.neck ?? "—"}, energy ${s.energy ?? "—"}, sleep ${s.sleep ?? "—"} (0=none/10=worst; energy & sleep 10=best)`);
+    L.push(`- Latest check-in — knee ${s.knee ?? "—"}, right-side tightness ${s.tightness ?? "—"}, shoulder ${s.shoulder ?? "—"}, left wrist ${s.wrist ?? "—"}, neck/head ${s.neck ?? "—"}, energy ${s.energy ?? "—"}, sleep ${s.sleep ?? "—"} (0=none/10=worst; energy & sleep 10=best)`);
   }
   const avg = (id) => {
     const vals = sessions.map((s) => s.symptoms && s.symptoms[id]).filter((v) => v != null);
@@ -1415,6 +1418,8 @@ export function coachReport() {
   };
   const at = avg("tightness");
   if (at != null) L.push(`- Right-side tightness averaging ${at}/10 across all sessions`);
+  const aw = avg("wrist");
+  if (aw != null) L.push(`- Left wrist/forearm averaging ${aw}/10 across the sessions that rated it (tracked since 2026-09-26)`);
   const migCount = sessions.filter((s) => migraineState(s) === true).length;
   const rated = sessions.filter((s) => migraineState(s) != null).length;
   if (rated) L.push(`- Migraines: ${migCount} of ${rated} rated sessions triggered one (logged as data, program not adjusted for it)`);

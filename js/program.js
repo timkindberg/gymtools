@@ -136,7 +136,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "a2", movement: "barbell-bench-press", name: "Barbell Bench Press", target: "Chest / triceps / shoulders", start: 135,
-          sets: 4, prescription: repRange(5, 8), rpe: "8", rest: "2 min", flags: ["shoulder"], ss: "S1", learn: true,
+          sets: 4, prescription: repRange(5, 8), rpe: "8", rest: "2 min", flags: ["shoulder", "wrist"], ss: "S1", learn: true,
           why: "The classic upper-body strength builder, and the bar lets you load heavier than dumbbells. We keep the shoulder happy with grip width and bar path, not by avoiding the lift.",
           cues: ["Grip so forearms are vertical at the bottom", "Elbows ~45–75°, not flared to 90°", "Touch the lower chest, drive up", "Shoulder blades pinned back and down"],
           techNote: "Use a spotter or the rack safeties. If the shoulder's cranky that day, 🎲 swap to the neutral-grip DB bench.",
@@ -144,7 +144,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "a3", movement: "chest-supported-db-row", name: "Chest-Supported DB Row", target: "Mid-back / posture", start: 50,
-          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "75s", flags: ["posture", "shoulder"], ss: "S1",
+          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "75s", flags: ["posture", "shoulder", "wrist"], ss: "S1",
           why: "The chest pad takes your low back out of it so you can pull hard into the muscles that fix rounded posture. Great non-competing superset partner for bench.",
           cues: ["Pull elbows toward your hips", "Squeeze the blades together, pause", "Don't shrug toward your ears"],
           alternatives: ["barbell-row", "seated-cable-row", "machine-row"],
@@ -253,7 +253,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "b7", movement: "suitcase-carry", name: "Suitcase Carry (optional if time)", target: "Anti-lateral-flexion core", start: 50,
-          sets: 2, prescription: distanceRange(40, 40, { perSide: true }), rpe: "8", rest: "60s", flags: ["leglength", "posture"],
+          sets: 2, prescription: distanceRange(40, 40, { perSide: true }), rpe: "8", rest: "60s", flags: ["leglength", "posture", "wrist"],
           why: "Loading one side forces your trunk to stay level — the exact frontal-plane control your uneven pelvis needs. Go heavy.",
           cues: ["Stand tall, shoulders level", "Don't lean away from the weight", "Slow, even steps"],
           alternatives: ["suitcase-hold", "side-plank"],
@@ -277,7 +277,7 @@ export const PROGRAM = {
         // renumbering c1–c8 to make this read tidily would misattribute history.
         ex({
           id: "c9", movement: "db-incline-press-neutral", name: "Neutral-Grip DB Incline Press", target: "Chest / front delts / triceps", start: 45,
-          sets: 4, prescription: repRange(8, 12), rpe: "8", rest: "90s", flags: ["shoulder"],
+          sets: 4, prescription: repRange(8, 12), rpe: "8", rest: "90s", flags: ["shoulder", "wrist"],
           why: "The reason this day is worth making. Monday's bench is your only chest work in a two-day week — 4 sets, and that's the whole dose. This is a second pressing exposure at a different angle, and frequency is what actually grows a press. Neutral grip and an incline keep the shoulder comfortable, and dumbbells are where you're strongest.",
           cues: ["Bench at ~30°, not steep — this is a chest press, not a shoulder press", "Palms facing each other the whole way", "Elbows tucked ~45°, stretch at the bottom", "Drive up and slightly together, don't clank the bells"],
           techNote: "First fresh, before the glutes and arms — this slot is the day's priority. You liked the barbell incline in session 1; it's a 🎲 swap away if you'd rather have the bar.",
@@ -293,7 +293,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "c3", movement: "db-row-single-arm", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
-          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "9", rest: "60s", flags: ["posture", "leglength"],
+          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "9", rest: "60s", flags: ["posture", "leglength", "wrist"],
           why: "Evens out left/right back strength and reinforces posture. Braced on a bench so the low back stays safe.",
           cues: ["Flat back, brace a hand on the bench", "Pull to the hip", "Don't rotate the torso to cheat", "Hold the bell like a hook, not a fist — the back pulls, the hand just hangs on", "Left side first, and the right matches the left's reps"],
           techNote: "2026-09-25: the inside of your LEFT elbow hurts on this one (and the left wrist flagged on cable curls back in August). That's the forearm-flexor tendon, and Day C loads it five exercises running. Use lifting straps here while it settles — they take the squeeze off that tendon without taking the back work away. Any sharp pain at the inside of the elbow during a set, the set is over; still there in two weeks, get it looked at.",
@@ -301,7 +301,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "c4", movement: "single-leg-db-rdl", name: "Single-Leg DB RDL", target: "Unilateral hinge / balance", start: 35,
-          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "60s", flags: ["hamstring", "leglength"],
+          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "60s", flags: ["hamstring", "leglength", "wrist"],
           why: "Loaded stretching for the right hamstring and glute plus a big balance and hip-control demand. Your hamstrings are tight whatever the heel lift is doing, so this one stays.",
           cues: ["Hinge on one leg, back leg reaches behind", "Hips stay level (don't let them open)", "Control beats load here"],
           techNote: "Your grip and shoulders give out before the hamstring does (2026-09-25) — that means the set is ending before the exercise has done its job. Straps. Let the arms hang long and loose; the shoulders aren't meant to be working here.",
@@ -321,7 +321,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "c8", movement: "dead-hang", name: "Dead Hang", target: "Grip / shoulder decompression",
-          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture"],
+          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture", "wrist"],
           why: "You were already doing these off-program (\"25 seconds, I need more callouses\") with nowhere to log them. A hang builds the grip your carries and rows run out of first, and lets the shoulder hang long — which the pressing days appreciate. Last thing on the bar, so it can go to the end of the grip.",
           cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
           techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't. With the knee raises now on the captain's chair, this is the only thing on the bar — expect the time to climb back toward 40s. If the inside of the left elbow talks during the hang, step down.",
@@ -329,7 +329,7 @@ export const PROGRAM = {
         }),
         ex({
           id: "c5", movement: "incline-db-curl", name: "Incline DB Curl", target: "Biceps", start: 30,
-          sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1",
+          sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
           why: "Arms — the stretched position is joint-friendly. Take them to failure, supersetted with pushdowns.",
           cues: ["Slow negative", "No swinging"],
           techNote: "Hammer curls have been going fine with the sore left elbow, so they stay the curl of choice while it settles. The row is where that tendon complains.",
@@ -372,6 +372,9 @@ export const SYMPTOMS = [
   { id: "knee", label: "Right knee", hint: "Meniscus — any pain, catching, swelling?", invert: false },
   { id: "tightness", label: "Right-side tightness", hint: "Hip / leg / back — how locked up is the right side today?", invert: false },
   { id: "shoulder", label: "Right shoulder", hint: "Wear — pinch, ache, weakness?", invert: false },
+  // Added 2026-09-26: a long-running left-wrist problem he hadn't mentioned,
+  // now joined by the inside of the left elbow. One tracker for the forearm.
+  { id: "wrist", label: "Left wrist / forearm", hint: "Wrist, and the inside of the left elbow — pain gripping, curling, pressing?", invert: false },
   { id: "neck", label: "Neck / headache", hint: "Right-side tension? (data only — won't change today's plan)", invert: false },
   { id: "energy", label: "Energy", hint: "How's the tank today? 10 = fully charged", invert: true },
   { id: "sleep", label: "Sleep", hint: "Last night. 10 = slept great", invert: true },
@@ -393,6 +396,7 @@ export const FLAG_LABELS = {
   hamstring: "hamstring/mobility",
   posture: "posture",
   leglength: "leg-length / asymmetry",
+  wrist: "wrist/grip-sensitive",
 };
 
 // The rotation: which day template to run on the Nth workout.

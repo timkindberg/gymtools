@@ -222,6 +222,7 @@ export const SYMPTOM_GATES = {
   neck: { symptom: "neck", at: 5, label: "neck" },
   leglength: { symptom: "tightness", at: 5, label: "right-side tightness" },
   hamstring: { symptom: "tightness", at: 5, label: "right-side tightness" },
+  wrist: { symptom: "wrist", at: 4, label: "left wrist" },
 };
 export const TANK_FLOOR = 3; // energy or sleep at or below this → hold the load
 

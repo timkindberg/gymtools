@@ -451,6 +451,7 @@ function symptomAlerts(symptoms) {
   const out = [];
   if ((symptoms.knee || 0) >= 4) out.push("Right knee is flaring — 🎲 swap to the lower-impact options, keep squat/press depth shallow, and skip deep loaded bends today.");
   if ((symptoms.tightness || 0) >= 5) out.push("Right side is locked up — give the Loosen-up routine extra time and keep your hips square on every hinge.");
+  if ((symptoms.wrist || 0) >= 4) out.push("Left wrist/forearm is cranky — straps on rows and single-leg RDLs, neutral-grip dumbbells over the bar for pressing, hammer curls, and skip the dead hang if it talks.");
   if ((symptoms.shoulder || 0) >= 4) out.push("Right shoulder is cranky — 🎲 swap barbell presses to the neutral-grip DB versions and add an extra cuff/face-pull warm-up set.");
   return out;
 }
@@ -1979,7 +1980,7 @@ async function changeEntryMovementFlow(session, entryIndex, entry, options) {
 }
 
 function worstSymptom(sym) {
-  return Math.max(sym.knee || 0, sym.tightness || 0, sym.shoulder || 0, sym.neck || 0);
+  return Math.max(sym.knee || 0, sym.tightness || 0, sym.shoulder || 0, sym.wrist || 0, sym.neck || 0);
 }
 
 // ---------------------------------------------------------------------------
