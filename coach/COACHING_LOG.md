@@ -5,6 +5,29 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-26 — Left wrist joins the check-in
+
+Tim: his left wrist "has been a problem for quite a while now" — it had never
+come up. Together with the medial-elbow note from 09-25 and the 08-29 wrist flag
+on cable curls, the whole left forearm needs watching, not just a row.
+
+- New symptom **`wrist` — "Left wrist / forearm"** in `SYMPTOMS` (wrist and
+  the inside of the elbow on one slider). It appears in the check-in, the
+  Progress symptom charts, the session card's worst-symptom badge, and the coach
+  report (latest value plus the average over sessions that rated it).
+- New flag `wrist`, with an engine gate at 4+ (`SYMPTOM_GATES`) that holds the
+  load. Tagged on a2, a3, b7, c3, c4, c5, c8, c9, the slots that load the wrist
+  in extension or depend on grip.
+- Check-in alert at 4+: straps, neutral-grip DBs over the bar, hammer curls,
+  and skip the hang.
+- **Not** added to the weekly symptom-load deload trigger, on purpose. A
+  chronic local wrist shouldn't deload the whole body.
+- Older sessions have no wrist rating and show "—". The average only counts
+  sessions that rated it.
+- Open question for next review: the wrist's history (which side of the wrist,
+  which positions hurt, whether it has been evaluated).
+- v39 → v40.
+
 ## 2026-09-26 — Re-file a logged exercise (the pull-ups filed as pulldowns)
 
 Right after the review, Tim mentioned that he's been doing **assisted pull-ups,

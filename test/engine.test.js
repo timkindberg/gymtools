@@ -441,3 +441,9 @@ test("missing RPE degrades to the reps-only reading, never to something worse", 
   assert.equal(quiet.weight, told.weight, "an RPE of 8 is what the engine already assumed");
   assert.doesNotMatch(quiet.basis, /RPE/);
 });
+
+test("a sore left wrist holds the load on wrist-flagged lifts only", () => {
+  assert.equal(symptomGate(["wrist"], { wrist: 4 }).label, "left wrist");
+  assert.equal(symptomGate(["wrist"], { wrist: 3 }), null);
+  assert.equal(symptomGate(["knee"], { wrist: 9 }), null);
+});

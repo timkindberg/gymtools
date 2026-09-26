@@ -159,6 +159,16 @@ an unreachable registry entry helps nobody).
   both Wednesdays since (175, then 185×8×3 at RPE 7, clean). The ladder still
   applies to the straight bar whenever he goes back to it; the hex bar
   progresses normally under the same RPE-8 ceiling.
+- **Left wrist (long-standing; first mentioned 2026-09-26).** Tim: "my left wrist
+  has been a problem for quite a while now" — he'd just never brought it up. It
+  showed in the log once already (cable curl with the rope, 2026-08-29: "pain in
+  left wrist"). Details still unknown: which side of the wrist, which grips or
+  positions set it off, whether it's ever been looked at. **Ask next review.**
+  → The check-in now has a **Left wrist / forearm** slider (0–10). At 4+ it
+  holds the load on every lift flagged `wrist` (bench, both inclines, both DB
+  rows, single-leg RDL, curls, dead hang, suitcase carry) and shows a
+  straps / neutral-grip / hammer-curl alert. It is deliberately left out of the
+  whole-body deload trigger.
 - **Left forearm / medial elbow (NEW, 2026-09-26).** "The inside of my left
   elbow hurts more" on the Single-Arm DB Row (2026-09-25), on top of a left-wrist
   flag on cable curls (2026-08-29). Same session: grip and shoulders gave out
