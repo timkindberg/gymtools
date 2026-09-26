@@ -456,6 +456,8 @@ textarea.input { resize: vertical; }
 .session-card summary { cursor: pointer; }
 .log-line { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .log-line:last-child { border-bottom: none; }
+.link-btn { background: none; border: none; padding: 0 4px; color: var(--accent); cursor: pointer; font: inherit; }
+.modal-choices { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
 .note { font-style: italic; margin-top: 8px; }
 .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
 .pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }

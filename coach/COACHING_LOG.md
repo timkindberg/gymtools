@@ -5,6 +5,29 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-26 — Re-file a logged exercise (the pull-ups filed as pulldowns)
+
+Right after the review, Tim mentioned that he's been doing **assisted pull-ups,
+not lat pulldowns, for the last 2-3 weeks**. They were logged under `b2`'s
+default, so the "Lat Pulldown" line in the report (150×10/10/8, "stalled") is
+actually assisted pull-up data. The 🎲 swap only exists mid-workout, so nothing
+in the app could fix a saved session.
+
+- **Progress → Log → details → ✎ next to an exercise** now re-files that entry
+  as one of its slot's other movements with the same measure
+  (`store.entryMovementOptions` / `store.changeEntryMovement`). It sets
+  `movementId`/`variant`, recomputes the prescription, and re-infers set roles,
+  because an assist stack reads "heavier" backwards. Roles he set by hand are
+  left alone.
+- Going from an unassisted movement to an assisted one, it asks whether the
+  numbers are **the assist on the machine** (kept as-is) or **the weight he
+  pulled** (converted to bodyweight − number).
+- New `choiceDialog` in ui.js. 4 new store tests (159 pass), and the flow was
+  checked in Chromium at phone width with no page errors. v38 → v39.
+
+Next report: read b2 as assisted pull-up. The report's 150 lb "stall" goes away
+once those sessions are re-filed.
+
 ## 2026-09-26 — Report review: Friday is eating the left forearm
 
 Report covered 2026-08-19 → 09-25, 17 sessions (13 in the last four weeks).
