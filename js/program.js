@@ -116,7 +116,7 @@ export const MOBILITY_ROUTINE = {
 
 export const PROGRAM = {
   name: "Tim's Rebuild — MWF Full Body",
-  updated: "2026-09-14",
+  updated: "2026-09-26",
   days: [
     // ---------------------------------------------------------------- MONDAY
     {
@@ -295,7 +295,8 @@ export const PROGRAM = {
           id: "c3", movement: "db-row-single-arm", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
           sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "9", rest: "60s", flags: ["posture", "leglength"],
           why: "Evens out left/right back strength and reinforces posture. Braced on a bench so the low back stays safe.",
-          cues: ["Flat back, brace a hand on the bench", "Pull to the hip", "Don't rotate the torso to cheat"],
+          cues: ["Flat back, brace a hand on the bench", "Pull to the hip", "Don't rotate the torso to cheat", "Hold the bell like a hook, not a fist — the back pulls, the hand just hangs on", "Left side first, and the right matches the left's reps"],
+          techNote: "2026-09-25: the inside of your LEFT elbow hurts on this one (and the left wrist flagged on cable curls back in August). That's the forearm-flexor tendon, and Day C loads it five exercises running. Use lifting straps here while it settles — they take the squeeze off that tendon without taking the back work away. Any sharp pain at the inside of the elbow during a set, the set is over; still there in two weeks, get it looked at.",
           alternatives: ["chest-supported-db-row", "seated-cable-row"],
         }),
         ex({
@@ -303,22 +304,27 @@ export const PROGRAM = {
           sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "60s", flags: ["hamstring", "leglength"],
           why: "Loaded stretching for the right hamstring and glute plus a big balance and hip-control demand. Your hamstrings are tight whatever the heel lift is doing, so this one stays.",
           cues: ["Hinge on one leg, back leg reaches behind", "Hips stay level (don't let them open)", "Control beats load here"],
+          techNote: "Your grip and shoulders give out before the hamstring does (2026-09-25) — that means the set is ending before the exercise has done its job. Straps. Let the arms hang long and loose; the shoulders aren't meant to be working here.",
           alternatives: ["b-stance-rdl", "back-extension-45"],
         }),
         ex({
-          id: "c10", movement: "hanging-knee-raise", name: "Hanging Knee Raise", target: "Anti-extension core / grip",
-          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "60s", flags: ["posture"],
-          why: "Your core work covered rotation (Pallof) and side-bending (carries, side plank) and nothing at all in the front-to-back plane. This fills it — and it costs no extra station, because the dead hang right after uses the same bar.",
-          cues: ["Hang tall, shoulders active", "Curl the pelvis up — knees to chest, not just hips to 90°", "Lower slowly, don't drop and swing", "Stop the set when you start swinging"],
-          techNote: "This goes BEFORE the dead hang on purpose: both live off your grip, and a hang taken near failure would end your knee raises early. Train the abs first, then hang. Both now sit BEFORE the curls — curling to failure first would leave you nothing to hang with. 🎲 to a plank or dead bug once the grip is cooked.",
-          alternatives: ["plank", "dead-bug", "ab-wheel-rollout"],
+          // 2026-09-26: default moved off the bar. The hanging version pinched
+          // un-callused hands (8 reps then towels on 2026-09-25) and spent the
+          // grip the dead hang is there to build — the hang fell 40s -> 25s.
+          // The job of the slot is the abs; the chair does that without the grip.
+          id: "c10", movement: "captains-chair-knee-raise", name: "Captain's Chair Knee Raise", target: "Anti-extension core",
+          sets: 3, prescription: repRange(10, 15), rpe: "9", rest: "60s", flags: ["posture"],
+          why: "Your core work covered rotation (Pallof) and side-bending (carries, side plank) and nothing at all in the front-to-back plane. This fills it. Forearms on the pads means your abs end the set, not your hands — last Friday the hanging version was a grip test with an ab exercise attached. Most power towers have the chair right under the pull-up bar, so the dead hang is still the same station.",
+          cues: ["Back flat against the pad, forearms pressed down", "Curl the pelvis up — knees to chest, not just hips to 90°", "Lower slowly, don't swing", "Exhale on the way up"],
+          techNote: "No chair free? 🎲 back to the hanging version — towels on the bar are fine. Once 15 are easy, straighten the legs a little or hold a light DB between the feet.",
+          alternatives: ["hanging-knee-raise", "plank", "dead-bug", "ab-wheel-rollout"],
         }),
         ex({
           id: "c8", movement: "dead-hang", name: "Dead Hang", target: "Grip / shoulder decompression",
           sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture"],
           why: "You were already doing these off-program (\"25 seconds, I need more callouses\") with nowhere to log them. A hang builds the grip your carries and rows run out of first, and lets the shoulder hang long — which the pressing days appreciate. Last thing on the bar, so it can go to the end of the grip.",
           cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
-          techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't. Stay at the bar from the knee raises — same station, no setup.",
+          techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't. With the knee raises now on the captain's chair, this is the only thing on the bar — expect the time to climb back toward 40s. If the inside of the left elbow talks during the hang, step down.",
           alternatives: ["weighted-dead-hang"],
         }),
         ex({
@@ -326,6 +332,7 @@ export const PROGRAM = {
           sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1",
           why: "Arms — the stretched position is joint-friendly. Take them to failure, supersetted with pushdowns.",
           cues: ["Slow negative", "No swinging"],
+          techNote: "While the inside of the left elbow is sore, 🎲 Hammer Curl is the friendliest curl for it, and stop one rep short of failure on the left. Failure isn't worth a tendon.",
           alternatives: ["cable-curl", "hammer-curl", "barbell-curl"],
         }),
         ex({
@@ -339,7 +346,8 @@ export const PROGRAM = {
           id: "c7", movement: "side-plank", name: "Side Plank", target: "Anti-lateral-flexion core",
           sets: 2, prescription: timeRange(30, 45, { perSide: true }), rpe: "8", rest: "45s", flags: ["leglength", "posture"],
           why: "Trains the side of the trunk to hold you level — frontal-plane core that supports the pelvis.",
-          cues: ["Straight line head to heels", "Hips up, don't sag", "Breathe"],
+          cues: ["Elbow directly under the shoulder — not out in front", "Push the floor away so the shoulder blade stays wide", "Straight line head to heels, hips up", "Breathe"],
+          techNote: "If the shoulder quits before the side of your waist burns (your left did, 2026-09-25), the elbow has drifted forward of the shoulder or you're sinking into the joint. Fix the stack before chasing seconds.",
           alternatives: ["suitcase-hold", "copenhagen-plank"],
         }),
         ex({

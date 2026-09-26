@@ -5,6 +5,71 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-26 — Report review: Friday is eating the left forearm
+
+Report covered 2026-08-19 → 09-25, 17 sessions (13 in the last four weeks).
+Symptoms are the best they've been: knee 0, shoulder 0, right-side tightness
+averaging 0.7/10. No back flags since 09-11 — he's been on the Hex-Bar RDL both
+Wednesdays since, 185×8×3 at RPE 7, clean. Day C was completed in full on 09-25,
+lateral lunge included, so it doesn't need a cut.
+
+### The finding: Day C runs the grip into the ground, and the left elbow is paying
+
+09-25 notes, read together: inside of the LEFT elbow hurts on the single-arm row;
+grip and shoulders give out before the hamstrings on the single-leg RDL; the
+hanging knee raise pinched so badly he got 8 reps and then put towels on the bar;
+the dead hang fell 40s → 25s at RPE 10; the left shoulder quit the side plank
+before the core did. Add the 08-29 left-wrist flag on cable curls. Friday runs
+single-arm row → single-leg RDL → hanging knee raise → dead hang → curls to
+failure — five grip-limited movements back to back — and the left forearm-flexor
+tendon is where it shows up.
+
+Changes (`js/program.js`, Day C only; slot ids unchanged):
+
+- **`c10` → Captain's Chair Knee Raise** (new registry entry,
+  `captains-chair-knee-raise`), 3×10–15. Same anti-extension job with the
+  forearms on pads, so the abs end the set instead of the hands. Most power
+  towers put the chair under the pull-up bar, so it still shares a station with
+  the hang. Hanging Knee Raise is the first 🎲 option. Its history stays under its
+  own movement.
+- **`c8` Dead Hang** is now the only thing on the bar; expect it back toward 40s.
+- **`c3` Single-Arm DB Row:** straps while the elbow settles, hook-grip cue,
+  left side first, stop rule for sharp medial-elbow pain, two weeks → PT.
+- **`c4` Single-Leg DB RDL:** straps; the set was ending on grip, not hamstring.
+- **`c5` curls:** hammer curl preferred while the elbow is sore, one short of
+  failure on the left.
+- **`c7` Side Plank:** stacking cues (elbow under shoulder, push the floor away).
+  The app is calling a 3-session stall; the left-shoulder note says it's a setup
+  problem, not a core one.
+- PROFILE.md: new left forearm / medial elbow entry; RDL status note.
+- v37 → v38. 155 tests pass, `validateProgram()` clean.
+
+### Coach adjustments given (next session only)
+
+- **Barbell Bench Press 170×6.** 165×8 on all four sets; the RPE 10 on set 4 is
+  fatigue from three sets before it, not a ceiling. 170×6 is about the same
+  effort as 165×8, and it breaks the "repeat forever" loop.
+- **Barbell Hip Thrust 225×10.** 205×12 at RPE 7/7/8 — sandbagged again, as on
+  09-14. Two plates a side.
+- **Chest-Supported DB Row 80×10.** 75×12 at RPE 6/7/8; the 7% dumbbell step
+  fits that much room. (The single-arm row stays at 75 because of the elbow.)
+- Barbell RDL 155×6 override left in place: it's rung 1 of the ladder and fires
+  whenever he goes back to the straight bar.
+
+Everything else was left to the engine: its calls (face-pull deload to 40,
+shoulder press to 50×8, hex bar to 195, box squat to 205, lateral lunge and
+SL-RDL to 35) all match the data.
+
+### Things to watch next report
+
+- The left elbow. Clean in two weeks → drop the straps. Not clean → PT.
+- Face pull regressed after 09-14, when the lateral raise was supersetted in
+  front of it — pre-fatigued rear/side delts. If the deload doesn't fix it,
+  do the face pull first in the pair.
+- Presses still end at RPE 10 (bench, both inclines, pulldown). Fine on one set;
+  it becomes a stall if it's every week.
+- Dead hang time with the knee raises moved off the bar.
+
 ## 2026-09-18 — The hang and the knee raise are not a superset
 
 Tim asked whether `c10`/`c8` were one compound movement or two — fair question,

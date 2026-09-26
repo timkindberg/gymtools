@@ -159,6 +159,11 @@ const LIST = [
   // Anti-extension: the plane the core work was missing entirely. The hanging
   // version shares the bar with the dead hang, so it costs one station, not two.
   m("hanging-knee-raise", "Hanging Knee Raise", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
+  // Forearms on pads, back on a backrest: the same knee raise with the grip taken
+  // out of it (2026-09-26 — Day C was running his grip and left elbow into the
+  // ground). Most power towers put this under the pull-up bar, so it still
+  // shares a station with the dead hang.
+  m("captains-chair-knee-raise", "Captain's Chair Knee Raise", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
   m("plank", "Plank", { implement: "bodyweight", loadMode: "none", measure: "time", pattern: "anti-extension" }),
   m("dead-bug", "Dead Bug", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
   m("ab-wheel-rollout", "Ab Wheel Rollout", { implement: "bodyweight", loadMode: "none", pattern: "anti-extension" }),
