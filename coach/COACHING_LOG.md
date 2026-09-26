@@ -5,6 +5,25 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-26 — The wrist is pinky-side: curls go neutral
+
+Tim's details: the pain is on the **pinky side** of the left wrist, and it
+doesn't like regular DB curls. A doctor said it would improve, and it has,
+enough to train on. He has a brace he couldn't name; almost certainly the
+WristWidget, which is built for ulnar-sided (TFCC-type) wrist pain.
+
+- **`c5` default → Hammer Curl** (was Incline DB Curl, which is palms-up). He'd
+  already moved to hammers himself, and they feel fine. The incline curl stays as a
+  🎲 option for quiet days. **Barbell curl removed**: it locks the forearm
+  palms-up. The cable curl stays (a straight handle; the 08-29 flag was with the rope).
+- **`c6` rope pushdown:** gets the `wrist` flag, plus a cue not to spread the
+  rope at the bottom. That spread bends the wrist toward the pinky, which is
+  exactly the sore side.
+- Symptom hint now says "pinky side", and the 4+ alert mentions the WristWidget.
+- PROFILE.md rewritten with the details and a back-to-the-doctor rule (sharp
+  pain, clicking, or grip loss).
+- v40 → v41.
+
 ## 2026-09-26 — Left wrist joins the check-in
 
 Tim: his left wrist "has been a problem for quite a while now" — it had never
