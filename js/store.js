@@ -576,6 +576,54 @@ export function confirmSuspectSet(sessionId, entryIndex, setIndex) {
   });
 }
 
+// ---- Logged as the wrong movement --------------------------------------------
+// The 🎲 swap only exists mid-workout, so an entry saved under the slot's
+// default when he actually did one of its alternatives (weeks of assisted
+// pull-ups filed as Lat Pulldown) had no way out. These re-file it.
+
+// What this entry could honestly have been instead: its slot's movement and 🎲
+// options, measured the same way, so the logged numbers keep their meaning.
+export function entryMovementOptions(entry) {
+  const slot = findExercise(entry && entry.exerciseId);
+  const current = getMovement(entry && entry.movementId);
+  if (!slot || !current) return [];
+  return [slot.movement, ...(slot.alternatives || [])]
+    .filter((slug, i, all) => all.indexOf(slug) === i && slug !== current.slug)
+    .filter((slug) => { const mv = getMovement(slug); return mv && mv.measure === current.measure; });
+}
+
+// Re-file one logged entry as another movement. `assistFrom` is for the case
+// where the number written down was the weight actually pulled rather than the
+// assist the machine was set to: each load becomes `assistFrom - load`, so pass
+// bodyweight. Leave it out when the numbers already are the assist.
+export function changeEntryMovement(sessionId, entryIndex, movementId, { assistFrom = null } = {}) {
+  const mv = getMovement(movementId);
+  const d = load();
+  const session = d.sessions.find((x) => x.id === sessionId);
+  const entry = session && (session.entries || [])[entryIndex];
+  if (!entry || !mv) return null;
+  const from = getMovement(entry.movementId);
+  if (from && from.measure !== mv.measure) return null;
+  const slot = findExercise(entry.exerciseId);
+  if (assistFrom != null && Number(assistFrom) > 0) {
+    (entry.sets || []).forEach((set) => {
+      const w = setLoad(set);
+      if (w != null) set.weight = Math.max(0, Number(assistFrom) - w);
+    });
+  }
+  entry.movementId = mv.slug;
+  entry.variant = slot && slot.movement === mv.slug ? null : mv.slug;
+  entry.variantName = null;
+  entry.measure = mv.measure;
+  entry.loadMode = mv.loadMode;
+  entry.prescription = prescriptionFor(slot, mv);
+  // Roles were inferred for the old movement (an assist stack reads "heavier"
+  // backwards), so infer again; anything he set by hand stays as he set it.
+  applyInferredRoles(entry.sets || [], entry.prescription, mv);
+  save();
+  return entry;
+}
+
 // ---- Suggestion -------------------------------------------------------------
 // The store's job here is only to assemble history and hand it to the engine
 // (js/engine.js, issues #7–#9), which owns every decision and is pure enough to

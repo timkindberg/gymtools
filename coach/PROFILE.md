@@ -154,6 +154,24 @@ an unreachable registry entry helps nobody).
     load conversation.
   - **Two more tweaks in a block → the bar comes out for real**, and then it's
     the hex bar or the pull-through for a full block.
+
+  **Status 2026-09-26:** no back flags since 09-11. He's taken the 🎲 Hex-Bar RDL
+  both Wednesdays since (175, then 185×8×3 at RPE 7, clean). The ladder still
+  applies to the straight bar whenever he goes back to it; the hex bar
+  progresses normally under the same RPE-8 ceiling.
+- **Left forearm / medial elbow (NEW, 2026-09-26).** "The inside of my left
+  elbow hurts more" on the Single-Arm DB Row (2026-09-25), on top of a left-wrist
+  flag on cable curls (2026-08-29). Same session: grip and shoulders gave out
+  before the hamstrings on the single-leg RDL, the hanging knee raise pinched,
+  and the dead hang fell 40s → 25s. Read: Day C stacks five grip-heavy movements
+  in a row and the forearm-flexor tendon on the left is taking it. Minor, not
+  structural yet. Tim (2026-09-26): he'd already moved to hammer curls and they
+  feel fine — it's the tendon itself that's "just not so happy", and the row is
+  where it shows. → Knee raise moved to the captain's chair (no grip), straps on
+  the SA row and SL-RDL, hammer curls stay. Stop the set on sharp pain at the inside of the
+  elbow; still there in two weeks → doctor/PT. Note his left is also the side
+  that loses on the SA row (4 of 5 sessions) — independent of the right-side
+  leg-length chain.
 - **Migraines.** Triggered by **very taxing sessions (onset ~5 h later) or
   alcohol.** He treats them (ibuprofen, massage) and **explicitly does NOT want
   the program watered down for them.** → program at normal hard intensity; the
@@ -161,6 +179,14 @@ an unreachable registry entry helps nobody).
   himself, after the fact, on the session that caused one (one tap on its recap
   card) — the app does not ask about the last workout before the next one. A
   session left unflagged a day out counts as migraine-free.
+
+## Logging conventions
+- **Assisted pull-ups:** he writes down the weight he actually pulled
+  (bodyweight − assist), not the number on the assist dial (confirmed
+  2026-09-26). The app's Assisted Pull-up movement treats the logged number as
+  the assist, where more means easier. So re-file old entries with "What I
+  pulled", and going forward either log the dial number or read the report
+  knowing which one it is.
 
 ## Coaching loop (how Claude stays his trainer)
 - Daily: he uses the PWA (check-in → lift → log). App auto-progresses loads.

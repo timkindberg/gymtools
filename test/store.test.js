@@ -522,3 +522,52 @@ test("a session logged today isn't counted as migraine-free before the window is
   store.importData(data);
   assert.equal(store.migraineInsight().ratedCount, 2);
 });
+
+// ---- Re-filing an entry logged as the wrong movement -----------------------
+
+const b2Entry = () => {
+  const s = store.getSessions().find((x) => x.id === "s1");
+  const entryIndex = s.entries.findIndex((e) => e.exerciseId === "b2");
+  return { s, entryIndex, entry: s.entries[entryIndex] };
+};
+
+test("a logged entry offers its slot's other movements, measured the same way", () => {
+  fresh();
+  const { entry } = b2Entry();
+  const options = store.entryMovementOptions(entry);
+  assert.ok(options.includes("assisted-pull-up"));
+  assert.ok(!options.includes("lat-pulldown"), "not the movement it already is");
+  for (const slug of options) assert.equal(getMovement(slug).measure, "reps");
+});
+
+test("re-filing pulldowns as assisted pull-ups moves the history with them", () => {
+  fresh();
+  const { s, entryIndex } = b2Entry();
+  store.changeEntryMovement(s.id, entryIndex, "assisted-pull-up");
+  const { entry } = b2Entry();
+  assert.equal(entry.movementId, "assisted-pull-up");
+  assert.equal(entry.variant, "assisted-pull-up");
+  assert.equal(store.entryName(entry), "Assisted Pull-up");
+  assert.deepEqual(entry.sets.map((x) => x.weight), [140, 160, 160], "numbers kept as the assist");
+  assert.equal(store.lastPerformance("lat-pulldown"), null);
+  assert.equal(store.lastPerformance("assisted-pull-up").date, s.date);
+  // Heavier assist is the easier set, so the 140 is now the working set.
+  assert.deepEqual(entry.sets.map((x) => x.role), ["work", "backoff", "backoff"]);
+});
+
+test("numbers written as weight pulled convert to assist from bodyweight", () => {
+  fresh();
+  const { s, entryIndex } = b2Entry();
+  store.changeEntryMovement(s.id, entryIndex, "assisted-pull-up", { assistFrom: 235 });
+  assert.deepEqual(b2Entry().entry.sets.map((x) => x.weight), [95, 75, 75]);
+});
+
+test("re-filing back to the slot's own movement clears the variant", () => {
+  fresh();
+  const { s, entryIndex } = b2Entry();
+  store.changeEntryMovement(s.id, entryIndex, "assisted-pull-up");
+  store.changeEntryMovement(s.id, entryIndex, "lat-pulldown");
+  const { entry } = b2Entry();
+  assert.equal(entry.movementId, "lat-pulldown");
+  assert.equal(entry.variant, null);
+});

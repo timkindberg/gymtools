@@ -236,6 +236,25 @@ export function confirmDialog(message, { okText = "OK", cancelText = "Cancel", d
   });
 }
 
+// choice dialog (promise) — one button per option; resolves to the picked
+// option's value, or null on cancel.
+export function choiceDialog(message, options, { cancelText = "Cancel" } = {}) {
+  return new Promise((resolve) => {
+    const overlay = el("div.modal-overlay", { onclick: (e) => { if (e.target === overlay) done(null); } });
+    const box = el("div.modal", {}, [
+      el("p.modal-msg", { text: message }),
+      el("div.modal-choices", {}, options.map((o) =>
+        el("button.btn.ghost", { text: o.label, onclick: () => done(o.value) }))),
+      el("div.modal-actions", {}, [
+        el("button.btn.ghost", { text: cancelText, onclick: () => done(null) }),
+      ]),
+    ]);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    function done(v) { overlay.remove(); resolve(v); }
+  });
+}
+
 // prompt dialog (promise) — resolves to the entered string, or null on cancel.
 export function promptDialog(message, { value = "", okText = "Save", cancelText = "Cancel", inputmode = "numeric", suffix = "" } = {}) {
   return new Promise((resolve) => {

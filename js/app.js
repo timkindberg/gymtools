@@ -23,7 +23,7 @@ import * as sync from "./sync.js";
 import { APP_VERSION, BUILD_DATE } from "./version.js";
 import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, sparkline, barChart, severityBar,
-  route, startRouter, navigate, toast, confirmDialog, promptDialog, currentRoute, keepScroll,
+  route, startRouter, navigate, toast, confirmDialog, promptDialog, choiceDialog, currentRoute, keepScroll,
 } from "./ui.js";
 
 const app = document.getElementById("app");
@@ -1907,11 +1907,18 @@ function sessionSummaryCard(s, withDelete) {
 
   const det = el("details");
   det.appendChild(el("summary.muted.small", { text: "details" }));
-  (s.entries || []).forEach((e) => {
+  (s.entries || []).forEach((e, entryIndex) => {
     if (!e.sets || !e.sets.length) return;
     const mv = getMovement(e.movementId);
+    const options = withDelete ? store.entryMovementOptions(e) : [];
     det.appendChild(el("div.log-line", { title: "↗ ramp-up · ↘ back-off · ✗ failed opener · @n RPE" }, [
-      el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") + (harderSide(e) ? ` (${harderSide(e)} harder)` : "") }),
+      el("span", {}, [
+        el("span", { text: store.entryName(e) + (e.pain ? " ⚠︎" : "") + (harderSide(e) ? ` (${harderSide(e)} harder)` : "") }),
+        options.length ? el("button.link-btn.small", {
+          text: " ✎", title: "Logged as the wrong exercise? Change it",
+          onclick: () => changeEntryMovementFlow(s, entryIndex, e, options),
+        }) : null,
+      ]),
       el("span.muted.small", { text: e.sets.map((x) => setText(mv, x) + (x.suspect ? " ⚠︎" : "")).join(", ") }),
     ]));
   });
@@ -1940,6 +1947,37 @@ function sessionSummaryCard(s, withDelete) {
   card.appendChild(det);
   return card;
 }
+// "I did assisted pull-ups, not pulldowns." Pick what it really was; if that
+// crosses into an assisted movement, check what the numbers mean first.
+async function changeEntryMovementFlow(session, entryIndex, entry, options) {
+  const slug = await choiceDialog(
+    `${fmtDate(session.date)}: this was logged as ${store.entryName(entry)}. What did you actually do?`,
+    options.map((o) => ({ value: o, label: movementName(o, o) })),
+  );
+  if (!slug) return;
+  const from = getMovement(entry.movementId);
+  const to = getMovement(slug);
+  let assistFrom = null;
+  const loads = (entry.sets || []).map((x) => x.weight).filter((w) => w != null && w !== "");
+  if (to && to.assisted && from && !from.assisted && loads.length) {
+    const bw = store.getBodyweight().at(-1);
+    const asAssist = await confirmDialog(
+      `You wrote ${loads.join(", ")} ${units()}. Is that the assist you set on the machine, or the weight you actually pulled?`,
+      { okText: "The assist", cancelText: "What I pulled" },
+    );
+    if (!asAssist) {
+      const v = await promptDialog("Your bodyweight that day? The assist becomes bodyweight minus what you wrote.", {
+        value: bw ? bw.weight : "", suffix: units(),
+      });
+      if (v == null) return;
+      assistFrom = Number(v);
+    }
+  }
+  store.changeEntryMovement(session.id, entryIndex, slug, { assistFrom });
+  toast(`Now filed as ${movementName(slug, slug)}`);
+  refreshCurrent();
+}
+
 function worstSymptom(sym) {
   return Math.max(sym.knee || 0, sym.tightness || 0, sym.shoulder || 0, sym.neck || 0);
 }
