@@ -328,18 +328,24 @@ export const PROGRAM = {
           alternatives: ["weighted-dead-hang"],
         }),
         ex({
-          id: "c5", movement: "incline-db-curl", name: "Incline DB Curl", target: "Biceps", start: 30,
+          // 2026-09-26: hammer curl is the default now. His left wrist hurts on
+          // the pinky side and doesn't like palms-up curls. The supinated
+          // curls twist load through exactly that side, and the barbell curl
+          // locks it there, so the barbell curl is off the list. He'd already
+          // moved to hammers on his own, and they feel fine.
+          id: "c5", movement: "hammer-curl", name: "Hammer Curl", target: "Biceps / brachialis / forearm", start: 30,
           sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
-          why: "Arms — the stretched position is joint-friendly. Take them to failure, supersetted with pushdowns.",
-          cues: ["Slow negative", "No swinging"],
-          techNote: "Hammer curls have been going fine with the sore left elbow, so they stay the curl of choice while it settles. The row is where that tendon complains.",
-          alternatives: ["cable-curl", "hammer-curl", "barbell-curl"],
+          why: "Arms, with the palms facing each other the whole way. Your left wrist hurts on the pinky side and doesn't like palms-up curls, and a neutral grip keeps the wrist from rotating under load. Hammers also build the brachialis and forearm, which make an arm look thick from the side. Take them to failure, supersetted with the triceps work.",
+          cues: ["Thumbs up the whole rep — don't let the wrist roll", "Wrist straight, not cocked toward the pinky", "Slow negative, no swinging"],
+          techNote: "Wear the WristWidget on the left. The Incline DB Curl is still a 🎲 away, but only on days the wrist is quiet — it's palms-up.",
+          alternatives: ["incline-db-curl", "cable-curl"],
         }),
         ex({
           id: "c6", movement: "triceps-rope-pushdown", name: "Triceps Rope Pushdown", target: "Triceps", start: 40,
-          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", ss: "S1",
+          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
           why: "Rounds out arm work, shoulder-friendly. Failure is fine here.",
-          cues: ["Elbows pinned to your sides", "Full lockout, slow return"],
+          cues: ["Elbows pinned to your sides", "Full lockout, slow return", "Don't yank the rope ends apart at the bottom — that bends the wrist toward the pinky"],
+          techNote: "The rope's spread at lockout bends the wrist toward the pinky side, which is the side that's sore. Stop the rope at shoulder-width, or 🎲 to the DB skull-crusher, which you've been doing anyway.",
           alternatives: ["db-skullcrusher", "overhead-rope-extension"],
         }),
         ex({
@@ -374,7 +380,7 @@ export const SYMPTOMS = [
   { id: "shoulder", label: "Right shoulder", hint: "Wear — pinch, ache, weakness?", invert: false },
   // Added 2026-09-26: a long-running left-wrist problem he hadn't mentioned,
   // now joined by the inside of the left elbow. One tracker for the forearm.
-  { id: "wrist", label: "Left wrist / forearm", hint: "Wrist, and the inside of the left elbow — pain gripping, curling, pressing?", invert: false },
+  { id: "wrist", label: "Left wrist / forearm", hint: "Pinky side of the wrist, and the inside of the left elbow — pain gripping, curling, pressing?", invert: false },
   { id: "neck", label: "Neck / headache", hint: "Right-side tension? (data only — won't change today's plan)", invert: false },
   { id: "energy", label: "Energy", hint: "How's the tank today? 10 = fully charged", invert: true },
   { id: "sleep", label: "Sleep", hint: "Last night. 10 = slept great", invert: true },

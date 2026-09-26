@@ -162,8 +162,18 @@ an unreachable registry entry helps nobody).
 - **Left wrist (long-standing; first mentioned 2026-09-26).** Tim: "my left wrist
   has been a problem for quite a while now" — he'd just never brought it up. It
   showed in the log once already (cable curl with the rope, 2026-08-29: "pain in
-  left wrist"). Details still unknown: which side of the wrist, which grips or
-  positions set it off, whether it's ever been looked at. **Ask next review.**
+  left wrist").
+  **Pinky (ulnar) side.** Palms-up curls bother it (regular DB curls, for
+  example). A doctor looked at it and said it would get better. It has improved
+  enough to train on, but not fully. He owns a brace for it, almost certainly the
+  **WristWidget** (a band for ulnar-sided / TFCC-type wrist pain; that's our
+  inference, not a diagnosis he gave). Things that load that side: forearm
+  rotation under load (supinated curls), bending the wrist toward the pinky
+  (spreading a pushdown rope), and heavy weight-bearing on a bent-back wrist.
+  → Hammer curl is the `c5` default, the barbell curl is off the list, and the
+  rope pushdown got a no-spread cue. Wear the WristWidget for curls, pressing,
+  and hangs. Sharp pain, clicking, or a loss of grip strength → back to the
+  doctor.
   → The check-in now has a **Left wrist / forearm** slider (0–10). At 4+ it
   holds the load on every lift flagged `wrist` (bench, both inclines, both DB
   rows, single-leg RDL, curls, dead hang, suitcase carry) and shows a

@@ -118,8 +118,9 @@ test("a ramp does not block a load increase", () => {
 
 test("a failed opener resolves to the settled weight, not the weight he failed", () => {
   fresh();
-  // c5: 30 / 25 / 25. The old engine said "repeat 30".
-  const sugg = suggestFor("c5");
+  // c5: 30 / 25 / 25. The old engine said "repeat 30". Named explicitly since
+  // c5's default became the hammer curl (2026-09-26); the history is incline.
+  const sugg = suggestFor("c5", "incline-db-curl");
   assert.equal(sugg.action, "repeat");
   assert.equal(sugg.weight, 25);
   assert.match(sugg.note, /opened at 30/);
