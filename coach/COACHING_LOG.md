@@ -5,6 +5,43 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-09-18 — The hang and the knee raise are not a superset
+
+Tim asked whether `c10`/`c8` were one compound movement or two — fair question,
+because the ⇄ S2 badge said superset and the order said otherwise.
+
+Two corrections:
+
+1. **Order flipped: knee raise first, hang second.** A superset pairs
+   NON-competing movements. These compete hard — both are grip-limited — so a
+   dead hang taken near failure would end the knee raises early. The knee raise
+   is the exercise being trained; the hang is a finisher and a decompression,
+   and it's the one that can safely run the grip to empty. Original order had
+   that exactly backwards.
+2. **Both lost the `ss: "S2"` badge.** You cannot alternate two exercises that
+   use the same bar and the same grip — that badge promised a work pattern the
+   pairing can't deliver. They are straight sets done back to back at one
+   station, which was always the real point (no second station, ~no setup).
+
+The "shares a station" design still holds; only the label and the sequence
+changed. `a7`/`a5` (lateral raise + face pull) remains a genuine superset —
+different implements, non-competing muscles.
+
+**Follow-on, same day:** Tim pointed out the arms would be fried by then, and he
+was right — the fix above was incomplete. The bar work sat at #8-9, AFTER the
+incline curls at RPE 10. Fixing the order within the pair while leaving arm
+failure work ahead of it solved nothing. `c10`/`c8` moved up to #5-6, ahead of
+the c5/c6 arm superset. Curls and pushdowns are isolation taken to failure and
+nothing in the session depends on them, so they belong last among the working
+lifts. General rule for this day: **anything grip-dependent goes before anything
+that trains the arms to failure.**
+
+Day C is now 10 slots against a ~50 min lunch break. The order is the safety
+valve — a short day drops the lateral lunge (optional, last), then the side
+plank, and the things that matter are already done. Worth watching in the next
+report whether Day C actually completes; if it doesn't, the day needs a cut, not
+a reshuffle.
+
 ## 2026-09-15 — The RDL stays; fix the cause, not the exercise
 
 Tim pushed back on yesterday's `b1` swap: he likes the RDL, and the pull-through
