@@ -25,6 +25,10 @@ in the app could fix a saved session.
 - New `choiceDialog` in ui.js. 4 new store tests (159 pass), and the flow was
   checked in Chromium at phone width with no page errors. v38 → v39.
 
+**Follow-up, same day:** Tim logs pulled weight (bodyweight − assist), so the
+"What I pulled" path is his. Also: he was already on hammer curls and they're
+fine, so the `c5` note now just says keep them; the tendon complains on the row.
+
 Next report: read b2 as assisted pull-up. The report's 150 lb "stall" goes away
 once those sessions are re-filed.
 

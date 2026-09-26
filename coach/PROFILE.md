@@ -165,9 +165,10 @@ an unreachable registry entry helps nobody).
   before the hamstrings on the single-leg RDL, the hanging knee raise pinched,
   and the dead hang fell 40s → 25s. Read: Day C stacks five grip-heavy movements
   in a row and the forearm-flexor tendon on the left is taking it. Minor, not
-  structural yet. → Knee raise moved to the captain's chair (no grip), straps on
-  the SA row and SL-RDL, hammer curls preferred and one rep short of failure on
-  the left while it's sore. Stop the set on sharp pain at the inside of the
+  structural yet. Tim (2026-09-26): he'd already moved to hammer curls and they
+  feel fine — it's the tendon itself that's "just not so happy", and the row is
+  where it shows. → Knee raise moved to the captain's chair (no grip), straps on
+  the SA row and SL-RDL, hammer curls stay. Stop the set on sharp pain at the inside of the
   elbow; still there in two weeks → doctor/PT. Note his left is also the side
   that loses on the SA row (4 of 5 sessions) — independent of the right-side
   leg-length chain.
@@ -178,6 +179,14 @@ an unreachable registry entry helps nobody).
   himself, after the fact, on the session that caused one (one tap on its recap
   card) — the app does not ask about the last workout before the next one. A
   session left unflagged a day out counts as migraine-free.
+
+## Logging conventions
+- **Assisted pull-ups:** he writes down the weight he actually pulled
+  (bodyweight − assist), not the number on the assist dial (confirmed
+  2026-09-26). The app's Assisted Pull-up movement treats the logged number as
+  the assist, where more means easier. So re-file old entries with "What I
+  pulled", and going forward either log the dial number or read the report
+  knowing which one it is.
 
 ## Coaching loop (how Claude stays his trainer)
 - Daily: he uses the PWA (check-in → lift → log). App auto-progresses loads.

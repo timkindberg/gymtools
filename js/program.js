@@ -332,7 +332,7 @@ export const PROGRAM = {
           sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1",
           why: "Arms — the stretched position is joint-friendly. Take them to failure, supersetted with pushdowns.",
           cues: ["Slow negative", "No swinging"],
-          techNote: "While the inside of the left elbow is sore, 🎲 Hammer Curl is the friendliest curl for it, and stop one rep short of failure on the left. Failure isn't worth a tendon.",
+          techNote: "Hammer curls have been going fine with the sore left elbow, so they stay the curl of choice while it settles. The row is where that tendon complains.",
           alternatives: ["cable-curl", "hammer-curl", "barbell-curl"],
         }),
         ex({
