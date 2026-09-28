@@ -1063,17 +1063,20 @@ function setRow(ctx, setData, si) {
     setData.done = !setData.done;
     check.classList.toggle("on", setData.done);
     check.innerHTML = setData.done ? "✓" : "";
-    // Ticking a blank row means "did what it said": the greyed-out placeholder
-    // becomes the real value, so the set counts as logged and the effort
-    // question appears. Previous set only when there's no placeholder.
+    // Ticking a blank row means "did what it said": copy the previous set's
+    // values (what you actually just did), so the set counts as logged and the
+    // effort question appears. The greyed-out placeholder only when there's no
+    // previous value to copy (first set, or the previous set was left blank).
     if (setData.done) {
       const prev = si > 0 ? entry.sets[si - 1] : null;
       if (setData.weight == null) {
-        const w = ctx.phWeight != null ? ctx.phWeight : setLoad(prev);
+        const pw = setLoad(prev);
+        const w = pw != null ? pw : ctx.phWeight;
         if (w != null) { setData.weight = w; wInput.value = w; }
       }
       if (setAmount(setData) == null) {
-        const a = ctx.phAmount != null ? ctx.phAmount : setAmount(prev);
+        const pa = setAmount(prev);
+        const a = pa != null ? pa : ctx.phAmount;
         if (a != null) { setData.amount = a; aInput.value = a; }
       }
     }
