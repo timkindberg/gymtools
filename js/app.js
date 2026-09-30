@@ -340,7 +340,9 @@ route("session", () => {
   if (deload.due) {
     view.appendChild(el("div.card.alert.deload", {}, [
       el("strong", { text: "\u2193 Deload week" }),
-      el("p", { text: deload.reason === "symptoms"
+      el("p", { text: deload.reason === "in-progress"
+        ? "You started this week's deload already \u2014 the rest of the week's sessions are part of it. Every lift below is dropped about 10% and a set; full loads are back next week."
+        : deload.reason === "symptoms"
         ? `Your knee, shoulder and tightness scores have averaged ${deload.symptomLoad}/10 across this week's sessions after ${deload.streak} straight weeks of training. Every lift below is dropped about 10% and a set — take it, and come back at full load next week.`
         : `That's ${deload.streak} consecutive weeks of training. Every lift below is dropped about 10% and a set. This is programmed, not a bad day \u2014 the loads you left are waiting next week.` }),
       el("p.muted.small", { text: "Change the cadence, or switch it off, in Settings \u2192 Workout." }),
@@ -693,8 +695,9 @@ function exerciseCard(exDef, draft, idx, session = {}) {
   });
   // A deload only counts as one if he actually takes it — the flag is confirmed
   // against what he logs when the session is saved.
-  if (sugg && sugg.action === "deload") { entry.deload = true; entry.deloadTo = sugg.weight; }
-  else { delete entry.deload; delete entry.deloadTo; }
+  if (sugg && sugg.action === "deload") {
+    entry.deload = true; entry.deloadTo = sugg.weight; entry.deloadReason = sugg.reason;
+  } else { delete entry.deload; delete entry.deloadTo; delete entry.deloadReason; }
   // A deload week cuts volume as well as load, so take the set off the card
   // rather than asking him to remember to. Only before anything is logged, and
   // only once — he can always tap "+ set" back.
@@ -1232,6 +1235,7 @@ async function finishSession(draft, day) {
         movementId,
         name: e.name,
         deload: tookDeload || undefined,
+        deloadReason: (tookDeload && e.deloadReason) || undefined,
         variant: e.variant || null,
         variantName: e.variantName || null,
         prescription,

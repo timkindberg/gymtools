@@ -325,6 +325,44 @@ test("the deload cadence counts trained weeks, and a week off resets it", () => 
   assert.equal(store.deloadStatus().due, false, "and it can be switched off");
 });
 
+test("one lift's stall reset doesn't turn the rest of the week into a deload", () => {
+  // Sessions this week and last, so the "already under way" branch is live.
+  const now = Date.now();
+  const iso = (daysAgo) => new Date(now - daysAgo * 86400000).toISOString();
+  const thisMonday = new Date(now); thisMonday.setHours(12, 0, 0, 0);
+  thisMonday.setDate(thisMonday.getDate() - ((thisMonday.getDay() + 6) % 7));
+  const entry = (movementId, extra = {}) => ({
+    exerciseId: movementId, movementId, name: movementId,
+    prescription: repRange(5, 8), measure: "reps", loadMode: "total",
+    sets: [{ weight: 150, amount: 8, role: "work" }], ...extra,
+  });
+  const data = (entries) => ({
+    version: 5, profile: { name: "Tim", units: "lb" }, bodyweight: [], settings: {},
+    sessions: [
+      { id: "now", date: thisMonday.toISOString(), dayId: "A", dayName: "Day A", entries },
+      { id: "prev", date: iso(9), dayId: "A", dayName: "Day A", entries: [entry("barbell-box-squat")] },
+    ],
+  });
+
+  store.importData(data([entry("barbell-box-squat", { deload: true, deloadReason: "stall" }), entry("goblet-squat")]));
+  let status = store.deloadStatus();
+  assert.equal(status.due, false, "a stall reset is one lift, not the week");
+  assert.equal(status.streak, 2, "and it doesn't restart the cadence");
+
+  store.importData(data([entry("barbell-box-squat", { deload: true }), entry("goblet-squat")]));
+  assert.equal(store.deloadStatus().due, false, "an older, unlabelled single-lift deload reads as a stall");
+
+  store.importData(data([
+    entry("barbell-box-squat", { deload: true, deloadReason: "scheduled" }), entry("goblet-squat"),
+  ]));
+  status = store.deloadStatus();
+  assert.equal(status.due, true, "a scheduled deload carries through the week");
+  assert.equal(status.reason, "in-progress");
+
+  store.importData(data([entry("barbell-box-squat", { deload: true }), entry("goblet-squat", { deload: true })]));
+  assert.equal(store.deloadStatus().reason, "in-progress", "unlabelled, but every lift dropped: a deload week");
+});
+
 test("a deload is recorded, so a chart and the report can tell it from a regression", () => {
   fresh();
   const data = JSON.parse(store.exportData());
