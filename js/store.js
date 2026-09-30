@@ -862,7 +862,8 @@ export function movementStall(movementId) {
 // Counted in weeks he actually trained. Friday is explicitly skippable and whole
 // weeks go missing, so a calendar count would either never fire or fire on a
 // week he'd already taken off. A gap week resets the streak — that week WAS the
-// deload — and so does a logged deload.
+// deload — and so does a logged deload week. A single lift's stall reset does
+// NOT: it's that one lift rebuilding, not the whole body resting.
 
 const WEEK_MS = 7 * 86400000;
 function weekStart(date) {
@@ -891,6 +892,15 @@ function weekSymptomLoad(sessions) {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
+// Was this session part of a whole-week deload? Entries logged since the
+// reason was recorded say so directly. Older ones don't, so fall back on the
+// shape: a scheduled week drops every loadable lift, a stall drops one.
+function isDeloadSession(s) {
+  const dl = (s.entries || []).filter((e) => e.deload);
+  if (dl.some((e) => e.deloadReason === "scheduled")) return true;
+  return dl.filter((e) => !e.deloadReason).length >= 2;
+}
+
 export function deloadStatus() {
   const cadence = Number(getSettings().deloadEveryWeeks) || 0;
   const weeks = [];
@@ -899,7 +909,7 @@ export function deloadStatus() {
     let w = weeks.find((x) => x.key === key);
     if (!w) { w = { key, sessions: [], deload: false }; weeks.push(w); }
     w.sessions.push(s);
-    if ((s.entries || []).some((e) => e.deload)) w.deload = true;
+    if (isDeloadSession(s)) w.deload = true;
   }
   if (!weeks.length) return { due: false, cadence, streak: 0, reason: "none" };
 

@@ -1,6 +1,6 @@
 // gymtools service worker — network-first so the installed app stays current.
 // Bump CACHE when you change any cached asset.
-const CACHE = "gymtools-v41";
+const CACHE = "gymtools-v42";
 const ASSETS = [
   "./",
   "./index.html",
