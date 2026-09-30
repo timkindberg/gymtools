@@ -1,6 +1,7 @@
 // =============================================================================
 // ui.js — tiny DOM + rendering helpers. No framework, on purpose.
 // =============================================================================
+import { scrollY, scrollToY } from "./orientation.js";
 
 // el("div.card", {onclick}, [children]) style hyperscript.
 export function el(tag, props = {}, children = []) {
@@ -184,7 +185,7 @@ export function startRouter(onChange) {
   const go = () => {
     const { path, param } = currentRoute();
     const samePath = path === lastPath;
-    const prevScroll = window.scrollY;
+    const prevScroll = scrollY();
     overrideScroll = false;
     const handler = routes[path] || notFound;
     if (handler) handler(param);
@@ -192,7 +193,7 @@ export function startRouter(onChange) {
     if (!overrideScroll) {
       // Same view re-rendering in place (swap, +set, delete…) keeps your spot;
       // navigating to a different view starts at the top.
-      window.scrollTo(0, samePath ? prevScroll : 0);
+      scrollToY(samePath ? prevScroll : 0);
     }
     lastPath = path;
   };

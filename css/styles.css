@@ -50,6 +50,26 @@ body {
   -webkit-font-smoothing: antialiased;
   line-height: 1.45;
   overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---- Portrait lock (see js/orientation.js) ----
+   A phone tipped into landscape gets <body> rotated back upright relative to
+   the device, sized to the portrait viewport, with #app as the scroller. The
+   safe-area insets move with it: the notch is now on a landscape side. */
+html.rot-ccw, html.rot-cw { overflow: hidden; height: 100%; }
+html.rot-ccw body, html.rot-cw body {
+  position: fixed; top: 0; left: 0; overflow: hidden;
+  width: 100vh; height: 100vw;
+  transform-origin: top left;
+}
+html.rot-ccw body { transform: translateY(100vh) rotate(-90deg); }
+html.rot-cw body { transform: translateX(100vw) rotate(90deg); }
+html.rot-ccw { --safe-t: env(safe-area-inset-left, 0px); --safe-b: env(safe-area-inset-right, 0px); }
+html.rot-cw { --safe-t: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-left, 0px); }
+html.rot-ccw #app, html.rot-cw #app {
+  height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 h1, h2, h3 { margin: 0; line-height: 1.2; }
 p { margin: 0; }
