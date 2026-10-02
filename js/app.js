@@ -25,6 +25,7 @@ import {
   el, clear, fmtDate, fmtDateTime, relDay, lineChart, sparkline, barChart, severityBar,
   route, startRouter, navigate, toast, confirmDialog, promptDialog, choiceDialog, currentRoute, keepScroll,
 } from "./ui.js";
+import { initPortraitLock, scrollY, scrollToY } from "./orientation.js";
 
 const app = document.getElementById("app");
 const units = () => store.getProfile().units;
@@ -34,19 +35,20 @@ let prevRoutePath = null; // the route rendered before the current one
 let sessionScroll = Number(localStorage.getItem("gymtools.sessionScroll") || 0) || 0;
 let ignoreScrollSave = false;
 let scrollTick = false;
-window.addEventListener("scroll", () => {
+// Capture phase so this also sees #app scrolling (portrait-lock mode).
+document.addEventListener("scroll", () => {
   if (ignoreScrollSave || scrollTick) return;
   if (currentRoute().path !== "session") return;
   scrollTick = true;
   requestAnimationFrame(() => {
-    sessionScroll = window.scrollY;
+    sessionScroll = scrollY();
     try { localStorage.setItem("gymtools.sessionScroll", String(sessionScroll)); } catch (e) { /* ignore */ }
     scrollTick = false;
   });
-}, { passive: true });
+}, { passive: true, capture: true });
 function restoreSessionScroll() {
   ignoreScrollSave = true;
-  window.scrollTo(0, sessionScroll);
+  scrollToY(sessionScroll);
   requestAnimationFrame(() => requestAnimationFrame(() => { ignoreScrollSave = false; }));
 }
 function resetSessionScroll() {
@@ -1511,7 +1513,7 @@ route("history", () => {
     try { localStorage.setItem(TAB_KEY, id); } catch (e) { /* ignore */ }
     tabs.querySelectorAll(".seg-btn").forEach((b, i) => b.classList.toggle("active", PROGRESS_TABS[i].id === id));
     draw();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToY(0, "smooth");
   };
   view.appendChild(tabs);
   view.appendChild(body);
@@ -2300,6 +2302,7 @@ function highlightNav(path) {
   });
 }
 
+initPortraitLock();
 store.onSave(schedulePush); // push local changes to the cloud when signed in
 buildNav();
 // Cold start with no route of its own (home-screen icon, a relaunch): pick up
