@@ -143,11 +143,17 @@ export const PROGRAM = {
           alternatives: ["db-bench-press-neutral", "machine-chest-press", "db-incline-press-neutral", "floor-press"],
         }),
         ex({
-          id: "a3", movement: "chest-supported-db-row", name: "Chest-Supported DB Row", target: "Mid-back / posture", start: 50,
+          // 2026-10-05: this slot named the DB row for weeks while Tim was doing
+          // the plate-loaded row machine. The movement now matches what he does.
+          // His old entries are re-filed by hand (History → details → ✎), not
+          // by a migration: only he knows which sessions were the machine, and
+          // the one real DB row he tried today must stay a DB row.
+          id: "a3", movement: "chest-supported-row-machine", name: "Chest-Supported Row Machine (plates)", target: "Mid-back / posture", start: 75,
           sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "75s", flags: ["posture", "shoulder", "wrist"], ss: "S1",
-          why: "The chest pad takes your low back out of it so you can pull hard into the muscles that fix rounded posture. Great non-competing superset partner for bench.",
-          cues: ["Pull elbows toward your hips", "Squeeze the blades together, pause", "Don't shrug toward your ears"],
-          alternatives: ["barbell-row", "seated-cable-row", "machine-row"],
+          why: "The chest pad takes your low back out of it so you can pull hard into the muscles that fix rounded posture — and the machine lets you load it heavier and more safely than dumbbells. Great non-competing superset partner for bench.",
+          cues: ["Log the plates on ONE side — that's the number in the box", "Pull elbows toward your hips", "Squeeze the blades together, pause", "Don't shrug toward your ears"],
+          techNote: "Machine numbers only compare to this machine. 75 a side here is NOT 75 lb dumbbells — that's why the DB version felt so much harder. 🎲 the DB row any time; it keeps its own history.",
+          alternatives: ["chest-supported-db-row", "barbell-row", "seated-cable-row", "machine-row"],
         }),
         ex({
           id: "a10", movement: "cable-fly-low-to-high", name: "Low-to-High Cable Fly", target: "Chest — upper & inner", start: 30,
