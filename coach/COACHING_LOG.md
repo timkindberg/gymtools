@@ -47,10 +47,16 @@ keep their numbers; the machine progresses from its own history (75 × 12 →
 offer the same DB-row identity), now via a3's 🎲 list, and the test also checks
 the machine is its own identity. v45.
 
-**Open question for Tim:** is the machine two separate horns (plates on each)
-or one lever? `per-hand` assumes two horns. If it's one lever and he's logged
-the total, flip `loadMode` to `"total"` — progression is unaffected either way,
-only the label and the volume figure change.
+**Confirmed by Tim with a photo:** it's a **Hammer Strength iso-lateral row** —
+chest pad, two independent arms, each with its own plate horn. `per-hand` (plates
+on one side) is correct as built.
+
+Iso-lateral matters beyond the label: each arm moves its own load, so a weaker
+arm can't hide behind the stronger one the way it can on a fixed bar. His left
+side is the one that gives out first on the single-arm DB row (4 of 5 sessions)
+and the single-leg press (3 of 7). This machine is a good place to watch that —
+not modelled as `unilateral` (he trains both arms at once, so the prescription
+isn't per side), but worth a coaching cue if the asymmetry persists.
 
 ## 2026-10-05 — Set timestamps, session pacing, and the chest isolation the audit missed
 
