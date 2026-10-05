@@ -157,11 +157,23 @@ export const PROGRAM = {
         }),
         ex({
           id: "a10", movement: "cable-fly-low-to-high", name: "Low-to-High Cable Fly", target: "Chest — upper & inner", start: 30,
-          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", flags: ["shoulder", "wrist"],
+          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "45s", flags: ["shoulder", "wrist"], ss: "S2",
           why: "Your only chest isolation, and the reason your pecs were underfed: bench and incline press were 8 sets a week between them, and both load the pec in a position it doesn't grow best in. A fly loads the stretch and finishes with the arms crossing toward each other — that adduction is what trains the inner chest, and pulling from LOW to high points the work at the upper chest. Take these to failure — the shoulder and pec are safe here; just keep the wrist straight.",
           cues: ["Handles at the bottom pulley, step forward into a slight lean", "Soft elbows, fixed — this is a hug, not a press", "Sweep UP and across, hands finish near each other at chest/chin height", "Squeeze for a beat at the top, then let the stretch back in slowly", "Wrists straight and neutral — don't let the handle bend them toward the pinky"],
-          techNote: "Light. Form is the whole exercise here — if your elbows are bending to move the weight, it's too heavy. 🎲 the pec deck is the lazy-but-effective version when the cable stations are busy.",
+          techNote: "Light. Form is the whole exercise here — if your elbows are bending to move the weight, it's too heavy. Supersets with the face pull on the same station. 🎲 the pec deck is the lazy-but-effective version when the cables are busy — then do the face pulls with a band so you're not holding two machines.",
           alternatives: ["pec-deck", "cable-fly-high-to-low", "incline-db-fly"],
+        }),
+        // S2: fly ⇄ face pull. Antagonists — the fly closes the arms in front
+        // (pecs), the face pull opens them behind (rear delts + cuff) — so each
+        // rests while the other works, the same logic as bench ⇄ row in S1. One
+        // cable station: the only cost is moving one pulley between sets.
+        ex({
+          id: "a5", movement: "face-pull", name: "Face Pull", target: "Rear delts / cuff / posture", start: 40,
+          sets: 3, prescription: repRange(15, 20), rpe: "9", rest: "45s", flags: ["shoulder", "posture", "neck"], ss: "S2",
+          why: "The best insurance for your shoulder and posture. High reps, take it near failure — it's low-risk. Paired with the fly because they're opposites: the fly pulls your arms together in front, this pulls them apart behind. That's balance for the shoulder as much as it's a time saver.",
+          cues: ["Pull the rope to eyes/forehead", "Thumbs point back (external rotation)", "Elbows high, don't shrug the traps"],
+          techNote: "Same cable station as the fly: after each fly set, slide ONE pulley up to face height and clip on the rope; slide it back down for the next fly set. If the station's busy or that's too fiddly, 🎲 the band face pull — no pulley to move.",
+          alternatives: ["band-face-pull", "reverse-pec-deck"],
         }),
         ex({
           id: "a4", movement: "db-reverse-lunge", name: "DB Reverse Lunge", target: "Unilateral legs", start: 30,
@@ -170,25 +182,24 @@ export const PROGRAM = {
           cues: ["Step straight back, drop down", "Front shin near vertical", "Push through the front heel", "No twisting at the bottom"],
           alternatives: ["bulgarian-split-squat", "db-step-up", "walking-lunge"],
         }),
-        ex({
-          id: "a5", movement: "face-pull", name: "Face Pull", target: "Rear delts / cuff / posture", start: 40,
-          sets: 3, prescription: repRange(15, 20), rpe: "9", rest: "60s", flags: ["shoulder", "posture", "neck"], ss: "S2",
-          why: "The best insurance for your shoulder and posture. High reps, take it near failure — it's low-risk.",
-          cues: ["Pull the rope to eyes/forehead", "Thumbs point back (external rotation)", "Elbows high, don't shrug the traps"],
-          alternatives: ["band-face-pull", "reverse-pec-deck"],
-        }),
+        // 2026-10-05: lateral raise ⇄ Pallof (S3). The raise used to pair with
+        // the face pull, and the two pre-fatigued each other — both load the
+        // deltoid (09-28: face pull 20 → 15 → 14, raise failed at 20). Pallof
+        // is core, so each one's set is the other's rest. The face pull moved up
+        // to pair with the fly (S2), so the lunge now sits between the two
+        // shoulder blocks as well.
         ex({
           id: "a7", movement: "db-lateral-raise", name: "DB Lateral Raise", target: "Side delts", start: 20,
-          sets: 3, prescription: repRange(12, 15), rpe: "9", rest: "60s", flags: ["shoulder"], ss: "S2",
-          why: "This is the job the upright row used to do, minus the part that hurt you. Nothing else in the week trains the side of the delt — presses hit the front, face pulls hit the back, and the middle was a hole. It's also what makes shoulders look wide. Supersets straight into the face pull, same corner of the gym.",
+          sets: 3, prescription: repRange(12, 15), rpe: "9", rest: "45s", flags: ["shoulder"], ss: "S3",
+          why: "This is the job the upright row used to do, minus the part that hurt you. Nothing else in the week trains the side of the delt — presses hit the front, face pulls hit the back, and the middle was a hole. It's also what makes shoulders look wide. First of the shoulder work on purpose, so the delts are fresh — supersets with the Pallof, which works your core while your shoulders rest.",
           cues: ["Lead with the elbow, not the hand", "Stop at shoulder height — no higher", "Thumbs level with (or slightly above) the pinkies, never poured out", "Light weight, slow down, no swinging"],
-          techNote: "If you feel a pinch, you're going too high or rotating the arm in. Lower the weight before you shorten the range.",
+          techNote: "If you feel a pinch, you're going too high or rotating the arm in. Lower the weight before you shorten the range. Grab the dumbbells and take them to the cable station so you're not leaving the Pallof open.",
           alternatives: ["cable-lateral-raise", "machine-lateral-raise"],
         }),
         ex({
           id: "a6", movement: "pallof-press-half-kneeling", name: "Half-Kneeling Pallof Press", target: "Anti-rotation core",
-          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"],
-          why: "Half-kneeling stretches the down-leg hip flexor while you train the core to resist twisting — a two-for-one for your posture and pelvis.",
+          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"], ss: "S3",
+          why: "Half-kneeling stretches the down-leg hip flexor while you train the core to resist twisting — a two-for-one for your posture and pelvis. It's also the lateral raise's rest: core works, shoulders recover.",
           cues: ["Hips square, ribs down", "Press straight out, resist the rotation", "Breathe normally"],
           alternatives: ["pallof-press-standing", "cable-chop", "bird-dog"],
         }),

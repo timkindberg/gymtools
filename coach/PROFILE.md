@@ -84,9 +84,13 @@ the cost is ~4 min/day rather than ~12:
 - **Calves** (was zero, program AND registry) → `b8` Leg Press Calf Raise, done
   in the same seat as the single-leg press. Knee stays extended, so it never
   enters the meniscus range.
-- **Side delts** (was zero) → `a7` DB Lateral Raise, supersetted with the face
-  pull on Monday, the never-skipped day. This is the job the banned upright row
-  used to do, without the impingement mechanics.
+- **Side delts** (was zero) → `a7` DB Lateral Raise on Monday, the never-skipped
+  day. This is the job the banned upright row used to do, without the
+  impingement mechanics. Originally supersetted with the face pull; since
+  2026-10-05 it supersets with the **Pallof** instead, and the face pull pairs
+  with the cable fly (see the log — two deltoid moves were pre-fatiguing each
+  other). Superset rule: opposite muscles or unrelated regions, never two moves
+  that work the same muscle the same way.
 - **Anti-extension core** (was zero — he had rotation and side-bending only)
   → `c10` Hanging Knee Raise, on the same bar as the dead hang.
 - **Quad isolation** → Leg Extension (top half) added as a 🎲 option on `b4`.
