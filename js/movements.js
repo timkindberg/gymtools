@@ -128,6 +128,15 @@ const LIST = [
   m("barbell-row", "Barbell Row", { implement: "barbell", pattern: "horizontal-pull" }),
   m("seated-cable-row", "Seated Cable Row (neutral)", { implement: "cable", pattern: "horizontal-pull" }),
   m("machine-row", "Machine Row", { pattern: "horizontal-pull" }),
+  // What a3 actually was for weeks (Tim, 2026-10-05): a chest-supported row
+  // machine you load with plates. It was logged as the DB row, which made the
+  // numbers lie twice — a lever arm makes 75 on the horns much easier than a
+  // 75 lb dumbbell (he tried one and it was "so hard"), and those machine
+  // numbers were feeding seed estimates for the barbell and single-arm rows.
+  // Logged as plates PER SIDE, which is what he was entering into the "lb/hand"
+  // field all along — so his history re-files with no conversion. Plate steps
+  // are 2.5 a side. Deliberately absent from the seed table, like every machine.
+  m("chest-supported-row-machine", "Chest-Supported Row Machine (plates)", { pattern: "horizontal-pull", loadMode: "per-hand", increment: 2.5 }),
   m("db-row-single-arm", "Single-Arm DB Row", { implement: "dumbbell", loadMode: "per-side", pattern: "horizontal-pull", unilateral: true }),
 
   // ---- Vertical pull -------------------------------------------------------

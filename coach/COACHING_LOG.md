@@ -5,6 +5,59 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-10-05 — a3 was a machine all along
+
+Tim: he'd been doing a **plate-loaded chest-supported row machine** in `a3` for
+weeks, logging it as the Chest-Supported DB Row. He tried actual 75 lb
+dumbbells today — the number the app prescribed off that history — and they were
+"so hard". The lever arm makes 75 a side on the machine far easier than a 75 lb
+dumbbell.
+
+That mislabel made the data wrong in two ways:
+1. The DB row's history was machine numbers, so it prescribed dumbbells he
+   can't move.
+2. `chest-supported-db-row` is in the seed table (→ barbell row, single-arm DB
+   row), so machine numbers were inflating first-time estimates for both of
+   those. Machines are left out of the seed table on purpose; this one got in
+   under the DB row's name.
+
+**Fix:**
+- New movement `chest-supported-row-machine` — "Chest-Supported Row Machine
+  (plates)": `machine`, `loadMode: "per-hand"` (plates on ONE side, which is what
+  he was typing into the "lb/hand" box all along, so the history needs no
+  conversion), `increment: 2.5` (one 2.5 plate a side). Deliberately NOT in the
+  seed table.
+- `a3` now defaults to the machine. He likes it, and it is what he does. The DB
+  row stays a 🎲 option with its own, separate history.
+
+**History is re-filed by hand, not by a migration.** History → session →
+details → ✎ on the row entry → pick the machine. `changeEntryMovement()` and that
+UI already existed (built for assisted pull-ups vs pulldowns). A migration would
+have had to guess which sessions were the machine, and today's genuine DB
+attempt must stay a DB row. Only Tim knows which is which, so he makes the call.
+It's ~5 entries.
+
+Verified on synthetic history shaped like his (three machine sessions at 70–75,
+one real DB attempt at 75 × 6, 5): the ✎ offers the machine; re-filed entries
+keep their numbers; the machine progresses from its own history (75 × 12 →
+77.5 × 8); the DB row keeps only the real attempt.
+
+`movements.test.js` "the same movement in two slots is one identity" asserted
+`a3`'s default was the DB row. The invariant it tests still holds (a3 and c3
+offer the same DB-row identity), now via a3's 🎲 list, and the test also checks
+the machine is its own identity. v45.
+
+**Confirmed by Tim with a photo:** it's a **Hammer Strength iso-lateral row** —
+chest pad, two independent arms, each with its own plate horn. `per-hand` (plates
+on one side) is correct as built.
+
+Iso-lateral matters beyond the label: each arm moves its own load, so a weaker
+arm can't hide behind the stronger one the way it can on a fixed bar. His left
+side is the one that gives out first on the single-arm DB row (4 of 5 sessions)
+and the single-leg press (3 of 7). This machine is a good place to watch that —
+not modelled as `unilateral` (he trains both arms at once, so the prescription
+isn't per side), but worth a coaching cue if the asymmetry persists.
+
 ## 2026-10-05 — Set timestamps, session pacing, and the chest isolation the audit missed
 
 ### `doneAt` on every ticked set

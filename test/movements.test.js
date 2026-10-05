@@ -70,9 +70,14 @@ test("a slug passed in is returned unchanged", () => {
 });
 
 test("the same movement in two slots is one identity", () => {
-  // Single-Arm DB Row's alternative and Day A's row slot are the same lift.
-  assert.equal(findExercise("a3").movement, "chest-supported-db-row");
+  // Single-Arm DB Row's alternative and Day A's row slot offer the same lift.
+  // (a3's default became the plate-loaded row machine on 2026-10-05 — what he
+  // was actually doing — and the DB row moved to its 🎲 list.)
+  assert.ok(findExercise("a3").alternatives.includes("chest-supported-db-row"));
   assert.ok(findExercise("c3").alternatives.includes("chest-supported-db-row"));
+  // The machine is its own identity: never the DB row under another name.
+  assert.equal(findExercise("a3").movement, "chest-supported-row-machine");
+  assert.notEqual(getMovement("chest-supported-row-machine").implement, getMovement("chest-supported-db-row").implement);
   // …and the two carry slots share their hold.
   assert.ok(findExercise("b7").alternatives.includes("suitcase-hold"));
   assert.ok(findExercise("c7").alternatives.includes("suitcase-hold"));

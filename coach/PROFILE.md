@@ -236,6 +236,11 @@ He stated this himself, and it governs how the pacing data may be read:
   logs as a session. "Did Day C finish?" is a question for slot coverage, not
   for whether a session exists.
 
+- **a3 is the plate-loaded chest-supported row MACHINE, not dumbbells**
+  (2026-10-05). Its numbers are plates per side and are not comparable to the DB
+  row — 75 a side on the machine is much easier than a 75 lb dumbbell. Never
+  read a3 history as dumbbell strength.
+
 ## Coaching loop (how Claude stays his trainer)
 - Daily: he uses the PWA (check-in → lift → log). App auto-progresses loads.
 - ~Every 4 weeks (or on a stall/pain): he taps **Settings → Coach report**,
