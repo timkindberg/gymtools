@@ -5,38 +5,50 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
-## 2026-10-05 — S2 was the same joint twice
+## 2026-10-05 — Day A goes to three supersets; the lateral raise stops sharing with the face pull
 
 On 09-18 I wrote that `a7`/`a5` (lateral raise + face pull) "remains a genuine
-superset — different implements, non-competing muscles." That was wrong.
-Different implements, yes; but both load the **shoulder joint** — side delt and
-rear delt/cuff — and the traps get dragged into both. The 09-28 session showed it
-plainly: the face pull decayed 20 → 15 → 14 at 40 lb, and the lateral raise
-failed its opener at 20 and managed only 10 reps at 15 (RPE 10). Each was
-pre-fatiguing the other. Tim spotted the issue in the review and asked for the
-fix.
+superset — different implements, non-competing muscles." Wrong. Both work the
+deltoid (side head, rear head) and both drag the upper traps in — they push the
+same way, so they tire each other. The 09-28 session showed it: face pull
+decayed 20 → 15 → 14 at 40 lb; the lateral raise failed its opener at 20 and
+managed only 10 reps at 15 (RPE 10).
 
-**New Day A shoulder block:**
-- `a7` **DB Lateral Raise ⇄ S2** — goes first now, so the side delts are fresh.
-  Rest 60s → 45s: alternating with the Pallof already gives the shoulders
-  ~2½ min between raise sets.
-- `a6` **Half-Kneeling Pallof ⇄ S2** — the raise's rest. Core works while the
-  shoulders recover. Dumbbells + cable, so it respects the no-two-machines rule;
-  he carries the dumbbells to the cable station.
-- `a5` **Face Pull** — straight sets, last. Same cable tower as the Pallof (move
-  the pulley up, swap to the rope), with the Pallof between it and the raises as
-  a buffer.
+First fix paired the raise with the Pallof and left the face pull as straight
+sets. Tim then suggested making the fly a superset too, which is better: it
+gives the face pull a partner and saves time on an 8-slot day. Final Day A:
 
-Roughly time-neutral: the face pull losing its superset partner costs about the
-same as the Pallof gaining one saves.
+| # | Slot | Superset |
+| --- | --- | --- |
+| 1 | `a1` Box squat | — |
+| 2–3 | `a2` Bench ⇄ `a3` Row machine | S1 — push / pull |
+| 4–5 | `a10` Low-to-high fly ⇄ `a5` Face pull | S2 — pecs / rear delts |
+| 6 | `a4` Reverse lunge | — |
+| 7–8 | `a7` Lateral raise ⇄ `a6` Pallof | S3 — side delts / core |
 
-**Rule worth keeping:** "non-competing" is about the JOINT and the muscle, not
-the implement. Two different tools that both load the shoulder still compete.
-The genuine non-competing pairs in this program are push/pull (bench ⇄ row),
-upper/core (raise ⇄ Pallof), and isolation pairs on opposite sides of the elbow
-(curl ⇄ pushdown).
+- **S2** — antagonists: the fly brings the arms together in front, the face
+  pull takes them apart behind. One cable station; the cost is sliding one
+  pulley up/down between sets. Fallback when it's busy or fiddly: 🎲 band face
+  pull (and pec deck for the fly — but then the face pull MUST be the band, or
+  he's holding two machines).
+- **S3** — the raise goes with the Pallof: shoulders vs core, dumbbells carried
+  to the cable. Each set is the other's rest.
+- The lunge now sits between the two shoulder blocks, so the face pull and the
+  lateral raise are no longer back to back in any form.
+- Rests inside the supersets are 45s (fly 60 → 45, face pull 60 → 45, raise
+  60 → 45): alternating already gives ~2+ min between sets of the same lift.
+  Net, Day A gets a few minutes shorter.
 
-v46.
+**The rule, stated properly** (I first wrote it as "different joint", which my
+own bench ⇄ row example contradicts):
+- **Antagonists pair well** — muscles that pull opposite ways across the same
+  joint: bench ⇄ row, fly ⇄ face pull, curl ⇄ pushdown.
+- **Unrelated regions pair well** — shoulder ⇄ core (raise ⇄ Pallof).
+- **Synergists don't** — two moves that push the same muscle the same way, even
+  with different tools: lateral raise + face pull (both deltoid), and the
+  hang + knee raise lesson from 09-18 (both grip).
+
+No slot ids changed, so no logged history moves. v46.
 
 ## 2026-10-05 — a3 was a machine all along
 
