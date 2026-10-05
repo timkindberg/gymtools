@@ -1261,6 +1261,74 @@ export function nextSessionProposals() {
 // the bridge between the on-device data and his (async) coach.
 const sessionCount = (h) => `${h.length} session${h.length === 1 ? "" : "s"}`;
 
+
+// ---- Session pacing (#22) ---------------------------------------------------
+// Every ticked set carries `doneAt`. That turns the log into a clock: the span
+// from an exercise's first tick to its last is how long that exercise took,
+// and the span across a whole session is how long the session took.
+//
+// This is the only data that can honestly answer "which day has room for one
+// more thing?" — a 50-minute lunch break is the binding constraint on this
+// program, and before this, every answer to that question was a guess.
+//
+// Deliberately conservative: a span needs at least two stamped sets to exist,
+// and anything over 20 minutes for one exercise is dropped rather than
+// reported, because that is a phone left on the bench, not a working set.
+const MAX_PLAUSIBLE_EXERCISE_MIN = 20;
+
+function stampedSpanMin(sets) {
+  const t = (sets || []).map((x) => x && x.doneAt).filter(Boolean).map((x) => Date.parse(x))
+    .filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
+  if (t.length < 2) return null;
+  const min = (t[t.length - 1] - t[0]) / 60000;
+  return min > 0 && min <= MAX_PLAUSIBLE_EXERCISE_MIN ? min : null;
+}
+
+const median = (xs) => {
+  if (!xs.length) return null;
+  const a = xs.slice().sort((x, y) => x - y);
+  const m = a.length >> 1;
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+
+// Per-day and per-exercise timing, from whatever stamps exist. Returns null
+// when nothing is stamped yet, so the report can skip the section entirely
+// rather than print a table of dashes.
+export function sessionPacing() {
+  const byDay = {}, byExercise = {};
+  let anyStamps = false;
+  for (const s of getSessions()) {
+    const spans = [];
+    for (const e of s.entries || []) {
+      const span = stampedSpanMin(e.sets);
+      if (span == null) continue;
+      anyStamps = true;
+      spans.push(span);
+      const key = entryName(e);
+      (byExercise[key] = byExercise[key] || []).push(span);
+    }
+    // A session's length is the span across every stamp in it, not the sum of
+    // the exercise spans — the gaps between exercises (walking, waiting for a
+    // machine) are exactly what we are trying to see.
+    const all = (s.entries || []).flatMap((e) => e.sets || []);
+    const whole = (() => {
+      const t = all.map((x) => x && x.doneAt).filter(Boolean).map((x) => Date.parse(x))
+        .filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
+      if (t.length < 2) return null;
+      const min = (t[t.length - 1] - t[0]) / 60000;
+      return min > 0 && min <= 180 ? min : null;
+    })();
+    if (whole != null && s.day) (byDay[s.day] = byDay[s.day] || []).push(whole);
+  }
+  if (!anyStamps) return null;
+  return {
+    days: Object.entries(byDay).map(([day, mins]) => ({ day, n: mins.length, medianMin: median(mins) }))
+      .sort((a, b) => String(a.day).localeCompare(String(b.day))),
+    exercises: Object.entries(byExercise).map(([name, mins]) => ({ name, n: mins.length, medianMin: median(mins) }))
+      .sort((a, b) => b.medianMin - a.medianMin),
+  };
+}
+
 export function coachReport() {
   const d = load();
   const p = d.profile;
@@ -1395,6 +1463,26 @@ export function coachReport() {
     if (s.notes && s.notes.trim()) L.push(`- Session note: _"${s.notes.trim()}"_`);
     L.push("");
   });
+
+  // How long things actually take. The 50-minute lunch break is the hard limit
+  // on this program, so "is there room for one more exercise?" is a question
+  // the report should answer with data instead of a shrug.
+  const pacing = sessionPacing();
+  if (pacing) {
+    L.push("## Session pacing");
+    L.push("_From the timestamp on each ticked set. Only sets you ticked are counted, so a session logged after the fact won't appear._");
+    if (pacing.days.length) {
+      L.push("Whole sessions, first tick to last (median):");
+      pacing.days.forEach((d) => L.push(`- **Day ${d.day}**: ${Math.round(d.medianMin)} min over ${d.n} session${d.n === 1 ? "" : "s"}`));
+    }
+    const top = pacing.exercises.filter((e) => e.medianMin >= 2).slice(0, 10);
+    if (top.length) {
+      L.push("");
+      L.push("Slowest exercises (median, first set to last — includes your rest):");
+      top.forEach((e) => L.push(`- ${e.name}: ${Math.round(e.medianMin)} min${e.n > 1 ? ` (${e.n} sessions)` : ""}`));
+    }
+    L.push("");
+  }
 
   // Where the engine is holding back, and why (#8). A coach reading this should
   // never have to guess whether a step down was a decision or a bad day.

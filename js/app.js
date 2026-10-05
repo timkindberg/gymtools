@@ -1068,6 +1068,13 @@ function setRow(ctx, setData, si) {
     setData.done = !setData.done;
     check.classList.toggle("on", setData.done);
     check.innerHTML = setData.done ? "✓" : "";
+    // When the tick happened. Nothing in the app reads this to coach you — it
+    // exists so the coach report can say how long an exercise actually took,
+    // which is the only honest way to answer "where is there room for one more
+    // thing?" on a 50-minute lunch break. Untick clears it: a stale stamp is
+    // worse than none.
+    if (setData.done) setData.doneAt = new Date().toISOString();
+    else delete setData.doneAt;
     // Ticking a blank row means "did what it said": copy the previous set's
     // values (what you actually just did), so the set counts as logged and the
     // effort question appears. The greyed-out placeholder only when there's no

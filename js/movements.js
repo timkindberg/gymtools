@@ -101,6 +101,19 @@ const LIST = [
   m("machine-chest-press", "Machine Chest Press", { pattern: "horizontal-push" }),
   m("floor-press", "Floor Press", { implement: "barbell", pattern: "horizontal-push" }),
 
+  // ---- Chest isolation -----------------------------------------------------
+  // The coverage audit left this out, reasoning that a fly can't fill a press
+  // slot under the swap rule. True, and the wrong conclusion: the answer was a
+  // SLOT of its own, not an alternative. Pressing loads the pec in a mediocre
+  // position; the stretched position under load is where it grows, and the
+  // adduction at the top is what trains the inner (sternal) fibres that no
+  // press reaches. Low-to-high is first on purpose — it points the line of
+  // pull at the clavicular (upper) chest, which is Tim's stated target.
+  m("cable-fly-low-to-high", "Low-to-High Cable Fly", { implement: "cable", loadMode: "per-hand", pattern: "chest-fly" }),
+  m("cable-fly-high-to-low", "High-to-Low Cable Fly", { implement: "cable", loadMode: "per-hand", pattern: "chest-fly" }),
+  m("pec-deck", "Pec Deck", { pattern: "chest-fly" }),
+  m("incline-db-fly", "Incline DB Fly", { implement: "dumbbell", loadMode: "per-hand", pattern: "chest-fly" }),
+
   // ---- Vertical / incline push --------------------------------------------
   m("db-shoulder-press-seated", "Seated DB Shoulder Press", { implement: "dumbbell", loadMode: "per-hand", pattern: "vertical-push" }),
   m("machine-shoulder-press", "Machine Shoulder Press", { pattern: "vertical-push" }),
@@ -204,6 +217,7 @@ const SWAP_GROUPS = {
   plantarflexion: "calves",
   "horizontal-push": "chest-press",
   "incline-push": "chest-press",
+  "chest-fly": "chest-isolation",
   "vertical-push": "shoulder-press",
   "horizontal-pull": "horizontal-pull",
   "vertical-pull": "vertical-pull",
@@ -269,6 +283,8 @@ const LINKS = [
   ["cable-external-rotation", "db-external-rotation-side-lying", 1.0, "same cuff, same tiny numbers"],
   ["lat-pulldown", "lat-pulldown-neutral", 1.0, "same stack, different handle"],
   ["db-lateral-raise", "cable-lateral-raise", 1.0, "same tiny raise, one arm's worth either way"],
+  ["cable-fly-low-to-high", "cable-fly-high-to-low", 1.0, "same two stacks, just a different line of pull"],
+  ["cable-fly-low-to-high", "incline-db-fly", 1.1, "the bells are harder to control at the stretch than a cable is"],
   ["suitcase-carry", "suitcase-hold", 1.0, "carrying it and holding it are the same load"],
 ];
 

@@ -328,7 +328,6 @@ test("the deload cadence counts trained weeks, and a week off resets it", () => 
 test("one lift's stall reset doesn't turn the rest of the week into a deload", () => {
   // Sessions this week and last, so the "already under way" branch is live.
   const now = Date.now();
-  const iso = (daysAgo) => new Date(now - daysAgo * 86400000).toISOString();
   const thisMonday = new Date(now); thisMonday.setHours(12, 0, 0, 0);
   thisMonday.setDate(thisMonday.getDate() - ((thisMonday.getDay() + 6) % 7));
   const entry = (movementId, extra = {}) => ({
@@ -340,7 +339,11 @@ test("one lift's stall reset doesn't turn the rest of the week into a deload", (
     version: 5, profile: { name: "Tim", units: "lb" }, bodyweight: [], settings: {},
     sessions: [
       { id: "now", date: thisMonday.toISOString(), dayId: "A", dayName: "Day A", entries },
-      { id: "prev", date: iso(9), dayId: "A", dayName: "Day A", entries: [entry("barbell-box-squat")] },
+      // Anchored to LAST Monday, not "9 days ago": a fixed day offset lands two
+      // calendar weeks back whenever the test runs early in the week, which the
+      // cadence correctly reads as a gap week and resets the streak. That made
+      // this test fail every Monday.
+      { id: "prev", date: new Date(thisMonday.getTime() - 7 * 86400000).toISOString(), dayId: "A", dayName: "Day A", entries: [entry("barbell-box-squat")] },
     ],
   });
 
