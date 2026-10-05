@@ -150,6 +150,14 @@ export const PROGRAM = {
           alternatives: ["barbell-row", "seated-cable-row", "machine-row"],
         }),
         ex({
+          id: "a10", movement: "cable-fly-low-to-high", name: "Low-to-High Cable Fly", target: "Chest — upper & inner", start: 30,
+          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", flags: ["shoulder", "wrist"],
+          why: "Your only chest isolation, and the reason your pecs were underfed: bench and incline press were 8 sets a week between them, and both load the pec in a position it doesn't grow best in. A fly loads the stretch and finishes with the arms crossing toward each other — that adduction is what trains the inner chest, and pulling from LOW to high points the work at the upper chest. Take these to failure — the shoulder and pec are safe here; just keep the wrist straight.",
+          cues: ["Handles at the bottom pulley, step forward into a slight lean", "Soft elbows, fixed — this is a hug, not a press", "Sweep UP and across, hands finish near each other at chest/chin height", "Squeeze for a beat at the top, then let the stretch back in slowly", "Wrists straight and neutral — don't let the handle bend them toward the pinky"],
+          techNote: "Light. Form is the whole exercise here — if your elbows are bending to move the weight, it's too heavy. 🎲 the pec deck is the lazy-but-effective version when the cable stations are busy.",
+          alternatives: ["pec-deck", "cable-fly-high-to-low", "incline-db-fly"],
+        }),
+        ex({
           id: "a4", movement: "db-reverse-lunge", name: "DB Reverse Lunge", target: "Unilateral legs", start: 30,
           sets: 3, prescription: repRange(8, 10, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
           why: "Reverse lunges are gentler on the knee than forward ones, and single-leg work is your #1 tool against the leg-length imbalance.",

@@ -11,7 +11,7 @@ import {
 import { applyInferredRoles, workingSets, roleLabel, topWorkingLoad } from "./sets.js";
 import { workingEffort, rirFromRpe, harderSideLabel } from "./effort.js";
 import { nextPrescription, seedPrescription, summarize, stallState, warmupRamp } from "./engine.js";
-import { allExercises, findExercise } from "./program.js";
+import { allExercises, findExercise, PROGRAM } from "./program.js";
 
 const KEY = "gymtools.v1";
 const DRAFT_KEY = "gymtools.draft.v1";
@@ -1261,6 +1261,128 @@ export function nextSessionProposals() {
 // the bridge between the on-device data and his (async) coach.
 const sessionCount = (h) => `${h.length} session${h.length === 1 ? "" : "s"}`;
 
+
+// ---- Session pacing (#22) ---------------------------------------------------
+// Every ticked set carries `doneAt`. That turns the log into a clock: the span
+// from an exercise's first tick to its last is how long that exercise took,
+// and the span across a whole session is how long the session took.
+//
+// This is the only data that can honestly answer "which day has room for one
+// more thing?" — a 50-minute lunch break is the binding constraint on this
+// program, and before this, every answer to that question was a guess.
+//
+// Deliberately conservative: a span needs at least two stamped sets to exist,
+// and anything over 20 minutes for one exercise is dropped rather than
+// reported, because that is a phone left on the bench, not a working set.
+const MAX_PLAUSIBLE_EXERCISE_MIN = 20;
+// A changeover longer than this is a break, not a walk to the next station.
+const MAX_PLAUSIBLE_GAP_MIN = 10;
+
+function stampedSpanMin(sets) {
+  const t = (sets || []).map((x) => x && x.doneAt).filter(Boolean).map((x) => Date.parse(x))
+    .filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
+  if (t.length < 2) return null;
+  const min = (t[t.length - 1] - t[0]) / 60000;
+  return min > 0 && min <= MAX_PLAUSIBLE_EXERCISE_MIN ? min : null;
+}
+
+const median = (xs) => {
+  if (!xs.length) return null;
+  const a = xs.slice().sort((x, y) => x - y);
+  const m = a.length >> 1;
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+};
+
+// Per-day and per-exercise timing, from whatever stamps exist.
+//
+// Tim, 2026-10-05: "sometimes I will leave a session before I finish every
+// exercise and I might forget to click the end session button... but for the
+// most part if I'm doing an exercise the rate at which I check the done boxes
+// will be accurate for that exercise at least."
+//
+// That is a precise statement about which signal is trustworthy, and it decides
+// the shape of this function:
+//
+//   TRUSTED    — a single exercise's span, and the gap between two consecutive
+//                exercises he actually did back to back.
+//   NOT TRUSTED— a whole session's observed span, because an abandoned session
+//                measures only the part he stayed for. Reporting that as "Day A
+//                costs 38 min" would be confidently wrong, which is worse than
+//                saying nothing.
+//
+// So the day figure is BUILT from the trusted parts: every slot's own median
+// span, plus a median changeover gap between slots. Each day also reports how
+// many of its slots have any timing data at all, so a projection resting on
+// half the day is legible as such. The observed span is still reported, but
+// labelled as observed and paired with its slot coverage.
+export function sessionPacing() {
+  const byExercise = {}, observed = {}, gaps = [];
+  let anyStamps = false;
+
+  for (const s of getSessions()) {
+    // Exercises in the order he actually performed them, by first tick.
+    const performed = [];
+    for (const e of s.entries || []) {
+      const t = (e.sets || []).map((x) => x && x.doneAt).filter(Boolean)
+        .map((x) => Date.parse(x)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b);
+      if (!t.length) continue;
+      anyStamps = true;
+      performed.push({ name: entryName(e), first: t[0], last: t[t.length - 1], n: t.length });
+      const span = stampedSpanMin(e.sets);
+      if (span != null) (byExercise[entryName(e)] = byExercise[entryName(e)] || []).push(span);
+    }
+    if (!performed.length) continue;
+    performed.sort((a, b) => a.first - b.first);
+
+    // Changeover: the end of one exercise to the start of the next. Capped —
+    // a long gap is a session he walked away from and came back to, which is
+    // not a changeover and would poison the median.
+    for (let i = 1; i < performed.length; i++) {
+      const g = (performed[i].first - performed[i - 1].last) / 60000;
+      if (g >= 0 && g <= MAX_PLAUSIBLE_GAP_MIN) gaps.push(g);
+    }
+
+    if (s.day) {
+      const spanMin = (performed[performed.length - 1].last - performed[0].first) / 60000;
+      (observed[s.day] = observed[s.day] || []).push({
+        spanMin: spanMin > 0 && spanMin <= 180 ? spanMin : null,
+        slotsStamped: performed.length,
+      });
+    }
+  }
+  if (!anyStamps) return null;
+
+  const gapMin = median(gaps);
+  const exercises = Object.entries(byExercise)
+    .map(([name, mins]) => ({ name, n: mins.length, medianMin: median(mins) }))
+    .sort((a, b) => b.medianMin - a.medianMin);
+  const medianByName = Object.fromEntries(exercises.map((e) => [e.name, e.medianMin]));
+
+  // What a COMPLETE run of each programmed day would cost, assembled from the
+  // per-exercise medians. Slots never performed contribute nothing and are
+  // counted as missing, so the caller can say how much of the day this covers.
+  const days = PROGRAM.days.map((day) => {
+    const names = day.exercises.map((e) => movementName(e.movement, e.name));
+    const known = names.filter((n) => medianByName[n] != null);
+    const work = known.reduce((sum, n) => sum + medianByName[n], 0);
+    const rows = observed[day.id] || [];
+    const spans = rows.map((r) => r.spanMin).filter((x) => x != null);
+    return {
+      day: day.id,
+      name: day.name,
+      slots: names.length,
+      slotsWithData: known.length,
+      // Work time plus one changeover between each pair of slots.
+      projectedMin: known.length ? work + (gapMin || 0) * Math.max(0, names.length - 1) : null,
+      observedMedianMin: median(spans),
+      observedSessions: spans.length,
+      medianSlotsStamped: median(rows.map((r) => r.slotsStamped)),
+    };
+  });
+
+  return { days, exercises, changeoverMin: gapMin, warmupExcluded: true };
+}
+
 export function coachReport() {
   const d = load();
   const p = d.profile;
@@ -1395,6 +1517,40 @@ export function coachReport() {
     if (s.notes && s.notes.trim()) L.push(`- Session note: _"${s.notes.trim()}"_`);
     L.push("");
   });
+
+  // How long things actually take. The 50-minute lunch break is the hard limit
+  // on this program, so "is there room for one more exercise?" is a question
+  // the report should answer with data instead of a shrug.
+  const pacing = sessionPacing();
+  if (pacing) {
+    L.push("## Session pacing");
+    L.push("_From the timestamp on each ticked set. Sessions get abandoned part-way and the End button gets forgotten, so a whole-session span is NOT reliable — the per-exercise numbers are. The day totals below are therefore BUILT from the per-exercise medians plus a typical changeover, not measured end to end._");
+    if (pacing.changeoverMin != null) {
+      L.push(`Typical changeover between exercises: **${Math.round(pacing.changeoverMin)} min** (walking, finding a station, waiting).`);
+      L.push("");
+    }
+    L.push("What a COMPLETE run of each day would cost (warm-up and cool-down not included):");
+    pacing.days.forEach((d) => {
+      if (d.projectedMin == null) {
+        L.push(`- **Day ${d.day}**: no timing data yet (0 of ${d.slots} slots)`);
+        return;
+      }
+      const coverage = d.slotsWithData < d.slots
+        ? ` — projection covers ${d.slotsWithData} of ${d.slots} slots, so the real figure is HIGHER`
+        : ` — all ${d.slots} slots have data`;
+      const obs = d.observedMedianMin != null
+        ? ` · observed median ${Math.round(d.observedMedianMin)} min over ${d.observedSessions} session${d.observedSessions === 1 ? "" : "s"}, typically ${Math.round(d.medianSlotsStamped)} of ${d.slots} slots ticked`
+        : "";
+      L.push(`- **Day ${d.day}**: ~**${Math.round(d.projectedMin)} min**${coverage}${obs}`);
+    });
+    const top = pacing.exercises.filter((e) => e.medianMin >= 2).slice(0, 12);
+    if (top.length) {
+      L.push("");
+      L.push("Slowest exercises (median, first set to last — your rest is in here):");
+      top.forEach((e) => L.push(`- ${e.name}: ${Math.round(e.medianMin)} min${e.n > 1 ? ` (${e.n} sessions)` : ""}`));
+    }
+    L.push("");
+  }
 
   // Where the engine is holding back, and why (#8). A coach reading this should
   // never have to guess whether a step down was a decision or a bad day.

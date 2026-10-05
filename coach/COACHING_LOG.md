@@ -5,6 +5,91 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-10-05 — Set timestamps, session pacing, and the chest isolation the audit missed
+
+### `doneAt` on every ticked set
+
+Tim's idea, and a good one. Ticking a set now records `doneAt` (ISO), cleared on
+un-tick. Nothing coaches off it. It exists because the binding constraint on
+this whole program is a ~50 minute lunch break, and until now every answer to
+"is there room for one more exercise, and on which day?" was a guess — including
+three of mine in the last month.
+
+**What the data is allowed to say.** Tim, same day: "sometimes I will leave a
+session before I finish every exercise and I might forget to click the end
+session button... but for the most part if I'm doing an exercise the rate at
+which I check the done boxes will be accurate for that exercise at least."
+
+The first cut had this backwards — it reported a session's measured span as the
+day's cost, which on an abandoned session is confidently wrong, and that is
+worse than reporting nothing. `sessionPacing()` now builds up from the trusted
+parts only:
+
+- **Trusted:** one exercise's span; the changeover between two exercises done
+  back to back (capped at 10 min — above that it's a break, not a walk).
+- **Not trusted:** a session's end-to-end span.
+- A day's cost = the sum of its slots' median spans + one median changeover per
+  slot boundary, with the report stating how much of the day the projection
+  covers ("covers 4 of 8 slots, so the real figure is HIGHER").
+- The observed span is still printed, but labelled observed and paired with how
+  many slots were typically ticked, so it can't be read as the day's cost.
+
+Verified on a synthetic Day A abandoned after 4 of 8 slots: observed 29 min,
+projected 38, coverage flagged. Also in `PROFILE.md` under **Data quality**,
+because it constrains every future reading of the report — including "did Day C
+finish?", which is a slot-coverage question, not a does-a-session-exist one.
+
+Needs a few sessions before it says anything. Read the first report that has it
+as "Day C costs X minutes", and THEN decide what fits.
+
+### `a10` Low-to-High Cable Fly
+
+Tim: "am I getting enough chest... I want to look stacked." No. Bench 4×5–8 +
+DB incline 4×8–12 is 8 sets on a full week, ~7 effective at a ~72% Friday rate
+— under the ~10/wk floor — and two of those were junk, ground to RPE 10 against
+an RPE 8 target while stalled.
+
+Worse, the 09-14 coverage audit explicitly DROPPED chest flies, reasoning that
+no slot could hold one under the swap rule. Right about the 🎲 menu, wrong about
+the need: the fix was a slot of its own. Pressing loads the pec in a mediocre
+position; the stretch under load is where it grows, and the adduction at the top
+trains the inner fibres no press reaches. Low-to-high aims the pull at the
+clavicular head. Both of Tim's named targets, one exercise.
+
+4th on Day A, after the bench/row superset, straight sets, RPE 10 — isolation
+after compounds, safe to fail. Carries the `wrist` flag and a neutral-wrist cue,
+in line with the 09-25/09-26 left-wrist work. Registry gains
+`cable-fly-low-to-high`, `cable-fly-high-to-low`, `pec-deck`, `incline-db-fly`
+under a new `chest-fly` pattern → `chest-isolation` swap group. Day A 7 → 8
+slots, ~+4 min. Chest goes to ~10 effective sets/week.
+
+Still the stronger move for chest, still not taken: a third exposure on Day B,
+for frequency and Friday-independence. Day B is already 8 slots. The pacing data
+is what should decide it.
+
+### Process note for future sessions
+
+Two self-inflicted errors worth not repeating:
+
+1. I based this work on a `main` I'd read a week earlier and assumed was still
+   v37. It was **v43** — PRs #23–#29 had landed, including the left-wrist
+   tracker. My version bump was a `sed` on the literal `"v37"`, which silently
+   matched nothing, so two commits shipped with no bump at all while the commit
+   message claimed v38. Corrected to **v44**. Read `js/version.js` before
+   bumping; never sed a version you haven't just looked at.
+2. The new fly slot was drafted against the older program and missed the `wrist`
+   flag that main's newer slots carry. When adding a slot, check what flags
+   comparable slots now have rather than copying an older sibling.
+
+### Also
+
+Fixed a pre-existing date-fragile test (`engine.test.js:328`, red on `main`). It
+anchored a "previous week" session to a fixed 9-days-ago offset, which lands two
+calendar weeks back when the suite runs early in the week; the cadence correctly
+read that as a gap week and reset the streak, so the test failed every Monday.
+Now anchored to last Monday relative to the `thisMonday` the test already
+computes.
+
 ## 2026-09-26 — The wrist is pinky-side: curls go neutral
 
 Tim's details: the pain is on the **pinky side** of the left wrist, and it

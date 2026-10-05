@@ -91,10 +91,22 @@ the cost is ~4 min/day rather than ~12:
   → `c10` Hanging Knee Raise, on the same bar as the dead hang.
 - **Quad isolation** → Leg Extension (top half) added as a 🎲 option on `b4`.
 Deliberately still absent: direct hip abduction (heel lift is working; first
-thing to reinstate if right-side tightness trends up), shrugs/upper traps
-(carries and hangs cover the girdle for the minutes available), and chest
-flies (no slot they can honestly fill — a fly can't do a press slot's job, and
-an unreachable registry entry helps nobody).
+thing to reinstate if right-side tightness trends up) and shrugs/upper traps
+(carries and hangs cover the girdle for the minutes available).
+
+**Correction, 2026-10-05 — chest isolation.** The audit left flies out on the
+reasoning that no slot could honestly hold one. That was right about the 🎲 menu
+and wrong about the need: the answer was a SLOT, not an alternative. Tim asked
+directly ("am I getting enough chest... I want to look stacked") and the honest
+answer was no — bench + incline press is 8 sets on a full week, ~7 effective at
+his Friday rate, under the ~10/week floor for good hypertrophy, with zero work
+in the stretched position and zero adduction. → `a10` Low-to-High Cable Fly,
+3×12–15 @ RPE 10 on Day A. Low-to-high points the line of pull at the
+clavicular (upper) chest and the adduction trains the inner fibres — both are
+what he specifically asked for. Takes chest to ~10 effective sets/week.
+Still open: a THIRD chest exposure on Day B would add frequency and make chest
+volume independent of Friday. Held back because Day B is already 8 slots on a
+50-minute break — revisit once the new pacing data says what the day costs.
 
 ## Goals
 1. Muscle & strength
@@ -207,6 +219,22 @@ an unreachable registry entry helps nobody).
   the assist, where more means easier. So re-file old entries with "What I
   pulled", and going forward either log the dial number or read the report
   knowing which one it is.
+
+## Data quality — what to trust in the report (Tim, 2026-10-05)
+He stated this himself, and it governs how the pacing data may be read:
+- **Trust a single exercise's timing.** "If I'm doing an exercise the rate at
+  which I check the done boxes will be accurate for that exercise at least."
+- **Do NOT trust a whole session's measured span.** He sometimes leaves before
+  finishing every exercise, and sometimes forgets to tap End Session. A measured
+  span therefore covers only the part he stayed for.
+- → `sessionPacing()` builds each day's cost from per-exercise medians plus a
+  median changeover, and reports how many of the day's slots the projection
+  actually covers. The observed span is printed too, but labelled as observed
+  and paired with its slot count. Never quote an observed session span as "Day X
+  takes N minutes".
+- Same caution applies to session counts and completion: a day left early still
+  logs as a session. "Did Day C finish?" is a question for slot coverage, not
+  for whether a session exists.
 
 ## Coaching loop (how Claude stays his trainer)
 - Daily: he uses the PWA (check-in → lift → log). App auto-progresses loads.
