@@ -170,27 +170,36 @@ export const PROGRAM = {
           cues: ["Step straight back, drop down", "Front shin near vertical", "Push through the front heel", "No twisting at the bottom"],
           alternatives: ["bulgarian-split-squat", "db-step-up", "walking-lunge"],
         }),
-        ex({
-          id: "a5", movement: "face-pull", name: "Face Pull", target: "Rear delts / cuff / posture", start: 40,
-          sets: 3, prescription: repRange(15, 20), rpe: "9", rest: "60s", flags: ["shoulder", "posture", "neck"], ss: "S2",
-          why: "The best insurance for your shoulder and posture. High reps, take it near failure — it's low-risk.",
-          cues: ["Pull the rope to eyes/forehead", "Thumbs point back (external rotation)", "Elbows high, don't shrug the traps"],
-          alternatives: ["band-face-pull", "reverse-pec-deck"],
-        }),
+        // 2026-10-05: S2 used to be face pull + lateral raise. Both load the
+        // shoulder joint, and the 09-28 session proved it: the face pull decayed
+        // 20 → 15 → 14 and the lateral raise failed at 20 and managed only 10
+        // reps at 15, each pre-fatiguing the other. The lateral raise now pairs
+        // with the Pallof (dumbbells + cable, delt + core — actually
+        // non-competing), and goes FIRST so the side delts are fresh. The face
+        // pull follows as straight sets at the same cable tower the Pallof uses,
+        // with the Pallof between it and the raises as a buffer.
         ex({
           id: "a7", movement: "db-lateral-raise", name: "DB Lateral Raise", target: "Side delts", start: 20,
-          sets: 3, prescription: repRange(12, 15), rpe: "9", rest: "60s", flags: ["shoulder"], ss: "S2",
-          why: "This is the job the upright row used to do, minus the part that hurt you. Nothing else in the week trains the side of the delt — presses hit the front, face pulls hit the back, and the middle was a hole. It's also what makes shoulders look wide. Supersets straight into the face pull, same corner of the gym.",
+          sets: 3, prescription: repRange(12, 15), rpe: "9", rest: "45s", flags: ["shoulder"], ss: "S2",
+          why: "This is the job the upright row used to do, minus the part that hurt you. Nothing else in the week trains the side of the delt — presses hit the front, face pulls hit the back, and the middle was a hole. It's also what makes shoulders look wide. First of the shoulder work on purpose, so the delts are fresh — supersets with the Pallof, which works your core while your shoulders rest.",
           cues: ["Lead with the elbow, not the hand", "Stop at shoulder height — no higher", "Thumbs level with (or slightly above) the pinkies, never poured out", "Light weight, slow down, no swinging"],
-          techNote: "If you feel a pinch, you're going too high or rotating the arm in. Lower the weight before you shorten the range.",
+          techNote: "If you feel a pinch, you're going too high or rotating the arm in. Lower the weight before you shorten the range. Grab the dumbbells and take them to the cable station so you're not leaving the Pallof open.",
           alternatives: ["cable-lateral-raise", "machine-lateral-raise"],
         }),
         ex({
           id: "a6", movement: "pallof-press-half-kneeling", name: "Half-Kneeling Pallof Press", target: "Anti-rotation core",
-          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"],
-          why: "Half-kneeling stretches the down-leg hip flexor while you train the core to resist twisting — a two-for-one for your posture and pelvis.",
+          sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "8", rest: "45s", flags: ["posture", "leglength"], ss: "S2",
+          why: "Half-kneeling stretches the down-leg hip flexor while you train the core to resist twisting — a two-for-one for your posture and pelvis. It's also the lateral raise's rest: core works, shoulders recover.",
           cues: ["Hips square, ribs down", "Press straight out, resist the rotation", "Breathe normally"],
           alternatives: ["pallof-press-standing", "cable-chop", "bird-dog"],
+        }),
+        ex({
+          id: "a5", movement: "face-pull", name: "Face Pull", target: "Rear delts / cuff / posture", start: 40,
+          sets: 3, prescription: repRange(15, 20), rpe: "9", rest: "60s", flags: ["shoulder", "posture", "neck"],
+          why: "The best insurance for your shoulder and posture. High reps, take it near failure — it's low-risk. Straight sets now, not a superset: pairing it with lateral raises had both of them fading, because they share the joint.",
+          cues: ["Pull the rope to eyes/forehead", "Thumbs point back (external rotation)", "Elbows high, don't shrug the traps"],
+          techNote: "Same cable tower as the Pallof — just move the pulley up and swap to the rope.",
+          alternatives: ["band-face-pull", "reverse-pec-deck"],
         }),
       ],
       cooldown: RIGHT_SIDE_COOLDOWN,

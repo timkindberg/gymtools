@@ -5,6 +5,39 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-10-05 — S2 was the same joint twice
+
+On 09-18 I wrote that `a7`/`a5` (lateral raise + face pull) "remains a genuine
+superset — different implements, non-competing muscles." That was wrong.
+Different implements, yes; but both load the **shoulder joint** — side delt and
+rear delt/cuff — and the traps get dragged into both. The 09-28 session showed it
+plainly: the face pull decayed 20 → 15 → 14 at 40 lb, and the lateral raise
+failed its opener at 20 and managed only 10 reps at 15 (RPE 10). Each was
+pre-fatiguing the other. Tim spotted the issue in the review and asked for the
+fix.
+
+**New Day A shoulder block:**
+- `a7` **DB Lateral Raise ⇄ S2** — goes first now, so the side delts are fresh.
+  Rest 60s → 45s: alternating with the Pallof already gives the shoulders
+  ~2½ min between raise sets.
+- `a6` **Half-Kneeling Pallof ⇄ S2** — the raise's rest. Core works while the
+  shoulders recover. Dumbbells + cable, so it respects the no-two-machines rule;
+  he carries the dumbbells to the cable station.
+- `a5` **Face Pull** — straight sets, last. Same cable tower as the Pallof (move
+  the pulley up, swap to the rope), with the Pallof between it and the raises as
+  a buffer.
+
+Roughly time-neutral: the face pull losing its superset partner costs about the
+same as the Pallof gaining one saves.
+
+**Rule worth keeping:** "non-competing" is about the JOINT and the muscle, not
+the implement. Two different tools that both load the shoulder still compete.
+The genuine non-competing pairs in this program are push/pull (bench ⇄ row),
+upper/core (raise ⇄ Pallof), and isolation pairs on opposite sides of the elbow
+(curl ⇄ pushdown).
+
+v46.
+
 ## 2026-10-05 — a3 was a machine all along
 
 Tim: he'd been doing a **plate-loaded chest-supported row machine** in `a3` for
