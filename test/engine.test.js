@@ -48,14 +48,17 @@ const ask = (movementId, prescription, history, opts = {}) =>
 // slot → [action, load, target amount]. Every row is a judgement call about a
 // real set of numbers; the comment says what makes it that call.
 const EXPECTED = {
-  // Ramped 105/145/145 to 165×8, topping a 5–8 range. Lower-body bar: 5–10%.
-  a1: ["barbell-box-squat", "increase", 175, 5],
+  // Ramped 105/145/145 to 165×8, topping a 5–8 range. The box squat is on the
+  // light band since 2026-11-02 ("big jumps"), so +5, not +10.
+  a1: ["barbell-box-squat", "increase", 170, 5],
   // 135×8, 7, 6 — the range came apart set to set. Reps before load.
   a2: ["barbell-bench-press", "repeat", 135, 8],
   // 125×12 twice, top of 8–12. Upper-body bar: 2.5–5%, so +5 and not the old +10.
   a3: ["barbell-row", "increase", 130, 8],
-  // 30×8, 8, 12 per hand. Two sets short of the range → reps, not the 35s yet.
-  a4: ["db-reverse-lunge", "repeat", 30, 10],
+  // 30×8, 8, 12 per hand. Against the old 8–10 that was two sets short → reps.
+  // a4 asks for 6–8 since 2026-11-02, and 12 is past even the stretched range,
+  // so the dumbbells take their step and the reps reset to the bottom.
+  a4: ["db-reverse-lunge", "increase", 35, 6],
   // 20, 20, 18 of a 15–20 range — one set short.
   a5: ["face-pull", "repeat", 40, 20],
   // Ramped to 37.5×12 against a flat 10. The rep range is spent, so the cable
@@ -72,7 +75,9 @@ const EXPECTED = {
   c6: ["db-skullcrusher", "repeat", 30, 15],
   // 45s and 45s at the top of 30–45. The old engine had nothing to say (#9).
   c7: ["side-plank", "increase", null, 55],
-  b1: ["barbell-rdl", "increase", 175, 6],
+  // 165×8, light band since 2026-11-02 (the re-entry ladder never wants more
+  // than 10 a session, and at 210+ the heavy band would have asked for 15).
+  b1: ["barbell-rdl", "increase", 170, 6],
   b2: ["lat-pulldown", "repeat", 160, 10],
   b3: ["barbell-incline-press", "repeat", 135, 10],
   b4: ["single-leg-leg-press", "repeat", 130, 12],
@@ -127,10 +132,17 @@ test("every suggestion says which sets it counted and why it picked the number",
 // ---- #7 the increment table -------------------------------------------------
 
 test("the increment is a percentage of the load, rounded to what the gym has", () => {
+  const press = getMovement("leg-press");
+  assert.deepEqual(progressionBand(press), { min: 0.05, max: 0.10 });
+  assert.equal(loadStep(press, 165).step, 10);        // 6% of 165
+  assert.equal(loadStep(press, 95).step, 5);          // 5% of 95 — one plate pair
+
+  // The box squat opts into the light band (2026-11-02): at 225 the heavy
+  // band's floor was a 15 lb jump, and he called the jumps too big.
   const squat = getMovement("barbell-box-squat");
-  assert.deepEqual(progressionBand(squat), { min: 0.05, max: 0.10 });
-  assert.equal(loadStep(squat, 165).step, 10);        // 6% of 165
-  assert.equal(loadStep(squat, 95).step, 5);          // 5% of 95 — one plate pair
+  assert.deepEqual(progressionBand(squat), { min: 0.025, max: 0.05 });
+  assert.equal(loadStep(squat, 225).step, 10);
+  assert.equal(loadStep(getMovement("barbell-rdl"), 210).step, 10); // the ladder's 10 lb ceiling holds
 
   const bench = getMovement("barbell-bench-press");
   assert.deepEqual(progressionBand(bench), { min: 0.025, max: 0.05 });
@@ -275,7 +287,7 @@ test("a deload already taken is not a stall, and the rebuild starts from it", ()
   assert.equal(stallState(history.map((h) => summarize(h, mv, repRange(5, 8))), mv).consecutive, 0);
   const sugg = ask("barbell-box-squat", repRange(5, 8), history);
   assert.equal(sugg.action, "increase");
-  assert.equal(sugg.weight, 160);
+  assert.equal(sugg.weight, 155);
 });
 
 test("a scheduled deload week drops the load and a set", () => {
@@ -487,4 +499,21 @@ test("a sore left wrist holds the load on wrist-flagged lifts only", () => {
   assert.equal(symptomGate(["wrist"], { wrist: 4 }).label, "left wrist");
   assert.equal(symptomGate(["wrist"], { wrist: 3 }), null);
   assert.equal(symptomGate(["knee"], { wrist: 9 }), null);
+});
+
+// ---- RPE 10 is an instruction on some slots (2026-11-02) ---------------------
+// Hammer curls 30×14, 14, 12, all at RPE 10, against a 10–12 range prescribed
+// at RPE 10. The engine read "failure" as a warning and held the load, on the
+// one kind of slot that tells him to go to failure.
+test("on a slot prescribed to failure, failure tops the range instead of holding it", () => {
+  const rx = repRange(10, 12);
+  const hist = [session("hammer-curl", "2026-10-30T17:00:00Z", [[30, 14, 10], [30, 14, 10], [30, 12, 10]], { prescription: rx })];
+  const held = ask("hammer-curl", rx, hist);
+  assert.equal(held.action, "repeat");          // no target given → the old caution
+  const told = ask("hammer-curl", rx, hist, { targetRpe: "10" });
+  assert.equal(told.action, "increase");
+  assert.equal(told.weight, 35);
+  assert.equal(told.amount, 10);                // the dumbbell step, reps reset
+  // …and on a slot that asked for an 8, failure still holds the load.
+  assert.equal(ask("hammer-curl", rx, hist, { targetRpe: "8" }).action, "repeat");
 });

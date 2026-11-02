@@ -21,6 +21,8 @@
 //   addedLoad  the number is weight ADDED to bodyweight, not the total moved
 //   increment  smallest load step this movement can actually take, when it
 //              differs from what its implement usually offers (engine.js)
+//   band       "light" to progress in the smaller 2.5–5% band even where the
+//              pattern and implement would earn the heavy one (engine.js)
 // =============================================================================
 
 export const IMPLEMENTS = ["barbell", "dumbbell", "machine", "cable", "band", "bodyweight"];
@@ -40,7 +42,7 @@ const m = (slug, name, o = {}) => ({
 
 const LIST = [
   // ---- Squat / knee-dominant -----------------------------------------------
-  m("barbell-box-squat", "Barbell Box Squat", { implement: "barbell", pattern: "squat" }),
+  m("barbell-box-squat", "Barbell Box Squat", { implement: "barbell", pattern: "squat", band: "light" }),
   m("safety-bar-box-squat", "Safety-Bar Box Squat", { implement: "barbell", pattern: "squat" }),
   m("goblet-box-squat", "Goblet Box Squat", { implement: "dumbbell", pattern: "squat" }),
   m("leg-press", "Leg Press (limited ROM)", { pattern: "squat" }),
@@ -58,14 +60,14 @@ const LIST = [
   m("adductor-abductor-machine", "Adductor Machine + Hip Abduction Machine", { pattern: "adduction" }),
 
   // ---- Hinge ---------------------------------------------------------------
-  m("barbell-rdl", "Barbell Romanian Deadlift", { implement: "barbell", pattern: "hinge" }),
+  m("barbell-rdl", "Barbell Romanian Deadlift", { implement: "barbell", pattern: "hinge", band: "light" }),
   m("db-rdl", "DB Romanian Deadlift", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge" }),
   m("single-leg-db-rdl", "Single-Leg DB RDL", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge", unilateral: true }),
   m("b-stance-rdl", "B-Stance RDL", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge", unilateral: true }),
   // The hex/trap bar puts the load in line with your body instead of out in
   // front of it, so the lever arm on the low back is much shorter. The
   // friendliest way to keep hinging heavy when the back is the limiter.
-  m("hex-bar-rdl", "Hex-Bar RDL", { implement: "barbell", pattern: "hinge" }),
+  m("hex-bar-rdl", "Hex-Bar RDL", { implement: "barbell", pattern: "hinge", band: "light" }),
   m("hex-bar-deadlift", "Hex-Bar Deadlift", { implement: "barbell", pattern: "hinge" }),
   m("back-extension-45", "45° Back Extension", { implement: "bodyweight", loadMode: "none", pattern: "hinge" }),
   m("cable-pull-through", "Cable Pull-Through", { implement: "cable", pattern: "hinge" }),
@@ -122,6 +124,11 @@ const LIST = [
   // Not currently programmed, but logged on 2026-08-19 as a 🎲 swap in the b3
   // slot — the registry has to know it so that history stays attributable.
   m("barbell-incline-press", "Barbell Incline Press", { implement: "barbell", pattern: "incline-push" }),
+  // 2026-11-02: the Precor at Blue Ash with the guided bar path (a Smith-style
+  // track), which he'd been logging as the free barbell. The track takes the
+  // balancing out, so its numbers don't compare to the free bar — a machine,
+  // progressed against itself, and kept out of the seed table like the rest.
+  m("guided-bar-incline-press", "Guided-Bar Incline Press (Precor)", { pattern: "incline-push" }),
 
   // ---- Horizontal pull -----------------------------------------------------
   m("chest-supported-db-row", "Chest-Supported DB Row", { implement: "dumbbell", loadMode: "per-hand", pattern: "horizontal-pull" }),

@@ -142,7 +142,7 @@ test("every override is logged against what the engine had proposed", () => {
   const [entry] = store.getOverrideLog();
   assert.equal(entry.movementId, "barbell-box-squat");
   assert.equal(entry.weight, 200);
-  assert.equal(entry.engineWeight, 175);  // the engine's own answer, frozen
+  assert.equal(entry.engineWeight, 170);  // the engine's own answer, frozen
 });
 
 // ---- Coach report v2 (#11) --------------------------------------------------
@@ -153,12 +153,12 @@ test("the report carries next-session proposals for the movements the app will p
   assert.ok(names.includes("Barbell Box Squat"));
   const squat = store.nextSessionProposals().find((n) => n.name === "Barbell Box Squat");
   assert.equal(squat.slot, "a1");
-  assert.equal(squat.weight, 175);
+  assert.equal(squat.weight, 170);
   assert.ok(squat.note && squat.basis);
 
   const report = store.coachReport();
   assert.match(report, /## Next session — what the app will prescribe/);
-  assert.match(report, /\*\*Barbell Box Squat\*\* \(slot a1\) → \*\*175lb/);
+  assert.match(report, /\*\*Barbell Box Squat\*\* \(slot a1\) → \*\*170lb/);
 });
 
 test("the report shows every working set with its role, not just the best one", () => {
@@ -190,7 +190,7 @@ test("the report states which overrides are live and which way they've been goin
   store.setOverride("barbell-box-squat", { weight: 200, note: "push it" });
   const report = store.coachReport();
   assert.match(report, /\*\*Barbell Box Squat\*\* → 200lb/);
-  assert.match(report, /the app had 175lb/);
+  assert.match(report, /the app had 170lb/);
   assert.match(report, /push it/);
 });
 

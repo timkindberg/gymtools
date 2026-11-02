@@ -116,7 +116,7 @@ export const MOBILITY_ROUTINE = {
 
 export const PROGRAM = {
   name: "Tim's Rebuild — MWF Full Body",
-  updated: "2026-09-26",
+  updated: "2026-11-02",
   days: [
     // ---------------------------------------------------------------- MONDAY
     {
@@ -177,8 +177,8 @@ export const PROGRAM = {
         }),
         ex({
           id: "a4", movement: "db-reverse-lunge", name: "DB Reverse Lunge", target: "Unilateral legs", start: 30,
-          sets: 3, prescription: repRange(8, 10, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
-          why: "Reverse lunges are gentler on the knee than forward ones, and single-leg work is your #1 tool against the leg-length imbalance.",
+          sets: 3, prescription: repRange(6, 8, { perSide: true }), rpe: "8", rest: "90s", flags: ["knee", "leglength"],
+          why: "Reverse lunges are gentler on the knee than forward ones, and single-leg work is your #1 tool against the leg-length imbalance. Heavier and shorter on purpose (2026-11-02): 10 a side is 20 reps of a big leg exercise per set, which is why your lungs quit before your legs did. 6–8 a side with heavier dumbbells is the same work for the legs and less of a sprint for the heart.",
           cues: ["Step straight back, drop down", "Front shin near vertical", "Push through the front heel", "No twisting at the bottom"],
           alternatives: ["bulgarian-split-squat", "db-step-up", "walking-lunge"],
         }),
@@ -305,16 +305,20 @@ export const PROGRAM = {
           sets: 4, prescription: repRange(8, 12), rpe: "8", rest: "90s", flags: ["shoulder", "wrist"],
           why: "The reason this day is worth making. Monday's bench is your only chest work in a two-day week — 4 sets, and that's the whole dose. This is a second pressing exposure at a different angle, and frequency is what actually grows a press. Neutral grip and an incline keep the shoulder comfortable, and dumbbells are where you're strongest.",
           cues: ["Bench at ~30°, not steep — this is a chest press, not a shoulder press", "Palms facing each other the whole way", "Elbows tucked ~45°, stretch at the bottom", "Drive up and slightly together, don't clank the bells"],
-          techNote: "First fresh, before the glutes and arms — this slot is the day's priority. You liked the barbell incline in session 1; it's a 🎲 swap away if you'd rather have the bar.",
-          alternatives: ["barbell-incline-press", "machine-chest-press", "db-bench-press-neutral"],
+          techNote: "First fresh, before the glutes and arms — this slot is the day's priority. The free-bar incline and the Precor with the guided bar path are separate 🎲 options with separate histories: the track takes the balancing out, so 135 on the Precor isn't 135 on a free bar. Log whichever one you're actually on.",
+          alternatives: ["guided-bar-incline-press", "barbell-incline-press", "machine-chest-press", "db-bench-press-neutral"],
         }),
         ex({
-          id: "c1", movement: "barbell-hip-thrust", name: "Barbell Hip Thrust", target: "Glutes", start: 135,
-          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "90s", flags: ["knee", "posture"], learn: true,
-          why: "The most knee- and back-friendly way to build powerful glutes — which protect your knee and pull your posture tall. Load it heavy.",
-          cues: ["Upper back on the bench, pad the bar", "Chin tucked, ribs down", "Drive through the heels, squeeze at the top", "Don't hyperextend the low back"],
-          techNote: "Get the bench height and bar pad set before loading. 🎲 machine or DB hip thrust works too.",
-          alternatives: ["machine-hip-thrust", "db-hip-thrust", "glute-bridge"],
+          // 2026-11-02: default moved to the machine. He's been doing the Nautilus
+          // Glute Drive and logging it as the barbell, the same mislabel a3 had.
+          // He likes it, it's solo-safe to push, and it skips the bar-and-pad
+          // setup on the day that runs longest. The bar stays a 🎲 away.
+          id: "c1", movement: "machine-hip-thrust", name: "Machine Hip Thrust", target: "Glutes", start: 235,
+          sets: 3, prescription: repRange(8, 12), rpe: "9", rest: "90s", flags: ["knee", "posture"],
+          why: "The most knee- and back-friendly way to build powerful glutes, which protect your knee and pull your posture tall. On the Glute Drive there's no bar to roll into place and no pad to fiddle with, so you get the load without the setup. Load it heavy.",
+          cues: ["Belt LOW, across the hip bones, not your stomach. Fold a towel or a pad under it if it digs in", "Upper back on the pad, chin tucked, ribs down", "Drive through the heels, squeeze a full second at the top", "Don't arch the low back to finish — the hips finish it"],
+          techNote: "Machine numbers only compare to this machine. The barbell hip thrust is a separate 🎲 option with its own history, so log whichever one you're actually on. Breathing hard by the second set is normal: it's the biggest muscle you own, worked for 12 reps.",
+          alternatives: ["barbell-hip-thrust", "db-hip-thrust", "glute-bridge"],
         }),
         ex({
           id: "c3", movement: "db-row-single-arm", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
@@ -338,7 +342,7 @@ export const PROGRAM = {
           // grip the dead hang is there to build — the hang fell 40s -> 25s.
           // The job of the slot is the abs; the chair does that without the grip.
           id: "c10", movement: "captains-chair-knee-raise", name: "Captain's Chair Knee Raise", target: "Anti-extension core",
-          sets: 3, prescription: repRange(10, 15), rpe: "9", rest: "60s", flags: ["posture"],
+          sets: 3, prescription: repRange(10, 15), rpe: "9", rest: "45s", flags: ["posture"], ss: "S2",
           why: "Your core work covered rotation (Pallof) and side-bending (carries, side plank) and nothing at all in the front-to-back plane. This fills it. Forearms on the pads means your abs end the set, not your hands — last Friday the hanging version was a grip test with an ab exercise attached. Most power towers have the chair right under the pull-up bar, so the dead hang is still the same station.",
           cues: ["Back flat against the pad, forearms pressed down", "Curl the pelvis up — knees to chest, not just hips to 90°", "Lower slowly, don't swing", "Exhale on the way up"],
           techNote: "No chair free? 🎲 back to the hanging version — towels on the bar are fine. Once 15 are easy, straighten the legs a little or hold a light DB between the feet.",
@@ -346,10 +350,10 @@ export const PROGRAM = {
         }),
         ex({
           id: "c8", movement: "dead-hang", name: "Dead Hang", target: "Grip / shoulder decompression",
-          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "60s", flags: ["shoulder", "posture", "wrist"],
+          sets: 2, prescription: timeRange(20, 45), rpe: "8", rest: "45s", flags: ["shoulder", "posture", "wrist"], ss: "S2",
           why: "You were already doing these off-program (\"25 seconds, I need more callouses\") with nowhere to log them. A hang builds the grip your carries and rows run out of first, and lets the shoulder hang long — which the pressing days appreciate. Last thing on the bar, so it can go to the end of the grip.",
           cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
-          techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't. With the knee raises now on the captain's chair, this is the only thing on the bar — expect the time to climb back toward 40s. If the inside of the left elbow talks during the hang, step down.",
+          techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't. Superset with the knee raise (2026-11-02): same tower, and the chair works the abs while the hang works the grip, so neither one tires the other. Two hangs, alternating with the first two knee-raise sets. If the inside of the left elbow talks during the hang, step down.",
           alternatives: ["weighted-dead-hang"],
         }),
         ex({
@@ -372,14 +376,6 @@ export const PROGRAM = {
           cues: ["Elbows pinned to your sides", "Full lockout, slow return", "Don't yank the rope ends apart at the bottom — that bends the wrist toward the pinky"],
           techNote: "The rope's spread at lockout bends the wrist toward the pinky side, which is the side that's sore. Stop the rope at shoulder-width, or 🎲 to the DB skull-crusher, which you've been doing anyway.",
           alternatives: ["db-skullcrusher", "overhead-rope-extension"],
-        }),
-        ex({
-          id: "c7", movement: "side-plank", name: "Side Plank", target: "Anti-lateral-flexion core",
-          sets: 2, prescription: timeRange(30, 45, { perSide: true }), rpe: "8", rest: "45s", flags: ["leglength", "posture"],
-          why: "Trains the side of the trunk to hold you level — frontal-plane core that supports the pelvis.",
-          cues: ["Elbow directly under the shoulder — not out in front", "Push the floor away so the shoulder blade stays wide", "Straight line head to heels, hips up", "Breathe"],
-          techNote: "If the shoulder quits before the side of your waist burns (your left did, 2026-09-25), the elbow has drifted forward of the shoulder or you're sinking into the joint. Fix the stack before chasing seconds.",
-          alternatives: ["suitcase-hold", "copenhagen-plank"],
         }),
         ex({
           id: "c2", movement: "db-lateral-lunge", name: "DB Lateral Lunge (optional if time)", target: "Adductors / frontal plane", start: 25,

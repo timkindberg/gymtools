@@ -683,7 +683,7 @@ export function unreadableHistory(movementId) {
 // cadence has come round.
 export function suggestion(movementId, prescription, context = {}) {
   const movement = getMovement(movementId);
-  const slot = context.exerciseId ? findExercise(context.exerciseId) : null;
+  const slot = (context.exerciseId ? findExercise(context.exerciseId) : null) || slotFor(movementId);
   const sugg = nextPrescription({
     movement,
     prescription: prescription || (movement && movement.prescription) || null,
@@ -692,6 +692,7 @@ export function suggestion(movementId, prescription, context = {}) {
     flags: context.flags || (slot && slot.flags) || [],
     scheduledDeload: !!context.scheduledDeload,
     units: getProfile().units,
+    targetRpe: slot ? slot.rpe : null,
   });
   // The review gets the last word — but only where it actually left one, and
   // never silently: the engine's own answer travels along in `engine` so both
@@ -763,6 +764,7 @@ export function setOverride(movementId, patch = {}) {
     prescription: prescriptionFor(slotFor(id), getMovement(id)),
     history: movementSessions(id),
     units: d.profile.units,
+    targetRpe: slotFor(id) ? slotFor(id).rpe : null,
   });
   const ov = {
     movementId: id,
@@ -1361,19 +1363,47 @@ export function sessionPacing() {
   // What a COMPLETE run of each programmed day would cost, assembled from the
   // per-exercise medians. Slots never performed contribute nothing and are
   // counted as missing, so the caller can say how much of the day this covers.
+  //
+  // Two corrections from the 2026-11-02 review, which read Day A at 69 min:
+  //  - A slot counts whichever of its movements he actually did. Matching the
+  //    default name only meant a 🎲 swap (the barbell incline in c9) left its
+  //    slot "without data".
+  //  - A superset is ONE block of time. Bench and row share a window, so their
+  //    spans overlap; adding both (plus a changeover between them) counted that
+  //    window twice. A block costs its slowest member, and changeovers fall
+  //    between blocks, not inside them.
+  const slotMedian = (e) => {
+    for (const slug of [e.movement, ...(e.alternatives || [])]) {
+      const n = slug === e.movement ? movementName(slug, e.name) : movementName(slug, slug);
+      if (medianByName[n] != null) return medianByName[n];
+    }
+    return null;
+  };
   const days = PROGRAM.days.map((day) => {
-    const names = day.exercises.map((e) => movementName(e.movement, e.name));
-    const known = names.filter((n) => medianByName[n] != null);
-    const work = known.reduce((sum, n) => sum + medianByName[n], 0);
+    const blocks = [];
+    const bySs = {};
+    for (const e of day.exercises) {
+      if (e.ss && bySs[e.ss]) { bySs[e.ss].push(e); continue; }
+      const block = [e];
+      if (e.ss) bySs[e.ss] = block;
+      blocks.push(block);
+    }
+    let work = 0, known = 0, knownBlocks = 0;
+    for (const block of blocks) {
+      const mins = block.map(slotMedian).filter((x) => x != null);
+      known += mins.length;
+      if (mins.length) { knownBlocks++; work += Math.max(...mins); }
+    }
     const rows = observed[day.id] || [];
     const spans = rows.map((r) => r.spanMin).filter((x) => x != null);
     return {
       day: day.id,
       name: day.name,
-      slots: names.length,
-      slotsWithData: known.length,
-      // Work time plus one changeover between each pair of slots.
-      projectedMin: known.length ? work + (gapMin || 0) * Math.max(0, names.length - 1) : null,
+      slots: day.exercises.length,
+      slotsWithData: known,
+      blocks: blocks.length,
+      // Work time plus one changeover between each pair of blocks.
+      projectedMin: knownBlocks ? work + (gapMin || 0) * Math.max(0, blocks.length - 1) : null,
       observedMedianMin: median(spans),
       observedSessions: spans.length,
       medianSlotsStamped: median(rows.map((r) => r.slotsStamped)),

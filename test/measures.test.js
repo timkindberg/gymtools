@@ -18,9 +18,9 @@ test("prescriptions render the way the program used to read", () => {
 
 test("the four units that used to be crammed into the reps column are typed", () => {
   assert.equal(findExercise("b7").prescription.measure, "distance"); // 40 yd/side
-  assert.equal(findExercise("c7").prescription.measure, "time");     // 30–45s/side
+  assert.equal(findExercise("c8").prescription.measure, "time");     // 20–45s hang
   assert.equal(findExercise("c2").prescription.perSide, true);       // 8/side
-  assert.equal(findExercise("a4").prescription.perSide, true);       // 8–10/side
+  assert.equal(findExercise("a4").prescription.perSide, true);       // 6–8/side
 });
 
 test("swapping to a movement with another measure takes its prescription", () => {
