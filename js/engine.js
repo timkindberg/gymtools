@@ -35,7 +35,7 @@ import { invertLoad } from "./movements.js";
 import { rampLadder } from "./plates.js";
 import { setAmount, setLoad, isLogged, measureInfo, estimate1RM } from "./measures.js";
 import { workingSets, rampSets, failedSets, topWorkingLoad } from "./sets.js";
-import { workingEffort, effortVerdict, effortLabel } from "./effort.js";
+import { workingEffort, effortVerdict, effortLabel, targetRir } from "./effort.js";
 
 // ---- Increments -------------------------------------------------------------
 // The smallest step this movement can actually take at Blue Ash. A dumbbell rack
@@ -77,8 +77,13 @@ export function loadIncrement(movement) {
   return inc == null ? 5 : inc;
 }
 
+// A movement can opt into a smaller band with `band: "light"` (movements.js).
+// The box squat and the RDLs do: both are bar lifts he's still learning, both
+// have flagged the right low back, and at 225 the heavy band's 5% floor is a
+// 15 lb jump — "these are some big jumps from session to session" (2026-10-26).
 export function progressionBand(movement) {
   if (!movement) return BANDS.light;
+  if (movement.band && BANDS[movement.band]) return BANDS[movement.band];
   const heavy = LOWER_BODY.has(movement.pattern) &&
     (movement.implement === "barbell" || movement.implement === "machine");
   return heavy ? BANDS.heavy : BANDS.light;
@@ -292,6 +297,8 @@ function basisFor(cur, units) {
  * @param flags        the slot's injury flags (["knee", "shoulder", …])
  * @param scheduledDeload  the cadence says this week is a deload week
  * @param units        "lb" | "kg", for the rationale text
+ * @param targetRpe    the slot's prescribed RPE ("8", "10"); at 10, a set taken
+ *                     to failure is doing what it was told (effort.js)
  */
 export function nextPrescription({
   movement = null,
@@ -301,6 +308,7 @@ export function nextPrescription({
   flags = [],
   scheduledDeload = false,
   units = "lb",
+  targetRpe = null,
 } = {}) {
   const measure = (prescription && prescription.measure) || (movement && movement.measure) || "reps";
   const info = measureInfo(measure);
@@ -394,7 +402,7 @@ export function nextPrescription({
   }
 
   // 5/6. Double progression, gated on how hard the last working set was.
-  const verdict = effortVerdict({ rir: cur.rir, hitTarget: cur.hitTarget });
+  const verdict = effortVerdict({ rir: cur.rir, hitTarget: cur.hitTarget, targetRir: targetRir(targetRpe) });
   const stallNote = stall.stalled
     ? ` Second look: that's ${stall.consecutive} session${stall.consecutive === 1 ? "" : "s"} without a gain in ` +
       `reps or load — check the setup, the sleep and the food before you blame the weight.`

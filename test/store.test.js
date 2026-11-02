@@ -112,7 +112,7 @@ test("a ramp does not block a load increase", () => {
   // a1: 105/145/145 ramping to 165×8, top of a 5–8 range → add load.
   const sugg = suggestFor("a1");
   assert.equal(sugg.action, "increase");
-  assert.equal(sugg.weight, 175);
+  assert.equal(sugg.weight, 170);
   assert.match(sugg.basis, /ignored 3 ramp-up sets/);
 });
 
@@ -345,13 +345,17 @@ test("an RPE survives the import and reads back on the set", () => {
 test("'could have done 5 more on each side' stops meaning 'repeat 30'", () => {
   // a4 DB Reverse Lunge 30×8 — the clearest miss in the issue: he wrote that he
   // could add 5 lb per hand and the app told him to do it all again.
+  // Read against the 8–10 range it was logged under: a4 has asked for 6–8 since
+  // 2026-11-02, and against that 30×8, 8, 12 is a finished range on its own.
+  const lunge = (rx) => store.suggestion("db-reverse-lunge", rx);
+  const old = { ...findExercise("a4").prescription, min: 8, max: 10 };
   fresh();
-  const before = suggestFor("a4");
+  const before = lunge(old);
   assert.equal(before.action, "repeat");
   assert.equal(before.weight, 30);
 
   withEffort(2, "a4", 4);
-  const after = suggestFor("a4");
+  const after = lunge(old);
   assert.equal(after.action, "increase");
   assert.equal(after.weight, 35);
   assert.equal(after.amount, 8, "the reps reset to the bottom of the range to absorb a 17% jump");
@@ -377,7 +381,7 @@ test("topping the range at RPE 8 still adds load; at RPE 10 it holds", () => {
   withEffort(2, "a1", 2);
   const easy = suggestFor("a1");
   assert.equal(easy.action, "increase");
-  assert.equal(easy.weight, 175);
+  assert.equal(easy.weight, 170);
 
   withEffort(2, "a1", 0);
   const maxed = suggestFor("a1");
@@ -387,11 +391,11 @@ test("topping the range at RPE 8 still adds load; at RPE 10 it holds", () => {
 });
 
 test("topping the range with 4+ left is worth two increments — up to the cap", () => {
-  // Two 10 lb steps on a 165 lb squat would be +12%. The engine takes the
-  // biggest jump that stays inside 10% of the working load (#7) — 180.
+  // Two steps on a 165 lb squat. On the light band (2026-11-02) a step is 5,
+  // so two is 175 — inside the 10% cap (#7).
   withEffort(2, "a1", 4);
   const sugg = suggestFor("a1");
-  assert.equal(sugg.weight, 180);
+  assert.equal(sugg.weight, 175);
   assert.ok((sugg.weight - 165) / 165 <= 0.10);
 });
 
@@ -571,4 +575,30 @@ test("re-filing back to the slot's own movement clears the variant", () => {
   const { entry } = b2Entry();
   assert.equal(entry.movementId, "lat-pulldown");
   assert.equal(entry.variant, null);
+});
+
+// ---- Session pacing counts a superset once (2026-11-02) ----------------------
+// The first report with pacing read Day A at 69 min. Bench and row share one
+// window of time; adding both spans (and a changeover between them) counted it
+// twice.
+test("a superset is one block of time in the day's projection", () => {
+  const data = fixture();
+  const at = (min) => new Date(Date.parse("2026-11-02T17:00:00Z") + min * 60000).toISOString();
+  const sets = (w, mins) => mins.map((m) => ({ weight: w, reps: 8, doneAt: at(m) }));
+  data.sessions.push({
+    id: "pace", date: "2026-11-02T17:00:00.000Z", dayId: "A", dayName: "Day A",
+    symptoms: {}, causedMigraine: false, notes: "",
+    entries: [
+      { exerciseId: "a1", name: "Barbell Box Squat", variant: null, pain: false, note: "", sets: sets(225, [0, 3, 6]) },
+      { exerciseId: "a2", name: "Barbell Bench Press", variant: null, pain: false, note: "", sets: sets(160, [10, 14, 18]) },
+      { exerciseId: "a3", name: "Chest-Supported Row Machine (plates)", variant: null, pain: false, note: "", sets: sets(77.5, [12, 16, 20]) },
+    ],
+  });
+  store.importData(data);
+  const dayA = store.sessionPacing().days.find((d) => d.day === "A");
+  assert.equal(dayA.slotsWithData, 3);
+  // squat 6 + the bench⇄row block 8 (not 16) + a 4-min changeover between each
+  // of Day A's 5 blocks.
+  assert.equal(dayA.projectedMin, 6 + 8 + 4 * (dayA.blocks - 1));
+  assert.equal(dayA.blocks, 5);
 });

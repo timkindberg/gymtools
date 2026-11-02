@@ -5,6 +5,87 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-11-02 — Report review: the engine was fighting the RPE-10 slots, and two machines were logged as bars
+
+29 sessions, 9 in the last 4 weeks. Squat 165 → 225, hip thrust 140 → 235
+(machine, see below), RDL back to 200 × 8 × 3 at RPE 7–8 with no back flags since
+09-11. Symptoms are quiet: tightness 0.8 average, wrist 0.5, latest check-in
+knee 0 / tightness 2 / shoulder 1. One flag: box squat 10-12, dull low back, not
+repeated.
+
+### Engine: failure is the instruction on an RPE-10 slot
+
+The arm work and the fly are prescribed at RPE 10. The engine didn't know a
+slot's target: it read every set at 0 left as a warning. So hammer curls at
+30 × 14, 14, 12 (range 10–12, all RPE 10) got "repeat 30 and let it feel like an
+8", which tells him to stop doing what the slot asks. `nextPrescription` now
+takes `targetRpe` (the slot's `rpe`), and `effortVerdict` reads 0 left as
+on-target when the target is 0. Hammer curl → 35 × 10. A slot that asked for an
+8 still holds at failure.
+
+Not changed: the stall deload still fires on a failure slot that didn't beat its
+last session. The pushdown (60 × 15, 15, 12) got a review override instead of a
+rule change. Revisit if this keeps happening on the arm slots.
+
+### Engine: the box squat and RDLs move on the light band
+
+"These are some big jumps from session to session" (squat, 10-26). He was
+right: at 225, the heavy band's 5% floor is 15 lb, on a bar lift he's still
+learning that flagged the low back on 10-12. The same arithmetic would have
+handed the RDL 15 lb jumps past 210, breaking the re-entry ladder's 10 lb
+ceiling. New `band: "light"` registry field. Box squat, barbell RDL and hex-bar
+RDL now step 5–10 lb. Tests that used the squat as the heavy-band example were
+moved to the leg press, or re-expected (165 → 170, not 175).
+
+### Pacing: Day A was never 69 minutes
+
+`sessionPacing()` summed every slot's median span. Bench and row run in the
+same window, so adding both (plus a changeover between them) counted that time
+twice, three times over on Day A. It also only matched a slot's DEFAULT
+movement, so a 🎲 swap (the barbell incline in c9) read as "no data". Now a
+superset is one block costing its slowest member, changeovers fall between
+blocks, and a slot counts whichever of its movements he did. Back-of-envelope
+from the report's medians: Day A ≈ 45 min plus warm-up, not 69.
+
+Day C was genuinely long: 10 slots, and the 4-minute median changeover alone is
+~36 min of it.
+
+### Program
+
+- **`c7` Side Plank removed from Day C.** Three sessions with no gain, mostly
+  skipped, and it duplicates the carry's job. It lives on as b7's 🎲.
+- **`c10` Captain's chair ⇄ `c8` dead hang** is now superset S2: same tower,
+  abs vs grip. The 09-18 "hang + knee raise" lesson was about the HANGING knee
+  raise; the chair doesn't use the grip. Rest 60 → 45s each.
+  Day C is 10 slots → 9, and 10 time blocks → 7.
+- **`c1` default → Machine Hip Thrust.** He's on the Nautilus Glute Drive and was
+  logging it as the barbell (the a3 mistake again). Default changed, cues
+  rewritten for the belt (low across the hip bones, pad under it, which is his
+  stomach-pressure complaint). The barbell is a 🎲. He re-files the machine
+  sessions by hand (✎), same as a3.
+- **New movement `guided-bar-incline-press`: "Guided-Bar Incline Press
+  (Precor)"**, his request. A Smith-style track he'd logged as the free bar on
+  10-30. Machine, kept out of the seed table. 🎲 on c9. The barbell incline's
+  "stalled, deload to 120" was built on mixed data. Re-file 10-30 (and any other
+  Precor sessions) and it goes away.
+- **`a4` Reverse lunge 8–10 → 6–8/side, rest 75 → 90s.** His question: "so much
+  cardio... would this be better with a 5–8 rep range??" Yes. 10 a side is 20
+  big-leg reps per set and the lungs end it before the legs. With the new range
+  the engine moves him to 40 × 6.
+
+### Read, not changed
+
+- Leg curl, fly: accepted the engine's deloads (145, 17.5).
+- Assisted pull-up 105 × 8 × 4: still ambiguous which number he types (dial vs
+  pulled). The engine treats it as the dial. Asked him.
+- SA row left side harder 5 of 6. Unchanged; the iso-lateral a3 machine is where
+  to watch it.
+- Single-leg RDL: shoulders and breathing go first, and the 3rd set became a
+  two-leg RDL. Straps cue already in place; check next report.
+- Scheduled deload is due after this week (3 of 4 weeks done).
+
+v46 → v47.
+
 ## 2026-10-05 — Day A goes to three supersets; the lateral raise stops sharing with the face pull
 
 On 09-18 I wrote that `a7`/`a5` (lateral raise + face pull) "remains a genuine

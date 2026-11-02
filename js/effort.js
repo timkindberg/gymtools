@@ -130,9 +130,16 @@ export function recordHarderSide(entry, side) {
 //   near-failure  1 left — add load only once the range is topped
 //   at-failure    0 left — hold. More reps at this weight aren't coming from
 //                 grinding; they come from getting stronger at it first.
-export function effortVerdict({ rir = null, hitTarget = false } = {}) {
+//
+// `targetRir` is what the slot ASKED for. On a slot prescribed at RPE 10 (the
+// arm work, the fly), failure is the instruction, not a warning sign: 30×14,
+// 14, 12 on hammer curls at RPE 10 against a 10–12 range is a finished range,
+// and holding it "until it feels like an 8" asks him to stop doing what the
+// program told him to do (2026-11-02 review). There, 0 left reads on-target.
+export function effortVerdict({ rir = null, hitTarget = false, targetRir = null } = {}) {
   if (rir == null) return { code: "reps-only", steps: hitTarget ? 1 : 0, rir: null, hitTarget };
   if (rir >= RIR_CAP) return { code: "too-light", steps: hitTarget ? 2 : 1, rir, hitTarget };
+  if (rir === 0 && targetRir === 0) return { code: "on-target", steps: hitTarget ? 1 : 0, rir, hitTarget };
   if (rir === 0) return { code: "at-failure", steps: 0, rir, hitTarget };
   if (rir === 1) return { code: "near-failure", steps: hitTarget ? 1 : 0, rir, hitTarget };
   return { code: "on-target", steps: hitTarget ? 1 : 0, rir, hitTarget };

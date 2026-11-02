@@ -78,9 +78,10 @@ test("the same movement in two slots is one identity", () => {
   // The machine is its own identity: never the DB row under another name.
   assert.equal(findExercise("a3").movement, "chest-supported-row-machine");
   assert.notEqual(getMovement("chest-supported-row-machine").implement, getMovement("chest-supported-db-row").implement);
-  // …and the two carry slots share their hold.
+  // …and the carry slot keeps the hold and the side plank (c7 left Day C on
+  // 2026-11-02; the plank lives on as b7's 🎲).
   assert.ok(findExercise("b7").alternatives.includes("suitcase-hold"));
-  assert.ok(findExercise("c7").alternatives.includes("suitcase-hold"));
+  assert.ok(findExercise("b7").alternatives.includes("side-plank"));
 });
 
 test("the weight column says what the number means", () => {

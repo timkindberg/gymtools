@@ -240,6 +240,16 @@ He stated this himself, and it governs how the pacing data may be read:
   logs as a session. "Did Day C finish?" is a question for slot coverage, not
   for whether a session exists.
 
+- **Machines logged under a barbell name (2026-11-02), round two.** `c1` hip
+  thrust has been the **Nautilus Glute Drive** (belt across the hips) and was
+  logged as the barbell. It's now the slot default (Machine Hip Thrust). The
+  `c9` incline on 10-30 was the **Precor with the guided bar path** (Smith-style
+  track), which is now its own movement, "Guided-Bar Incline Press (Precor)". Both
+  are re-filed by hand with ✎. When a lift's numbers jump or stall oddly, ask which
+  machine it was before reading it as strength.
+- **The pacing projection counts a superset once (fixed 2026-11-02).** Reports
+  before v47 overstated Day A (69 min) by double-counting supersetted slots.
+
 - **a3 is the plate-loaded chest-supported row MACHINE, not dumbbells**
   (2026-10-05). Its numbers are plates per side and are not comparable to the DB
   row — 75 a side on the machine is much easier than a 75 lb dumbbell. Never
