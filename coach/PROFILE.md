@@ -217,12 +217,13 @@ volume independent of Friday. Held back because Day B is already 8 slots on a
   session left unflagged a day out counts as migraine-free.
 
 ## Logging conventions
-- **Assisted pull-ups:** he writes down the weight he actually pulled
-  (bodyweight − assist), not the number on the assist dial (confirmed
-  2026-09-26). The app's Assisted Pull-up movement treats the logged number as
-  the assist, where more means easier. So re-file old entries with "What I
-  pulled", and going forward either log the dial number or read the report
-  knowing which one it is.
+- **Assisted pull-ups:** he now logs **the number on the assist dial**, which
+  is what the app expects: lower means stronger (confirmed 2026-11-02). That
+  supersedes the 2026-09-26 note, when he was logging the weight he pulled
+  (bodyweight − assist). Entries from before then were re-filed with "What I
+  pulled", which converted them to assist. Read the report's assisted numbers
+  as assist, so 75 → 105 is MORE help, not progress. Worth a look if it keeps
+  climbing.
 
 ## Data quality — what to trust in the report (Tim, 2026-10-05)
 He stated this himself, and it governs how the pacing data may be read:

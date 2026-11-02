@@ -76,8 +76,9 @@ Day C was genuinely long: 10 slots, and the 4-minute median changeover alone is
 ### Read, not changed
 
 - Leg curl, fly: accepted the engine's deloads (145, 17.5).
-- Assisted pull-up 105 × 8 × 4: still ambiguous which number he types (dial vs
-  pulled). The engine treats it as the dial. Asked him.
+- Assisted pull-up 105 × 8 × 4: he confirmed he types the dial (assist), which
+  is what the engine expects. No change. Note the report's "was 75" means he's
+  using more assist than his first logged session.
 - SA row left side harder 5 of 6. Unchanged; the iso-lateral a3 machine is where
   to watch it.
 - Single-leg RDL: shoulders and breathing go first, and the 3rd set became a
