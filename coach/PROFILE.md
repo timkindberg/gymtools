@@ -127,8 +127,10 @@ volume independent of Friday. Held back because Day B is already 8 slots on a
   started wearing my heel lift again").** That handles the structural base, so
   training now builds balance ON TOP of it (unilateral work, carries, mobility)
   rather than damage-control. Frontal-plane/adductor work has been de-prioritized
-  accordingly (Day C lateral lunge is now optional); if the tightness trend turns
-  back up in the coach report, that's the first thing to reinstate.
+  accordingly. The Day C lateral lunge went optional, then was removed
+  2026-11-04 (he never did it on Fridays — don't put it back on Day C). If the
+  tightness trend turns back up in the coach report, frontal-plane work is the
+  first thing to reinstate, somewhere other than Friday.
 - **Right knee (meniscus).** Only really hurts at **deep loaded flexion**;
   otherwise robust, rarely flares (occasionally with running). Stable lately.
   → cap squat/press depth (box squats, limited-ROM leg press), build quad +
@@ -248,6 +250,10 @@ He stated this himself, and it governs how the pacing data may be read:
   track), which is now its own movement, "Guided-Bar Incline Press (Precor)". Both
   are re-filed by hand with ✎. When a lift's numbers jump or stall oddly, ask which
   machine it was before reading it as strength.
+- **His favourite swaps are the defaults (2026-11-04).** `c9` is the Precor
+  guided-bar incline and `b2` is the assisted pull-up; the DB incline and the
+  pulldowns are 🎲 options now. When he says a swap has become his usual, make
+  it the slot default rather than leaving him to 🎲 every session.
 - **The pacing projection counts a superset once (fixed 2026-11-02).** Reports
   before v47 overstated Day A (69 min) by double-counting supersetted slots.
 
