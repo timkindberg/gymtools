@@ -85,8 +85,9 @@ Full-body, ~50 min, 3×/week. **Mon and Wed are complete anchor sessions;
 Friday is a skippable bonus day** (a second chest press, glutes, unilateral
 back/hinge, arms, mobility) — so missing Friday, the most-skipped day, costs you
 nothing essential, though the second press is the thing worth showing up for.
-Its least urgent item (the lateral lunge) is marked *optional if time* and sits
-last, so a rushed Friday drops that rather than the press. It's a
+It runs most important first (press → glutes → arms → row → single-leg RDL →
+core + hang), so a rushed Friday just stops early and drops what the week misses
+least. It's a
 **rotating hybrid** — machines, dumbbells, and barbells are all tools, none is
 "the program"; the emphasis changes block to block to keep the body adapting and
 the training interesting. Barbell lifts carry a 🎥 *technique focus* flag with

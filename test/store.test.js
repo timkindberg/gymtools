@@ -366,10 +366,12 @@ test("'could have done 5 more on each side' stops meaning 'repeat 30'", () => {
 test("'wouldn't have been able to do a 7th' stops meaning 'add reps'", () => {
   // b2 Lat Pulldown 160×8 of a 6–10 range, at failure. Today: "aim to add reps
   // at 160" — telling a man at his limit to grind two more.
-  assert.match(suggestFor("b2").note, /get every working set to 10 reps/);
+  // (b2's default is the assisted pull-up since 2026-11-04; this history is
+  // the pulldown, so ask for it by name.)
+  assert.match(suggestFor("b2", "lat-pulldown").note, /get every working set to 10 reps/);
 
   withEffort(0, "b2", 0);
-  const after = suggestFor("b2");
+  const after = suggestFor("b2", "lat-pulldown");
   assert.equal(after.action, "repeat");
   assert.equal(after.weight, 160);
   assert.match(after.note, /already at failure/);
@@ -551,7 +553,8 @@ test("re-filing pulldowns as assisted pull-ups moves the history with them", () 
   store.changeEntryMovement(s.id, entryIndex, "assisted-pull-up");
   const { entry } = b2Entry();
   assert.equal(entry.movementId, "assisted-pull-up");
-  assert.equal(entry.variant, "assisted-pull-up");
+  // The assisted pull-up is b2's own movement since 2026-11-04, so no variant.
+  assert.equal(entry.variant, null);
   assert.equal(store.entryName(entry), "Assisted Pull-up");
   assert.deepEqual(entry.sets.map((x) => x.weight), [140, 160, 160], "numbers kept as the assist");
   assert.equal(store.lastPerformance("lat-pulldown"), null);
@@ -570,10 +573,12 @@ test("numbers written as weight pulled convert to assist from bodyweight", () =>
 test("re-filing back to the slot's own movement clears the variant", () => {
   fresh();
   const { s, entryIndex } = b2Entry();
-  store.changeEntryMovement(s.id, entryIndex, "assisted-pull-up");
+  // b2's own movement is the assisted pull-up since 2026-11-04.
   store.changeEntryMovement(s.id, entryIndex, "lat-pulldown");
+  assert.equal(b2Entry().entry.variant, "lat-pulldown");
+  store.changeEntryMovement(s.id, entryIndex, "assisted-pull-up");
   const { entry } = b2Entry();
-  assert.equal(entry.movementId, "lat-pulldown");
+  assert.equal(entry.movementId, "assisted-pull-up");
   assert.equal(entry.variant, null);
 });
 

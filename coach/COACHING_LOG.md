@@ -5,6 +5,50 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-11-04 — Friday loses the lateral lunge and runs most important first; favourite swaps become defaults
+
+Tim: "I'm never doing the db lateral lunges on Fridays. Let's remove them. Also
+can you make all my favorite swaps to be the defaults for each slot? And for
+Friday reorder it to be optimal and most important to least important in case I
+ever need to leave early."
+
+### Program
+
+- **`c2` DB Lateral Lunge removed.** Optional and last since August, and he never
+  did it. The id is retired (as `c7` is): don't reuse it. Frontal-plane work is
+  still the first thing to bring back if the right-side tightness trend climbs,
+  but on Mon or Wed, not Friday.
+- **Day C reordered, most important first**, so stopping early only cuts the
+  bottom:
+
+  | # | Slot | Why it's here |
+  | --- | --- | --- |
+  | 1 | `c9` Incline press (Precor) | The day's reason to exist: the week's second press |
+  | 2 | `c1` Machine hip thrust | Only heavy glute work in the week |
+  | 3–4 | `c5` Hammer curl ⇄ `c6` Pushdown (S1) | Only direct arm work in the week |
+  | 5 | `c3` Single-arm DB row | Mon and Wed already pull; this is the L/R balance |
+  | 6 | `c4` Single-leg DB RDL | Wed has the barbell RDL; this is balance + the stretch |
+  | 7–8 | `c10` Captain's chair ⇄ `c8` Dead hang (S2) | Core + grip, the extras |
+
+  The trade-off is that arms before the row is not the textbook order (compound
+  before isolation). The curls leave the biceps tired for the row, and the row's
+  techNote now says so, so a small rep dip there isn't read as going backwards.
+  The pull is the third of the week; the arms aren't trained anywhere else. The
+  grip-heavy row and RDL still use straps, and the hang stays last on the bar.
+- **Favourite swaps → defaults.** Asked which ones, he named two:
+  - `c9` → **Guided-Bar Incline Press (Precor)**, start 135. The neutral-grip DB
+    incline moves to the first 🎲, and the cues are rewritten for the bar.
+  - `b2` → **Assisted Pull-up**, start 105 (the dial number, as he logs it).
+    The lat pulldown is now the first 🎲.
+  History is per movement, so nothing moves: old pulldown and DB-incline
+  sessions stay what they were.
+
+Tests: three b2 store tests assumed the pulldown was the slot's own movement;
+updated to the new default. The measures test's per-side example moved from
+`c2` to `c4`.
+
+v47 → v48.
+
 ## 2026-11-02 — Report review: the engine was fighting the RPE-10 slots, and two machines were logged as bars
 
 29 sessions, 9 in the last 4 weeks. Squat 165 → 225, hip thrust 140 → 235

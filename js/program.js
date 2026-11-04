@@ -15,8 +15,10 @@
 //   3 of 4 Fridays — ~70-75%, a real training day, not a coin flip. So Day C
 //   may hold work that matters (the second chest press, the arms, the glutes)
 //   without the week falling over when it's missed; what it still may not hold
-//   is anything the week CANNOT do without. Its least-urgent item (the lateral
-//   lunge) stays optional and last, so a short Friday drops that first.
+//   is anything the week CANNOT do without. Day C runs most important first
+//   (press, glutes, arms, then the unilateral back/hinge, then core + hang), so
+//   leaving early cuts from the bottom. The lateral lunge is gone (2026-11-04):
+//   he never did it.
 //
 // CONSTRAINTS baked in
 //   - Leg-length discrepancy = THE priority (progressive right-side tightening).
@@ -116,7 +118,7 @@ export const MOBILITY_ROUTINE = {
 
 export const PROGRAM = {
   name: "Tim's Rebuild — MWF Full Body",
-  updated: "2026-11-02",
+  updated: "2026-11-04",
   days: [
     // ---------------------------------------------------------------- MONDAY
     {
@@ -233,11 +235,15 @@ export const PROGRAM = {
           alternatives: ["hex-bar-rdl", "cable-pull-through", "db-rdl", "machine-hip-thrust"],
         }),
         ex({
-          id: "b2", movement: "lat-pulldown", name: "Pull-up / Lat Pulldown", target: "Lats / upper back", start: 120,
+          // 2026-11-04: default → assisted pull-up, his favourite swap. He logs
+          // the number on the assist dial (more assist = easier), and the engine
+          // reads it that way. The pulldowns stay a 🎲 away.
+          id: "b2", movement: "assisted-pull-up", name: "Assisted Pull-up", target: "Lats / upper back", start: 105,
           sets: 4, prescription: repRange(6, 10), rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1",
-          why: "Vertical pulling for a wide back — always to the FRONT, never behind the neck. Use assisted or the pulldown to hit the rep range cleanly.",
+          why: "Vertical pulling for a wide back — always to the FRONT, never behind the neck. The assist lets you hit the rep range with clean reps, and taking assist off is the progress, all the way to bodyweight.",
           cues: ["Full hang, pull the collarbone to the bar", "Drive the elbows down", "Control the way up", "Neutral or shoulder-width grip"],
-          alternatives: ["lat-pulldown-neutral", "assisted-pull-up", "weighted-pull-up"],
+          techNote: "Log the number on the assist dial. Less assist is progress, so a lower number means you got stronger. Pulldowns are a 🎲 away if the machine's taken.",
+          alternatives: ["lat-pulldown", "lat-pulldown-neutral", "weighted-pull-up"],
         }),
         ex({
           id: "b3", movement: "db-shoulder-press-seated", name: "Seated DB Shoulder Press", target: "Shoulders / triceps",
@@ -293,20 +299,27 @@ export const PROGRAM = {
       name: "Day C — Bonus: Press, Glutes & Arms",
       dow: 5,
       optional: true,
-      note: "You make 2 of 3 to 3 of 4 of these, so this is a real training day, not a bonus. It holds your second chest press, your only direct arm work, and your only heavy glute work — treat it as part of the week. Mon + Wed still cover the essentials if life eats a Friday.",
+      note: "You make 2 of 3 to 3 of 4 of these, so this is a real training day, not a bonus. It holds your second chest press, your only direct arm work, and your only heavy glute work — treat it as part of the week. It runs most important first: if you have to leave early, just stop — whatever's left at the bottom is what the week misses least. Mon + Wed still cover the essentials if life eats a Friday.",
       focus: "A second press, glutes, unilateral back and hinge, arms, and a long loosen-out",
       warmup: PRIMER,
       exercises: [
-        // Out of id sequence on purpose: c9 is the newest slot (2026-08-29) and
-        // ids are permanent — logged entries carry the slot they filled, so
-        // renumbering c1–c8 to make this read tidily would misattribute history.
+        // Ordered most important first (2026-11-04), so leaving early drops
+        // the least you'd miss: press → glutes → arms → row → SL RDL → core/hang.
+        // The press, the heavy glute work and the arms are on no other day;
+        // Mon/Wed already row and hinge, and the hang is the extra.
+        // Ids are out of sequence on purpose: ids are permanent — logged
+        // entries carry the slot they filled, so renumbering to make this read
+        // tidily would misattribute history. c2 (lateral lunge) and c7 (side
+        // plank) are retired; don't reuse their ids.
         ex({
-          id: "c9", movement: "db-incline-press-neutral", name: "Neutral-Grip DB Incline Press", target: "Chest / front delts / triceps", start: 45,
+          // 2026-11-04: default → the Precor guided bar, his favourite swap.
+          // The neutral-grip DBs stay a 🎲 away for days the shoulder wants them.
+          id: "c9", movement: "guided-bar-incline-press", name: "Guided-Bar Incline Press (Precor)", target: "Chest / front delts / triceps", start: 135,
           sets: 4, prescription: repRange(8, 12), rpe: "8", rest: "90s", flags: ["shoulder", "wrist"],
-          why: "The reason this day is worth making. Monday's bench is your only chest work in a two-day week — 4 sets, and that's the whole dose. This is a second pressing exposure at a different angle, and frequency is what actually grows a press. Neutral grip and an incline keep the shoulder comfortable, and dumbbells are where you're strongest.",
-          cues: ["Bench at ~30°, not steep — this is a chest press, not a shoulder press", "Palms facing each other the whole way", "Elbows tucked ~45°, stretch at the bottom", "Drive up and slightly together, don't clank the bells"],
-          techNote: "First fresh, before the glutes and arms — this slot is the day's priority. The free-bar incline and the Precor with the guided bar path are separate 🎲 options with separate histories: the track takes the balancing out, so 135 on the Precor isn't 135 on a free bar. Log whichever one you're actually on.",
-          alternatives: ["guided-bar-incline-press", "barbell-incline-press", "machine-chest-press", "db-bench-press-neutral"],
+          why: "The reason this day is worth making. Monday's bench is your only chest work in a two-day week — 4 sets, and that's the whole dose. This is a second pressing exposure at a different angle, and frequency is what actually grows a press. The guided track takes the balancing out, so you can push it hard alone with no spotter.",
+          cues: ["Bench at ~30°, not steep — this is a chest press, not a shoulder press", "Bar lands on the upper chest, under the collarbone", "Elbows tucked ~45°, not flared out to the sides", "Wrists stacked over the elbows, not bent back", "Set the safety stops just above your chest"],
+          techNote: "First, while you're fresh: this slot is the day's priority. The Precor, the free-bar incline and the neutral-grip DBs each have their own history. The track takes the balancing out, so 135 on the Precor isn't 135 on a free bar. Log whichever one you're actually on. If the shoulder's cranky, 🎲 to the neutral-grip DBs.",
+          alternatives: ["db-incline-press-neutral", "barbell-incline-press", "machine-chest-press", "db-bench-press-neutral"],
         }),
         ex({
           // 2026-11-02: default moved to the machine. He's been doing the Nautilus
@@ -321,11 +334,32 @@ export const PROGRAM = {
           alternatives: ["barbell-hip-thrust", "db-hip-thrust", "glute-bridge"],
         }),
         ex({
+          // 2026-09-26: hammer curl is the default now. His left wrist hurts on
+          // the pinky side and doesn't like palms-up curls. The supinated
+          // curls twist load through exactly that side, and the barbell curl
+          // locks it there, so the barbell curl is off the list. He'd already
+          // moved to hammers on his own, and they feel fine.
+          id: "c5", movement: "hammer-curl", name: "Hammer Curl", target: "Biceps / brachialis / forearm", start: 30,
+          sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
+          why: "Arms, with the palms facing each other the whole way. Your left wrist hurts on the pinky side and doesn't like palms-up curls, and a neutral grip keeps the wrist from rotating under load. Hammers also build the brachialis and forearm, which make an arm look thick from the side. Take them to failure, supersetted with the triceps work.",
+          cues: ["Thumbs up the whole rep — don't let the wrist roll", "Wrist straight, not cocked toward the pinky", "Slow negative, no swinging"],
+          techNote: "Wear the WristWidget on the left. The Incline DB Curl is still a 🎲 away, but only on days the wrist is quiet — it's palms-up.",
+          alternatives: ["incline-db-curl", "cable-curl"],
+        }),
+        ex({
+          id: "c6", movement: "triceps-rope-pushdown", name: "Triceps Rope Pushdown", target: "Triceps", start: 40,
+          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
+          why: "Rounds out arm work, shoulder-friendly. Failure is fine here.",
+          cues: ["Elbows pinned to your sides", "Full lockout, slow return", "Don't yank the rope ends apart at the bottom — that bends the wrist toward the pinky"],
+          techNote: "The rope's spread at lockout bends the wrist toward the pinky side, which is the side that's sore. Stop the rope at shoulder-width, or 🎲 to the DB skull-crusher, which you've been doing anyway.",
+          alternatives: ["db-skullcrusher", "overhead-rope-extension"],
+        }),
+        ex({
           id: "c3", movement: "db-row-single-arm", name: "Single-Arm DB Row", target: "Unilateral back", start: 55,
           sets: 3, prescription: repRange(10, 10, { perSide: true }), rpe: "9", rest: "60s", flags: ["posture", "leglength", "wrist"],
           why: "Evens out left/right back strength and reinforces posture. Braced on a bench so the low back stays safe.",
           cues: ["Flat back, brace a hand on the bench", "Pull to the hip", "Don't rotate the torso to cheat", "Hold the bell like a hook, not a fist — the back pulls, the hand just hangs on", "Left side first, and the right matches the left's reps"],
-          techNote: "2026-09-25: the inside of your LEFT elbow hurts on this one (and the left wrist flagged on cable curls back in August). That's the forearm-flexor tendon, and Day C loads it five exercises running. Use lifting straps here while it settles — they take the squeeze off that tendon without taking the back work away. Any sharp pain at the inside of the elbow during a set, the set is over; still there in two weeks, get it looked at.",
+          techNote: "2026-09-25: the inside of your LEFT elbow hurts on this one (and the left wrist flagged on cable curls back in August). That's the forearm-flexor tendon, and Day C loads it five exercises running. Use lifting straps here while it settles — they take the squeeze off that tendon without taking the back work away. Any sharp pain at the inside of the elbow during a set, the set is over; still there in two weeks, get it looked at. It comes after the curls now (2026-11-04), so the biceps arrive tired: if the reps come in a little under last time, that's the order, not you going backwards. Monday and Wednesday already pull; this one's here for the left/right balance.",
           alternatives: ["chest-supported-db-row", "seated-cable-row"],
         }),
         ex({
@@ -355,34 +389,6 @@ export const PROGRAM = {
           cues: ["Full hang, shoulders active — don't shrug up to your ears", "Squeeze the bar, breathe", "Step down, don't drop"],
           techNote: "Callouses come from time on the bar, not from one heroic set. Chalk helps; a mixed grip doesn't. Superset with the knee raise (2026-11-02): same tower, and the chair works the abs while the hang works the grip, so neither one tires the other. Two hangs, alternating with the first two knee-raise sets. If the inside of the left elbow talks during the hang, step down.",
           alternatives: ["weighted-dead-hang"],
-        }),
-        ex({
-          // 2026-09-26: hammer curl is the default now. His left wrist hurts on
-          // the pinky side and doesn't like palms-up curls. The supinated
-          // curls twist load through exactly that side, and the barbell curl
-          // locks it there, so the barbell curl is off the list. He'd already
-          // moved to hammers on his own, and they feel fine.
-          id: "c5", movement: "hammer-curl", name: "Hammer Curl", target: "Biceps / brachialis / forearm", start: 30,
-          sets: 3, prescription: repRange(10, 12), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
-          why: "Arms, with the palms facing each other the whole way. Your left wrist hurts on the pinky side and doesn't like palms-up curls, and a neutral grip keeps the wrist from rotating under load. Hammers also build the brachialis and forearm, which make an arm look thick from the side. Take them to failure, supersetted with the triceps work.",
-          cues: ["Thumbs up the whole rep — don't let the wrist roll", "Wrist straight, not cocked toward the pinky", "Slow negative, no swinging"],
-          techNote: "Wear the WristWidget on the left. The Incline DB Curl is still a 🎲 away, but only on days the wrist is quiet — it's palms-up.",
-          alternatives: ["incline-db-curl", "cable-curl"],
-        }),
-        ex({
-          id: "c6", movement: "triceps-rope-pushdown", name: "Triceps Rope Pushdown", target: "Triceps", start: 40,
-          sets: 3, prescription: repRange(12, 15), rpe: "10", rest: "60s", ss: "S1", flags: ["wrist"],
-          why: "Rounds out arm work, shoulder-friendly. Failure is fine here.",
-          cues: ["Elbows pinned to your sides", "Full lockout, slow return", "Don't yank the rope ends apart at the bottom — that bends the wrist toward the pinky"],
-          techNote: "The rope's spread at lockout bends the wrist toward the pinky side, which is the side that's sore. Stop the rope at shoulder-width, or 🎲 to the DB skull-crusher, which you've been doing anyway.",
-          alternatives: ["db-skullcrusher", "overhead-rope-extension"],
-        }),
-        ex({
-          id: "c2", movement: "db-lateral-lunge", name: "DB Lateral Lunge (optional if time)", target: "Adductors / frontal plane", start: 25,
-          sets: 3, prescription: repRange(8, 8, { perSide: true }), rpe: "8", rest: "75s", flags: ["knee", "leglength"],
-          why: "Side-to-side loading trains the inner hip and frontal-plane control that a leg-length difference neglects — and with the heel lift back in and the right side behaving (2026-08), it's the least urgent thing on this day. It sits last on purpose: run it on a weekend when you have the time, skip it on a lunch break when you don't. Monday's reverse lunge and Wednesday's single-leg press already cover single-leg strength.",
-          cues: ["Sit into the bending hip, keep the other leg straight", "Only as deep as stays pain-free", "Push back to center through the heel"],
-          alternatives: ["adductor-abductor-machine", "cossack-squat"],
         }),
       ],
       cooldown: [
