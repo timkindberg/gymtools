@@ -5,6 +5,25 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-11-09 — Block plan: squat, bench and deadlift anchored; Friday stays skippable
+
+Conversation only, no program change. Tim asked whether the program would stop
+serving him. Answer: not yet (squat 165 → 225, hip thrust 140 → 235, symptoms
+quiet), but Block 1 has run since 08-17 with tune-ups only, and the
+newbie/re-entry gains usually flatten around months 4-6. Block 2 pencilled for
+around January, or sooner if the coach report shows stalls on several lifts.
+
+Tim's rules for every future block:
+- **Squat, bench and deadlift stay put** (`a1`, `a2`, `b1`). Change their
+  dosing between blocks, not the lift. Rotate everything else.
+- **Friday stays skippable. He now puts attendance at ~50%**, not the 70-75% in
+  the 09-14 note. PROFILE.md updated.
+
+For Block 2 design: Day C currently holds the week's only heavy glute work
+(`c1`), only direct arm work (`c5`/`c6`) and the second press (`c9`). At 50%
+attendance those get half their volume. When rotating, move what matters onto
+Mon/Wed (or give it a Mon/Wed cousin) and leave Friday as bonus volume.
+
 ## 2026-11-04 — Friday loses the lateral lunge and runs most important first; favourite swaps become defaults
 
 Tim: "I'm never doing the db lateral lunges on Fridays. Let's remove them. Also

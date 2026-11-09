@@ -9,13 +9,12 @@
 - On Lexapro (SSRI). No blood-pressure or heart issues. Cleared to train.
 - Coming from Orange Theory; switching to a regular gym.
 - Trains at **Blue Ash Rec Center**, Ohio. Lunchtime, **~50 min**, 3×/week
-  (Mon / Wed / Fri). **Friday attendance corrected 2026-09-14: he makes 2 of 3
-  to 3 of 4 Fridays (~70-75%)** — a real training day, not a coin flip. Earlier
-  notes calling it "the day he most often skips" understated it; Day C may
-  therefore carry work that matters (second chest press, arms, glutes), and only
-  work the week genuinely CANNOT do without stays off it. Mon & Wed must still
-  each be complete. He does sometimes make a missed Friday up on a weekend,
-  when he has more time than a lunch break.
+  (Mon / Wed / Fri). **Friday attendance, re-corrected 2026-11-09 by Tim: "I
+  tend to miss it about 50% of the time."** (The 2026-09-14 note said ~70-75%;
+  his own word now is a coin flip.) Friday is a **skippable** day and stays
+  that way in every block. Mon & Wed must each be complete, and nothing the
+  week can't do without belongs only on Friday. He does sometimes make a missed
+  Friday up on a weekend, when he has more time than a lunch break.
 
 ## Experience & preferences
 - Solid technique with **dumbbells and machines**. Interested in **all of it**,
@@ -111,6 +110,19 @@ what he specifically asked for. Takes chest to ~10 effective sets/week.
 Still open: a THIRD chest exposure on Day B would add frequency and make chest
 volume independent of Friday. Held back because Day B is already 8 slots on a
 50-minute break — revisit once the new pacing data says what the day costs.
+
+## Block structure — anchors vs rotation (Tim, 2026-11-09)
+Block 1 started 2026-08-17. When blocks change:
+- **Anchored across ALL blocks — don't swap the lift:** squat, bench press,
+  deadlift. In today's program that's `a1` Barbell Box Squat (Mon), `a2`
+  Barbell Bench Press (Mon) and `b1` Barbell RDL (Wed). Tim: "such core
+  important movements." What may change between blocks is how they're dosed
+  (rep range, sets, tempo, top set + back-offs), never which lift it is.
+  The box → free squat or RDL → conventional deadlift question is a
+  progression of the same lift, to raise with him, not decide alone.
+- **Rotates block to block:** everything else — accessories, the second press,
+  unilateral work, arms, core — for the variety he wants.
+- **Friday stays skippable** (see Basics, ~50%).
 
 ## Goals
 1. Muscle & strength
