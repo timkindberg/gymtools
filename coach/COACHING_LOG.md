@@ -5,6 +5,33 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-11-09 — The Wednesday "RDL" was a conventional deadlift all along
+
+Asked to pin squat, bench and deadlift as anchors, Tim said "I think I've been
+doing a regular dead lift on Wednesdays... I thought a Romanian [deadlift] was
+a regular full dead lift." Confirmed: "I've been doing regular dead lift all
+the way to the floor every rep."
+
+- **New movement `barbell-deadlift`, "Barbell Deadlift"**, hinge, light band
+  (same 5–10 lb steps the ladder allows). Seed link: deadlift ≈ 1.15 × RDL.
+- **`b1` default → Barbell Deadlift**, cues rewritten for a floor pull (bar
+  over mid-foot, hips down to the bar, slack out, push the floor, reset each
+  rep). RPE 7 cap, 3×6–8, stop rule and ladder unchanged. 🎲: Hex-Bar
+  Deadlift first, then the RDL, Hex-Bar RDL, pull-through, DB RDL, hip thrust.
+- **History re-filed by migration (DATA_VERSION 5 → 6)**, not by hand: every
+  b1 entry under `barbell-rdl` is now `barbell-deadlift`, and a pending RDL
+  override moves with it. He said all of them were floor pulls, and doing it
+  one ✎ at a time would have been 10+ edits. Hex-bar RDL entries are left
+  alone until he says whether those were from the floor too.
+- **Likely cause of the September back tweaks:** RDL cues on a floor pull is a
+  stiff-legged deadlift, where the low back finishes the bottom of each rep. The
+  techNote says so. Watch whether the back stays quiet with proper set-up.
+
+Tests: the fixture's b1 entries now land on `barbell-deadlift` (two
+expectations updated); new tests for the re-file and the override move.
+
+v48 → v49.
+
 ## 2026-11-09 — Block plan: squat, bench and deadlift anchored; Friday stays skippable
 
 Conversation only, no program change. Tim asked whether the program would stop

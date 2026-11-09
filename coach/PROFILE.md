@@ -115,11 +115,12 @@ volume independent of Friday. Held back because Day B is already 8 slots on a
 Block 1 started 2026-08-17. When blocks change:
 - **Anchored across ALL blocks — don't swap the lift:** squat, bench press,
   deadlift. In today's program that's `a1` Barbell Box Squat (Mon), `a2`
-  Barbell Bench Press (Mon) and `b1` Barbell RDL (Wed). Tim: "such core
+  Barbell Bench Press (Mon) and `b1` Barbell Deadlift (Wed, conventional, from
+  the floor; see the 2026-11-09 log entry, it was mislabelled as the RDL). Tim: "such core
   important movements." What may change between blocks is how they're dosed
   (rep range, sets, tempo, top set + back-offs), never which lift it is.
-  The box → free squat or RDL → conventional deadlift question is a
-  progression of the same lift, to raise with him, not decide alone.
+  The box → free squat question is a progression of the same lift, to raise
+  with him, not decide alone.
 - **Rotates block to block:** everything else — accessories, the second press,
   unilateral work, arms, core — for the variety he wants.
 - **Friday stays skippable** (see Basics, ~50%).
@@ -184,6 +185,14 @@ Block 1 started 2026-08-17. When blocks change:
     load conversation.
   - **Two more tweaks in a block → the bar comes out for real**, and then it's
     the hex bar or the pull-through for a full block.
+
+  **Correction 2026-11-09:** every "Barbell RDL" above was a **conventional
+  deadlift from the floor**. Tim: "I've been doing regular dead lift all the way
+  to the floor every rep." The card was showing RDL cues (soft knees, hips back),
+  which on a floor pull make a stiff-legged deadlift, a plausible contributor
+  to both tweaks. `b1` is now the Barbell Deadlift with conventional cues; the
+  ladder, RPE cap and traffic lights carry over unchanged. Still open: whether
+  the "Hex-Bar RDL" Wednesdays were also from the floor (= hex-bar deadlift).
 
   **Status 2026-09-26:** no back flags since 09-11. He's taken the 🎲 Hex-Bar RDL
   both Wednesdays since (175, then 185×8×3 at RPE 7, clean). The ladder still

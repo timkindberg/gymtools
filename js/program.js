@@ -227,12 +227,17 @@ export const PROGRAM = {
           // the cause. Load reset to 155, RPE capped at 7, a set cut, and a
           // re-entry ladder in PROFILE.md. If it tweaks twice more, THEN the
           // bar comes out — and the pull-through is a 🎲 away any day it's cranky.
-          id: "b1", movement: "barbell-rdl", name: "Barbell Romanian Deadlift", target: "Hamstrings / glutes / back", start: 155,
+          // 2026-11-09: this slot said "Romanian Deadlift" from day one, but Tim
+          // has been pulling from the floor every rep: a conventional deadlift.
+          // The slot now names what he does, and his history was re-filed with
+          // it (store.js v6). Squat, bench and deadlift are his anchors and stay
+          // in every block. The RDL is a 🎲 away.
+          id: "b1", movement: "barbell-deadlift", name: "Barbell Deadlift", target: "Hamstrings / glutes / back", start: 155,
           sets: 3, prescription: repRange(6, 8), rpe: "7", rest: "2–3 min", flags: ["hamstring", "leglength", "posture"], learn: true,
-          why: "The big posterior-chain builder, and you like it — that counts. Keeping the hips level here is direct anti-tightening work for your right side. It's back at a lighter load and a lower RPE cap on purpose: this lift punished you for grinding it, not for existing.",
-          cues: ["Soft knees, push the hips back", "Bar drags close to the legs", "Hips stay square — don't hike the right", "Flat back; stop when the hamstrings tension, BEFORE the back rounds", "Rack it at RPE 7 — the last rep should still look like the first"],
-          techNote: "Stop rule: any low-back sensation, the set is over — not the rep, the set. Log it and drop 20 lb next session. Cranky back day? 🎲 to the Hex-Bar RDL (load sits at your sides, much easier on the low back) or the Cable Pull-Through.",
-          alternatives: ["hex-bar-rdl", "cable-pull-through", "db-rdl", "machine-hip-thrust"],
+          why: "One of your three anchor lifts: it stays in every block. The biggest posterior-chain builder there is, and keeping the hips level on the way up is direct anti-tightening work for your right side. It's capped at RPE 7 on purpose: this lift punished you for grinding it, not for existing.",
+          cues: ["Bar over the middle of your foot, about an inch from the shins", "Grip it, then drop the hips until the shins touch the bar, chest up", "Squeeze the bar off the floor: lats tight, slack out, THEN push the floor away", "Bar drags up the legs; hips and shoulders rise together", "Hips stay square, don't hike the right", "Stand tall at the top, don't lean back. Lower it the same way and reset on the floor each rep, no bouncing"],
+          techNote: "Until 2026-11-09 this card showed Romanian-deadlift cues (soft knees, hips back) while you were pulling from the floor. Done together, that's a stiff-legged pull to the floor, where the low back takes over at the bottom: a likely part of the two right-side tweaks in September. Bend the knees and get the hips down at the start of each rep. Stop rule: any low-back sensation, the set is over, not the rep. Log it and drop 20 lb next session. Cranky back day? 🎲 to the Hex-Bar Deadlift (the load sits at your sides, much easier on the low back) or the Cable Pull-Through.",
+          alternatives: ["hex-bar-deadlift", "barbell-rdl", "hex-bar-rdl", "cable-pull-through", "db-rdl", "machine-hip-thrust"],
         }),
         ex({
           // 2026-11-04: default → assisted pull-up, his favourite swap. He logs

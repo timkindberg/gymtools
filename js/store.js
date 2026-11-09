@@ -18,7 +18,7 @@ const DRAFT_KEY = "gymtools.draft.v1";
 
 // Bump when the shape of a stored session changes, and add a step to
 // MIGRATIONS. Steps run in order, are idempotent, and never drop data.
-export const DATA_VERSION = 5;
+export const DATA_VERSION = 6;
 
 const DEFAULT_DATA = {
   version: DATA_VERSION,
@@ -167,11 +167,33 @@ function migrateStampPrescriptions(data) {
   }
 }
 
+// v5 → v6: the Wednesday "RDL" was a deadlift. b1 named the Romanian deadlift
+// from day one, but Tim pulled from the floor every rep (2026-11-09: "I've
+// been doing regular dead lift all the way to the floor every rep"). Every b1
+// entry filed as the RDL moves to the deadlift, with any pending review
+// override for it. Hex-bar entries are left alone: that's a separate question.
+function migrateDeadliftRefile(data) {
+  for (const session of data.sessions || []) {
+    for (const entry of session.entries || []) {
+      if (entry.exerciseId !== "b1" || entry.movementId !== "barbell-rdl") continue;
+      entry.movementId = "barbell-deadlift";
+      entry.variant = null;
+      entry.variantName = null;
+    }
+  }
+  const ov = data.overrides || {};
+  if (ov["barbell-rdl"] && !ov["barbell-deadlift"]) {
+    ov["barbell-deadlift"] = { ...ov["barbell-rdl"], movementId: "barbell-deadlift" };
+    delete ov["barbell-rdl"];
+  }
+}
+
 const MIGRATIONS = [
   migrateEntriesToMovements, // → 2
   migrateSetRoles,           // → 3
   migrateTypedMeasures,      // → 4
   migrateStampPrescriptions, // → 5
+  migrateDeadliftRefile,     // → 6
 ];
 
 // Denormalize how the entry was measured onto the entry itself, so a session

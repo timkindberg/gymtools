@@ -60,6 +60,9 @@ const LIST = [
   m("adductor-abductor-machine", "Adductor Machine + Hip Abduction Machine", { pattern: "adduction" }),
 
   // ---- Hinge ---------------------------------------------------------------
+  // From the floor, every rep. The b1 anchor since 2026-11-09, when Tim said
+  // this is what he'd been doing all along under the RDL's name.
+  m("barbell-deadlift", "Barbell Deadlift", { implement: "barbell", pattern: "hinge", band: "light" }),
   m("barbell-rdl", "Barbell Romanian Deadlift", { implement: "barbell", pattern: "hinge", band: "light" }),
   m("db-rdl", "DB Romanian Deadlift", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge" }),
   m("single-leg-db-rdl", "Single-Leg DB RDL", { implement: "dumbbell", loadMode: "per-hand", pattern: "hinge", unilateral: true }),
@@ -283,6 +286,7 @@ const LINKS = [
   ["barbell-bench-press", "barbell-incline-press", 1.2, "flat is the stronger angle"],
   ["barbell-overhead-press", "db-shoulder-press-seated", 1.7, "seated dumbbells press less than the standing bar"],
   // Hinge: grip, not the hamstrings, caps a dumbbell RDL.
+  ["barbell-deadlift", "barbell-rdl", 1.15, "from the floor with the knees bent is the stronger position"],
   ["barbell-rdl", "db-rdl", 2.0, "the bar isn't grip-limited the way two dumbbells are"],
   ["barbell-rdl", "hex-bar-rdl", 0.9, "the handles sit at your sides, so the hex bar usually lets you hold a little more"],
   ["hex-bar-rdl", "hex-bar-deadlift", 0.85, "from the floor is the stronger position"],
@@ -343,6 +347,8 @@ const ALIASES = {
   "standing pallof press": "pallof-press-standing",
   "single leg leg press": "single-leg-leg-press",
   "45 back extension": "back-extension-45",
+  "conventional deadlift": "barbell-deadlift",
+  "deadlift": "barbell-deadlift",
 };
 
 function normalizeName(s) {
