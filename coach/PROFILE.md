@@ -191,8 +191,9 @@ Block 1 started 2026-08-17. When blocks change:
   to the floor every rep." The card was showing RDL cues (soft knees, hips back),
   which on a floor pull make a stiff-legged deadlift, a plausible contributor
   to both tweaks. `b1` is now the Barbell Deadlift with conventional cues; the
-  ladder, RPE cap and traffic lights carry over unchanged. Still open: whether
-  the "Hex-Bar RDL" Wednesdays were also from the floor (= hex-bar deadlift).
+  ladder, RPE cap and traffic lights carry over unchanged. The "Hex-Bar RDL"
+  Wednesdays were from the floor too (Tim, 2026-11-10): hex-bar deadlifts,
+  re-filed the same way.
 
   **Status 2026-09-26:** no back flags since 09-11. He's taken the 🎲 Hex-Bar RDL
   both Wednesdays since (175, then 185×8×3 at RPE 7, clean). The ladder still

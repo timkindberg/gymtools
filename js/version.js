@@ -2,4 +2,4 @@
 // The Settings footer compares this against the freshly-fetched copy to tell you
 // whether your installed app is current.
 export const APP_VERSION = "v49";
-export const BUILD_DATE = "2026-11-09";
+export const BUILD_DATE = "2026-11-10";

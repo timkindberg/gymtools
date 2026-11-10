@@ -21,8 +21,8 @@ the way to the floor every rep."
 - **History re-filed by migration (DATA_VERSION 5 → 6)**, not by hand: every
   b1 entry under `barbell-rdl` is now `barbell-deadlift`, and a pending RDL
   override moves with it. He said all of them were floor pulls, and doing it
-  one ✎ at a time would have been 10+ edits. Hex-bar RDL entries are left
-  alone until he says whether those were from the floor too.
+  one ✎ at a time would have been 10+ edits. The hex-bar RDL entries on b1 were
+  floor pulls too ("yes for hex bar as well", 11-10) → `hex-bar-deadlift`.
 - **Likely cause of the September back tweaks:** RDL cues on a floor pull is a
   stiff-legged deadlift, where the low back finishes the bottom of each rep. The
   techNote says so. Watch whether the back stays quiet with proper set-up.

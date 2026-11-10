@@ -116,6 +116,17 @@ test("v6: a v5 blob's pending RDL override follows the lift", () => {
   assert.equal(ov["barbell-deadlift"].movementId, "barbell-deadlift");
 });
 
+test("v6: hex-bar RDL entries on b1 are re-filed as hex-bar deadlifts", () => {
+  const data = fixture();
+  const b1 = data.sessions.flatMap((s) => s.entries).find((e) => e.exerciseId === "b1");
+  b1.variant = "hex-bar-rdl";
+  store.importData(data);
+  const e = store.load().sessions.flatMap((s) => s.entries).find((x) => x.exerciseId === "b1" && x.movementId !== "barbell-deadlift");
+  assert.equal(e.movementId, "hex-bar-deadlift");
+  assert.equal(e.variant, "hex-bar-deadlift", "still a swap from the slot's barbell deadlift");
+  assert.equal(store.movementHistory("hex-bar-rdl").length, 0);
+});
+
 // ---- #3 set roles -----------------------------------------------------------
 
 test("ramp-up sets are classified on import and kept out of the working load", () => {
