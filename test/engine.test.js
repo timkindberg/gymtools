@@ -77,7 +77,7 @@ const EXPECTED = {
   c7: ["side-plank", "increase", null, 55],
   // 165×8, light band since 2026-11-02 (the re-entry ladder never wants more
   // than 10 a session, and at 210+ the heavy band would have asked for 15).
-  b1: ["barbell-rdl", "increase", 170, 6],
+  b1: ["barbell-deadlift", "increase", 170, 6],
   b2: ["lat-pulldown", "repeat", 160, 10],
   b3: ["barbell-incline-press", "repeat", 135, 10],
   b4: ["single-leg-leg-press", "repeat", 130, 12],

@@ -9,13 +9,12 @@
 - On Lexapro (SSRI). No blood-pressure or heart issues. Cleared to train.
 - Coming from Orange Theory; switching to a regular gym.
 - Trains at **Blue Ash Rec Center**, Ohio. Lunchtime, **~50 min**, 3×/week
-  (Mon / Wed / Fri). **Friday attendance corrected 2026-09-14: he makes 2 of 3
-  to 3 of 4 Fridays (~70-75%)** — a real training day, not a coin flip. Earlier
-  notes calling it "the day he most often skips" understated it; Day C may
-  therefore carry work that matters (second chest press, arms, glutes), and only
-  work the week genuinely CANNOT do without stays off it. Mon & Wed must still
-  each be complete. He does sometimes make a missed Friday up on a weekend,
-  when he has more time than a lunch break.
+  (Mon / Wed / Fri). **Friday attendance, re-corrected 2026-11-09 by Tim: "I
+  tend to miss it about 50% of the time."** (The 2026-09-14 note said ~70-75%;
+  his own word now is a coin flip.) Friday is a **skippable** day and stays
+  that way in every block. Mon & Wed must each be complete, and nothing the
+  week can't do without belongs only on Friday. He does sometimes make a missed
+  Friday up on a weekend, when he has more time than a lunch break.
 
 ## Experience & preferences
 - Solid technique with **dumbbells and machines**. Interested in **all of it**,
@@ -112,6 +111,20 @@ Still open: a THIRD chest exposure on Day B would add frequency and make chest
 volume independent of Friday. Held back because Day B is already 8 slots on a
 50-minute break — revisit once the new pacing data says what the day costs.
 
+## Block structure — anchors vs rotation (Tim, 2026-11-09)
+Block 1 started 2026-08-17. When blocks change:
+- **Anchored across ALL blocks — don't swap the lift:** squat, bench press,
+  deadlift. In today's program that's `a1` Barbell Box Squat (Mon), `a2`
+  Barbell Bench Press (Mon) and `b1` Barbell Deadlift (Wed, conventional, from
+  the floor; see the 2026-11-09 log entry, it was mislabelled as the RDL). Tim: "such core
+  important movements." What may change between blocks is how they're dosed
+  (rep range, sets, tempo, top set + back-offs), never which lift it is.
+  The box → free squat question is a progression of the same lift, to raise
+  with him, not decide alone.
+- **Rotates block to block:** everything else — accessories, the second press,
+  unilateral work, arms, core — for the variety he wants.
+- **Friday stays skippable** (see Basics, ~50%).
+
 ## Goals
 1. Muscle & strength
 2. Fat loss (driven by diet/steps, since in-session cardio is minimal)
@@ -172,6 +185,15 @@ volume independent of Friday. Held back because Day B is already 8 slots on a
     load conversation.
   - **Two more tweaks in a block → the bar comes out for real**, and then it's
     the hex bar or the pull-through for a full block.
+
+  **Correction 2026-11-09:** every "Barbell RDL" above was a **conventional
+  deadlift from the floor**. Tim: "I've been doing regular dead lift all the way
+  to the floor every rep." The card was showing RDL cues (soft knees, hips back),
+  which on a floor pull make a stiff-legged deadlift, a plausible contributor
+  to both tweaks. `b1` is now the Barbell Deadlift with conventional cues; the
+  ladder, RPE cap and traffic lights carry over unchanged. The "Hex-Bar RDL"
+  Wednesdays were from the floor too (Tim, 2026-11-10): hex-bar deadlifts,
+  re-filed the same way.
 
   **Status 2026-09-26:** no back flags since 09-11. He's taken the 🎲 Hex-Bar RDL
   both Wednesdays since (175, then 185×8×3 at RPE 7, clean). The ladder still

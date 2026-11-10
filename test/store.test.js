@@ -96,6 +96,37 @@ test("migrations are idempotent", () => {
   assert.deepEqual(twice.sessions, once.sessions);
 });
 
+test("v6: the b1 'RDL' entries are re-filed as the deadlift he actually did", () => {
+  fresh();
+  const b1 = store.load().sessions.flatMap((s) => s.entries).filter((e) => e.exerciseId === "b1");
+  assert.ok(b1.length > 0);
+  for (const e of b1) {
+    assert.equal(e.movementId, "barbell-deadlift");
+    assert.equal(e.variant, null, "the deadlift is the slot's own movement now, not a swap");
+  }
+  assert.equal(store.movementHistory("barbell-rdl").length, 0);
+});
+
+test("v6: a v5 blob's pending RDL override follows the lift", () => {
+  const data = { ...fixture(), version: 5, overrides: { "barbell-rdl": { movementId: "barbell-rdl", weight: 180, date: "2026-08-01T00:00:00Z" } } };
+  store.importData(data);
+  const ov = store.load().overrides;
+  assert.equal(ov["barbell-rdl"], undefined);
+  assert.equal(ov["barbell-deadlift"].weight, 180);
+  assert.equal(ov["barbell-deadlift"].movementId, "barbell-deadlift");
+});
+
+test("v6: hex-bar RDL entries on b1 are re-filed as hex-bar deadlifts", () => {
+  const data = fixture();
+  const b1 = data.sessions.flatMap((s) => s.entries).find((e) => e.exerciseId === "b1");
+  b1.variant = "hex-bar-rdl";
+  store.importData(data);
+  const e = store.load().sessions.flatMap((s) => s.entries).find((x) => x.exerciseId === "b1" && x.movementId !== "barbell-deadlift");
+  assert.equal(e.movementId, "hex-bar-deadlift");
+  assert.equal(e.variant, "hex-bar-deadlift", "still a swap from the slot's barbell deadlift");
+  assert.equal(store.movementHistory("hex-bar-rdl").length, 0);
+});
+
 // ---- #3 set roles -----------------------------------------------------------
 
 test("ramp-up sets are classified on import and kept out of the working load", () => {
@@ -132,7 +163,7 @@ test("a failed opener resolves to the settled weight, not the weight he failed",
 
 test("charts and e1RM read working sets only", () => {
   fresh();
-  const rdl = store.movementHistory("barbell-rdl").at(-1);
+  const rdl = store.movementHistory("barbell-deadlift").at(-1); // b1 re-filed in v6
   assert.equal(rdl.sets, 3);              // the 138 ramp is excluded
   assert.equal(rdl.volume, 165 * 8 * 3);
   assert.equal(rdl.e1rm, Math.round(165 * (1 + 8 / 30)));
