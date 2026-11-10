@@ -5,6 +5,36 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-11-10 — Real pull-ups lead the slot; goals get dates
+
+Tim asked what gains to expect at 3/6/12/24 months, then: "I can already do
+like 2-4 pull ups depending on grip type. Hammer curl style is easiest for me.
+Wide grip is harder which is the style grip I'm working on." The assisted
+pull-up number is the ASSIST, so 75 → 105 was more help, not more strength.
+
+- **New slot `b9` Wide-Grip Pull-up, 2×1–5 @ RPE 9, 2 min rest**, ahead of the
+  assisted work, while he's fresh. New movements `pull-up` (wide) and
+  `pull-up-neutral`, both unloaded, reps only. 🎲: neutral grip, weighted.
+  No pulldown on this slot's 🎲: a 1–5 range is wrong for a pulldown.
+- **`b2` Assisted Pull-up: 4×6–10 → 2×5–8, as back-offs.** Same four sets of
+  vertical pulling in total, so Day B costs about the same. Still ⇄ with the
+  shoulder press. `start` 90.
+- **The engine will still say "repeat 105"** from his last session (10, 10, 9,
+  8, last set at failure). He was given the override line
+  `Assisted Pull-up: 90 x 6`. His logs put 105 × 10 near his limit, so 90 for
+  5–8 is the step the data supports; I first said 60–75 from his unassisted
+  count and walked it back. If 90 is easy, take assist off fast.
+- **Goals**: `GOALS` in `js/program.js`, arithmetic in `js/goals.js`, shown on
+  Progress → Overview and in the coach report. See PROFILE.md for the targets
+  and the reasoning. The "at this pace" date is a straight line through the
+  last 8 weeks, non-deload sessions only. It will flatter the squat and
+  deadlift until their dial-in weeks age out of the window: read it as a
+  guide when reviewing, not as a forecast.
+
+Tests: `test/goals.test.js`. Two older tests read the v1 fixture's pulldowns
+against b2's range of the day; they now pin the 6–10 that history was logged
+against.
+
 ## 2026-11-09 — The Wednesday "RDL" was a conventional deadlift all along
 
 Asked to pin squat, bench and deadlift as anchors, Tim said "I think I've been

@@ -1531,6 +1531,8 @@ route("history", () => {
 // ---- Overview ---------------------------------------------------------------
 function overviewTab(host, sessions) {
   host.appendChild(strengthCard());
+  const goals = goalsCard();
+  if (goals) host.appendChild(goals);
 
   const sum = store.trainingSummary();
   const prs = store.personalRecords({ limit: 30 });
@@ -1663,6 +1665,65 @@ function strengthCard() {
     }));
   }
   return card;
+}
+
+// Goals: where each one stands, the date it was promised for, and when it
+// lands if the last eight weeks keep up. The definitions are in program.js.
+const GOAL_PILLS = {
+  done: ["done ✓", "ok"],
+  "on-track": ["on pace", "ok"],
+  behind: ["behind pace", "warn"],
+  overdue: ["past its date", "warn"],
+};
+const monthYear = (iso) => fmtDate(iso, { month: "short", year: "numeric" });
+
+function goalsCard() {
+  const rows = store.goalsProgress();
+  if (!rows.length) return null;
+  const card = el("div.card.goals-card", {}, [el("h3", { text: "Goals" })]);
+  rows.forEach((g) => card.appendChild(goalRow(g)));
+  card.appendChild(el("p.muted.tiny", {
+    text: "Lift goals are an estimated 1RM, so the working set shown counts and nothing needs a max test. " +
+      "\"At this pace\" is a straight line through your last 8 weeks: a guide, not a promise.",
+  }));
+  return card;
+}
+
+function goalRow(g) {
+  const pill = GOAL_PILLS[g.status];
+  const row = el("div.goal-row", {}, [
+    el("div.goal-head", {}, [
+      el("strong", { text: g.title }),
+      pill ? el("span.pill." + pill[1], { text: pill[0] }) : null,
+    ].filter(Boolean)),
+    el("span.bar-track", {}, [el("span", {
+      class: "bar-fill" + (g.status === "done" ? " done" : ""),
+      style: `width:${Math.max(2, g.pct)}%`,
+    })]),
+  ]);
+  const line = (text) => row.appendChild(el("p.muted.small", { text }));
+
+  if (g.kind === "weeks") {
+    line(g.total ? `${g.hit} of ${g.total} week${g.total === 1 ? "" : "s"} since you set it` : "Starts counting once this week is done.");
+    if (g.note) line(g.note);
+    return row;
+  }
+
+  const unit = g.kind === "e1rm" ? ` ${units()} est. 1RM` : " reps";
+  const same = g.equivalents ? ` · same as ${g.equivalents.map((e) => `${e.weight}×${e.reps}`).join(" or ")}` : "";
+  if (g.status === "done") {
+    line(`Hit ${fmtDate(g.achieved, { month: "short", day: "numeric", year: "numeric" })} · ${g.target}${unit}`);
+    return row;
+  }
+  line(g.status === "untracked"
+    ? `About ${g.current} now → ${g.target}${unit}. Log a set of ${g.movement} and this starts tracking.`
+    : `${g.current} → ${g.target}${unit}${same}`);
+  const pace = g.eta ? `at this pace ${monthYear(g.eta)}`
+    : g.status === "no-trend" ? "no upward trend in the last 8 weeks yet"
+    : g.status === "behind" ? "at this pace, years out" : "";
+  line(`Target ${monthYear(g.by)}${pace ? " · " + pace : ""}`);
+  if (g.note) line(g.note);
+  return row;
 }
 
 // ---- Lifts ------------------------------------------------------------------

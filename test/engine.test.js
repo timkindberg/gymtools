@@ -88,9 +88,16 @@ const EXPECTED = {
   b7: ["suitcase-carry", "repeat", 60, 40],
 };
 
+// The backup predates recorded prescriptions, so each entry is read against
+// what its slot asks for today. Where a slot has since been re-dosed, the range
+// the history was actually logged against is pinned here.
+const LOGGED_AGAINST = {
+  // b2 was 4×6–10 pulldowns then; since 2026-11-10 it is 2×5–8 assisted back-offs.
+  "lat-pulldown": repRange(6, 10),
+};
 const suggestSlot = (slot, movementId, context = {}) => {
   const entry = store.getSessions().flatMap((s) => s.entries || []).find((e) => e.movementId === movementId);
-  return store.suggestion(movementId, store.entryPrescription(entry), { exerciseId: slot, ...context });
+  return store.suggestion(movementId, LOGGED_AGAINST[movementId] || store.entryPrescription(entry), { exerciseId: slot, ...context });
 };
 
 test("every movement in the 2026-08-25 backup gets the answer it should", () => {

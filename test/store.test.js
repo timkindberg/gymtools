@@ -13,9 +13,9 @@ const { harderSide, harderSideLabel } = await import("../js/effort.js");
 const fixture = () => readFixture("sessions-v1.json");
 const fresh = () => { store.importData(fixture()); return store; };
 
-const suggestFor = (slotId, movementId) => {
+const suggestFor = (slotId, movementId, prescription) => {
   const slot = findExercise(slotId);
-  return store.suggestion(movementId || slot.movement, slot.prescription);
+  return store.suggestion(movementId || slot.movement, prescription || slot.prescription);
 };
 
 // ---- #2 movement-keyed history ---------------------------------------------
@@ -398,11 +398,13 @@ test("'wouldn't have been able to do a 7th' stops meaning 'add reps'", () => {
   // b2 Lat Pulldown 160×8 of a 6–10 range, at failure. Today: "aim to add reps
   // at 160" — telling a man at his limit to grind two more.
   // (b2's default is the assisted pull-up since 2026-11-04; this history is
-  // the pulldown, so ask for it by name.)
-  assert.match(suggestFor("b2", "lat-pulldown").note, /get every working set to 10 reps/);
+  // the pulldown, so ask for it by name. And since 2026-11-10 b2 is 2×5–8
+  // back-off work, so the 6–10 this history was logged against is spelled out.)
+  const range = { measure: "reps", min: 6, max: 10, perSide: false };
+  assert.match(suggestFor("b2", "lat-pulldown", range).note, /get every working set to 10 reps/);
 
   withEffort(0, "b2", 0);
-  const after = suggestFor("b2", "lat-pulldown");
+  const after = suggestFor("b2", "lat-pulldown", range);
   assert.equal(after.action, "repeat");
   assert.equal(after.weight, 160);
   assert.match(after.note, /already at failure/);

@@ -130,6 +130,24 @@ Block 1 started 2026-08-17. When blocks change:
 2. Fat loss (driven by diet/steps, since in-session cardio is minimal)
 3. Stay durable / reduce flare-ups
 
+### Dated targets (set with Tim 2026-11-10, twelve weeks in)
+Defined in `GOALS` in `js/program.js`; the Progress → Overview "Goals" card and
+the coach report's "## Goals" section track them. Lift targets are ESTIMATED
+1RM (Epley), so a working set counts and nothing needs a max test. He asked
+what was realistic once the dial-in gains were behind him; these are that
+answer, sized for one exposure per lift per week, age 44, and a calorie deficit.
+- **Process:** Monday and Wednesday, every week. Friday stays a bonus.
+- **315 deadlift** by end of Feb 2027 (270×5 or 250×8). Then **405** by ~Apr 2028.
+- **225 bench** by Jun 2027 (195×5 or 180×8). Bench is his truest signal: it
+  was dialed in first and barely moved in the first 12 weeks.
+- **315 box squat** by Aug 2027, pain-free. Hold this one loosest (knee depth
+  cap, the 10-12 low-back flag, new low-bar position).
+- **5 wide-grip pull-ups** by Jun 2027; **10 neutral-grip** by Nov 2027. He
+  already does 2–4 unassisted depending on grip (neutral easiest, wide hardest,
+  wide is the one he's working on). Fat loss helps here: ~1 rep per 10 lb.
+- Rough expectations he was given (est. 1RM): 12 months bench 235–250, squat
+  340–365, deadlift 385–405; 24 months 255–275 / 375–405 / 425–455.
+
 ## Injuries & constraints (the program is built around these)
 - **Leg-length discrepancy — THE top priority.** Causes progressive tightening
   of the right hip, leg, and back. He's "constantly trying to loosen it."

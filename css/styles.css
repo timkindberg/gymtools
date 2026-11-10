@@ -628,6 +628,13 @@ textarea.input { resize: vertical; }
 .bar-track { background: var(--line); border-radius: 999px; height: 8px; overflow: hidden; }
 .bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
 .bar-fill.down { background: var(--danger); }
+.bar-fill.done { background: var(--ok, var(--accent2)); }
+.goal-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.goal-row:first-of-type { border-top: none; }
+.goal-row .bar-track { display: block; margin: 6px 0; }
+.goal-row p { margin: 2px 0 0; }
+.goal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pill.ok { background: color-mix(in srgb, var(--ok, var(--accent2)) 18%, transparent); color: var(--ok, var(--accent2)); }
 .bar-value { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .lift-list { display: flex; flex-direction: column; gap: 8px; }

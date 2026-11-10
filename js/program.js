@@ -240,13 +240,32 @@ export const PROGRAM = {
           alternatives: ["hex-bar-deadlift", "barbell-rdl", "hex-bar-rdl", "cable-pull-through", "db-rdl", "machine-hip-thrust"],
         }),
         ex({
+          // 2026-11-10: Tim can already do 2–4 unassisted pull-ups, and four
+          // sets of 10 with 105 lb of assist were building lats without moving
+          // that number. Getting better at pull-ups takes pull-ups, so the real
+          // thing now leads the slot while he's fresh: two low-rep sets, long
+          // rest, never to failure. The assisted sets follow as back-offs (b2).
+          // Wide grip is the default because it's the one he's working on and
+          // the one his goal counts (5 by June 2027); neutral is a 🎲 away.
+          id: "b9", movement: "pull-up", name: "Wide-Grip Pull-up", target: "Lats / upper back",
+          sets: 2, prescription: repRange(1, 5), rpe: "9", rest: "2 min", flags: ["shoulder"],
+          why: "You can already pull your own bodyweight, so we train that, not a lighter copy of it. Two fresh sets of real pull-ups are where the strength comes from; the assisted sets after are where the volume comes from. Sets of one or two count.",
+          cues: ["Start from a dead hang, arms long", "Shoulder blades down first, then pull", "Chin clearly over the bar, no kick or swing", "Lower all the way under control", "Stop with one good rep still in you"],
+          techNote: "No weight to log, only reps. Leave one in the tank on both sets: a ground-out failed rep here costs you the back-off sets and teaches a worse pull-up. Your goal counts the FIRST set, fresh. Neutral grip is a 🎲 away and has a goal of its own.",
+          alternatives: ["pull-up-neutral", "weighted-pull-up"],
+        }),
+        ex({
           // 2026-11-04: default → assisted pull-up, his favourite swap. He logs
           // the number on the assist dial (more assist = easier), and the engine
           // reads it that way. The pulldowns stay a 🎲 away.
-          id: "b2", movement: "assisted-pull-up", name: "Assisted Pull-up", target: "Lats / upper back", start: 105,
-          sets: 4, prescription: repRange(6, 10), rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1",
-          why: "Vertical pulling for a wide back — always to the FRONT, never behind the neck. The assist lets you hit the rep range with clean reps, and taking assist off is the progress, all the way to bodyweight.",
-          cues: ["Full hang, pull the collarbone to the bar", "Drive the elbows down", "Control the way up", "Neutral or shoulder-width grip"],
+          // 2026-11-10: now the back-off half of the pull-up work. 4×6–10 →
+          // 2×5–8 with less assist, straight after the two unassisted sets (b9).
+          // His logs put 105 × 10 near his limit, so ~90 for 5–8 is the honest
+          // next step; the engine takes assist off from there.
+          id: "b2", movement: "assisted-pull-up", name: "Assisted Pull-up", target: "Lats / upper back", start: 90,
+          sets: 2, prescription: repRange(5, 8), rpe: "8", rest: "90s", flags: ["shoulder"], ss: "S1",
+          why: "The back-off sets for the pull-ups you just did: same movement, same wide grip, enough assist to get 5–8 clean reps. Heavier and shorter than the old sets of 10 on purpose, so the work stays close to the real thing. Taking assist off is the progress.",
+          cues: ["Same wide grip as your pull-ups", "Full hang, pull the collarbone to the bar", "Drive the elbows down", "Control the way up"],
           techNote: "Log the number on the assist dial. Less assist is progress, so a lower number means you got stronger. Pulldowns are a 🎲 away if the machine's taken.",
           alternatives: ["lat-pulldown", "lat-pulldown-neutral", "weighted-pull-up"],
         }),
@@ -451,6 +470,25 @@ export function dayForDate(date, sessions) {
 export function dayById(id) {
   return PROGRAM.days.find((d) => d.id === id) || null;
 }
+
+// ---- Goals ------------------------------------------------------------------
+// Set with Tim on 2026-11-10, twelve weeks in, once the early "finding the
+// right weight" gains were behind him. Few on purpose. Lift goals are an
+// ESTIMATED 1RM, so none of them needs a max test: 315 is the same strength as
+// 270 × 5 or 250 × 8, and the Progress screen says so. `from` is only the
+// fallback for a movement with no history yet (self-reported pull-up counts).
+// `after` keeps the second deadlift goal off screen until the first is done.
+export const GOALS = [
+  { id: "attendance", kind: "weeks", title: "Monday and Wednesday, every week", target: 2, set: "2026-11-10",
+    note: "The one that drives the rest. Friday stays a bonus." },
+  { id: "deadlift-315", kind: "e1rm", movement: "barbell-deadlift", title: "315 deadlift", target: 315, set: "2026-11-10", by: "2027-02-28" },
+  { id: "bench-225", kind: "e1rm", movement: "barbell-bench-press", title: "225 bench press", target: 225, set: "2026-11-10", by: "2027-06-01" },
+  { id: "squat-315", kind: "e1rm", movement: "barbell-box-squat", title: "315 box squat", target: 315, set: "2026-11-10", by: "2027-08-01",
+    note: "Pain-free. Push the date before you push the back." },
+  { id: "deadlift-405", kind: "e1rm", movement: "barbell-deadlift", title: "405 deadlift", target: 405, set: "2026-11-10", by: "2028-04-01", after: "deadlift-315" },
+  { id: "pullup-wide-5", kind: "reps", movement: "pull-up", title: "5 wide-grip pull-ups", target: 5, from: 2, set: "2026-11-10", by: "2027-06-01" },
+  { id: "pullup-neutral-10", kind: "reps", movement: "pull-up-neutral", title: "10 neutral-grip pull-ups", target: 10, from: 3, set: "2026-11-10", by: "2027-11-01" },
+];
 
 // ---- Slot helpers -----------------------------------------------------------
 

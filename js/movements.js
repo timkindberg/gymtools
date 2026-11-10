@@ -153,6 +153,10 @@ const LIST = [
   m("lat-pulldown", "Lat Pulldown", { implement: "cable", pattern: "vertical-pull" }),
   m("lat-pulldown-neutral", "Neutral-Grip Lat Pulldown", { implement: "cable", pattern: "vertical-pull" }),
   m("assisted-pull-up", "Assisted Pull-up", { pattern: "vertical-pull", assisted: true }),
+  // Unassisted, and split by grip because the grip changes the number: Tim gets
+  // 2 wide and 3–4 neutral (2026-11-10), and each has its own goal.
+  m("pull-up", "Wide-Grip Pull-up", { implement: "bodyweight", loadMode: "none", pattern: "vertical-pull" }),
+  m("pull-up-neutral", "Neutral-Grip Pull-up", { implement: "bodyweight", loadMode: "none", pattern: "vertical-pull" }),
   m("weighted-pull-up", "Weighted Pull-up", { implement: "bodyweight", pattern: "vertical-pull", addedLoad: true }),
 
   // ---- Side delts ----------------------------------------------------------
