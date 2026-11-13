@@ -46,7 +46,8 @@ to your home screen.
   injury flags. A **⋯** menu holds the rare stuff: 🎲 swap for variety, how-to
   video, remove a set.
 
-  Then the set grid, a built-in **rest timer** (sound + vibration), and one tap on
+  Then the set grid, a built-in **rest timer** (sound + vibration — it keeps
+  counting through closing the app or hopping to another screen), and one tap on
   the last working set to record **how many reps you had left in the tank** (RPE),
   which is what lets the app tell "that was too light" from "that was your limit".
   Unilateral exercises get one more tap — **which side was the harder one** — so a
