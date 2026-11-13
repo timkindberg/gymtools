@@ -11,7 +11,8 @@ import {
 import { applyInferredRoles, workingSets, roleLabel, topWorkingLoad } from "./sets.js";
 import { workingEffort, rirFromRpe, harderSideLabel } from "./effort.js";
 import { nextPrescription, seedPrescription, summarize, stallState, warmupRamp } from "./engine.js";
-import { allExercises, findExercise, PROGRAM } from "./program.js";
+import { allExercises, findExercise, PROGRAM, GOALS } from "./program.js";
+import { goalProgress, weeksProgress, repEquivalents } from "./goals.js";
 
 const KEY = "gymtools.v1";
 const DRAFT_KEY = "gymtools.draft.v1";
@@ -1214,6 +1215,39 @@ export function trainingSummary({ now = Date.now() } = {}) {
   };
 }
 
+// ---- Goals ------------------------------------------------------------------
+// Each goal in program.js, measured against the log (the arithmetic is in
+// goals.js). A lift goal reads the same estimated-1RM series as the charts; a
+// reps goal reads the best set of each session; attendance counts calendar
+// weeks with both anchor sessions in them.
+export function goalsProgress({ now = Date.now(), goals = GOALS } = {}) {
+  const sessions = getSessions();
+  const rows = goals.map((g) => {
+    if (g.kind === "weeks") {
+      const weeks = [];
+      for (let k = weekStart(g.set); k <= weekStart(now); k += WEEK_MS) {
+        weeks.push({ sessions: sessions.filter((s) => weekStart(s.date) === k).length, current: k === weekStart(now) });
+      }
+      return { ...weeksProgress(g, weeks), note: g.note || null };
+    }
+    const key = g.kind === "e1rm" ? "e1rm" : "bestAmount";
+    const points = movementHistory(g.movement)
+      .filter((h) => h.sets && h[key] != null && h[key] > 0)
+      .map((h) => ({ date: h.date, value: h[key], deload: h.deload }));
+    return {
+      ...goalProgress(g, points, { now }),
+      movementId: g.movement,
+      movement: movementName(g.movement, g.movement),
+      note: g.note || null,
+      after: g.after || null,
+      equivalents: g.kind === "e1rm" ? repEquivalents(g.target) : null,
+    };
+  });
+  // A follow-on goal stays out of sight until the one before it is done.
+  const done = new Set(rows.filter((r) => r.status === "done").map((r) => r.id));
+  return rows.filter((r) => !r.after || done.has(r.after));
+}
+
 // ---- Per-lift trend rows ----------------------------------------------------
 // Everything the progress list needs for one row: the series it should chart,
 // where it started, where it is, and whether the engine thinks it is stuck.
@@ -1688,6 +1722,25 @@ export function coachReport() {
        down >= 3 && up === 0 ? " The engine is overshooting; consider a smaller increment band." : ""));
   }
   L.push("");
+
+  const goalRows = goalsProgress();
+  if (goalRows.length) {
+    const day = (iso) => String(iso).slice(0, 10);
+    L.push("## Goals");
+    for (const g of goalRows) {
+      if (g.kind === "weeks") { L.push(`- **${g.title}**: ${g.hit} of ${g.total} weeks since it was set`); continue; }
+      const unit = g.kind === "e1rm" ? `${p.units} est 1RM` : "reps";
+      const where = g.status === "done" ? `done ${day(g.achieved)}`
+        : g.status === "untracked" ? `not logged yet (starting point ${g.current})`
+        : `${g.current} of ${g.target} ${unit}, ${g.pct}% of the way from ${g.from}`;
+      const pace = g.status === "on-track" || g.status === "behind"
+        ? ` · ${g.status === "on-track" ? "on pace" : "behind pace"}${g.eta ? `, lands ~${day(g.eta)} at the last 8 weeks' rate` : ""}`
+        : g.status === "overdue" ? " · past its date"
+        : g.status === "no-trend" ? " · no upward trend in the last 8 weeks" : "";
+      L.push(`- **${g.title}** by ${day(g.by)}: ${where}${pace}`);
+    }
+    L.push("");
+  }
 
   L.push("## Coach, please");
   L.push("Review the numbers, progress what's working, and fix anything stalled or flagged for pain. Follow my current injury guardrails and preferences — the up-to-date source is coach/PROFILE.md in the repo, not this report. Give me updated loads/reps and any swaps for the next block.");

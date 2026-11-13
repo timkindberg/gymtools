@@ -60,7 +60,10 @@ to your home screen.
   **overall strength index**: every lift with an honest 1RM estimate, each
   measured against its own history and chain-linked into one number, so it moves
   when you get stronger rather than when the week's exercise mix changes (lifts
-  untrained for two months drop out). Under it: 4-week sessions/volume/PR tiles,
+  untrained for two months drop out). Then your **goals**: each target with a
+  progress bar, the working set that equals it (a 315 goal is 270×5, no max
+  test needed), the date it's due, and when it lands at your last eight weeks'
+  pace. Under it: 4-week sessions/volume/PR tiles,
   a weekly consistency chart with the skipped weeks left in, what's moving vs.
   what's stalled, recent records, and balance by movement pattern. **Lifts** is
   every exercise at once — sparkline, current estimated 1RM and change, stalled
