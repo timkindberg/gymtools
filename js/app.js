@@ -244,7 +244,7 @@ async function startOrResume(day) {
       `${draft.dayName} is still in progress. Discard it and start ${day.name}?`,
       { okText: "Discard & start", cancelText: "Keep it", danger: true });
     if (!ok) { navigate("session"); return; }
-    store.clearDraft();
+    store.clearDraft(); clearRest();
     return startOrResume(day);
   }
   if (!draft) {
@@ -314,7 +314,7 @@ route("session", () => {
     ]),
     el("button.btn.ghost.small", { text: "Discard", onclick: async () => {
       if (await confirmDialog("Discard this in-progress workout? Logged sets will be lost.", { okText: "Discard", danger: true })) {
-        store.clearDraft(); pickedDayId = null; navigate("today");
+        store.clearDraft(); clearRest(); pickedDayId = null; navigate("today");
       }
     }}),
   ]));
@@ -397,6 +397,7 @@ route("session", () => {
 
   render(view);
   mountRestTimer();
+  if (!restState.end) resumeRest();
   if (freshEntry) restoreSessionScroll();
 });
 
@@ -1261,6 +1262,7 @@ async function finishSession(draft, day) {
     notes: draft.notes,
   };
   store.addSession(session);
+  clearRest();
   pickedDayId = null; // done — Today goes back to the calendar's suggestion
   toast("Workout saved 💪");
   navigate("history");
@@ -1268,17 +1270,50 @@ async function finishSession(draft, day) {
 
 // ---- Rest timer (floating) --------------------------------------------------
 let restState = { end: 0, interval: null, duration: 90 };
+// The running rest is persisted (end time, not seconds left) so closing the
+// app, iOS reloading the PWA, or a hop to another screen doesn't lose it —
+// reopening picks the countdown up where the wall clock says it should be.
+const REST_KEY = "gymtools.rest";
+function saveRest() {
+  try { localStorage.setItem(REST_KEY, JSON.stringify({ end: restState.end, duration: restState.duration })); } catch (e) { /* ignore */ }
+}
+function clearRest() {
+  clearInterval(restState.interval);
+  restState.end = 0;
+  try { localStorage.removeItem(REST_KEY); } catch (e) { /* ignore */ }
+  const bar = document.getElementById("rest-timer");
+  if (bar) bar.classList.remove("active");
+}
+function runRest() {
+  const bar = document.getElementById("rest-timer");
+  if (bar) bar.classList.add("active");
+  tickRest();
+  clearInterval(restState.interval);
+  restState.interval = setInterval(tickRest, 250);
+}
+// Pick a persisted rest back up. One that ran out while the app was closed is
+// dropped quietly — no stale beep on launch.
+function resumeRest() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(REST_KEY) || "null"); } catch (e) { saved = null; }
+  if (!saved || !(saved.end > Date.now())) { if (saved) clearRest(); return; }
+  restState.end = saved.end;
+  restState.duration = saved.duration || 90;
+  runRest();
+}
+function adjustRest(ms) {
+  restState.end += ms;
+  saveRest();
+  tickRest();
+}
 // The prescribed rest for the exercise wins; the setting is the fallback for
 // anything that doesn't prescribe one (issue: every set rested 90s).
 function startRest(sec) {
   const s = (Number(sec) > 0 ? Math.round(Number(sec)) : null) || store.getSettings().restTimerDefault || 90;
   restState.duration = s;
   restState.end = Date.now() + s * 1000;
-  const bar = document.getElementById("rest-timer");
-  if (bar) bar.classList.add("active");
-  tickRest();
-  clearInterval(restState.interval);
-  restState.interval = setInterval(tickRest, 250);
+  saveRest();
+  runRest();
 }
 function tickRest() {
   const bar = document.getElementById("rest-timer");
@@ -1288,10 +1323,9 @@ function tickRest() {
   const fill = bar.querySelector(".rest-fill");
   const secs = Math.ceil(remain / 1000);
   if (label) label.textContent = `Rest ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
-  if (fill) fill.style.width = (100 * remain / (restState.duration * 1000)) + "%";
+  if (fill) fill.style.width = Math.min(100, 100 * remain / (restState.duration * 1000)) + "%";
   if (remain <= 0) {
-    clearInterval(restState.interval);
-    bar.classList.remove("active");
+    clearRest();
     if (store.getSettings().sound) beep();
     if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
   }
@@ -1303,9 +1337,9 @@ function mountRestTimer() {
     el("div.rest-body", {}, [
       el("span.rest-label", { text: "Rest" }),
       el("div.rest-btns", {}, [
-        el("button.rest-adj", { text: "-15", onclick: () => { restState.end -= 15000; } }),
-        el("button.rest-adj", { text: "+15", onclick: () => { restState.end += 15000; } }),
-        el("button.rest-adj", { text: "skip", onclick: () => { restState.end = Date.now(); } }),
+        el("button.rest-adj", { text: "-15", onclick: () => adjustRest(-15000) }),
+        el("button.rest-adj", { text: "+15", onclick: () => adjustRest(15000) }),
+        el("button.rest-adj", { text: "skip", onclick: () => adjustRest(Date.now() - restState.end) }),
       ]),
     ]),
   ]);
@@ -2400,11 +2434,13 @@ startRouter((path, param) => {
   highlightNav(path);
   resumePill(path);
   // The rest timer lives outside #app, so make sure it never lingers on a
-  // non-workout screen.
+  // non-workout screen. It stays persisted, though: coming back to the
+  // session picks the countdown back up.
   if (path !== "session") {
     const bar = document.getElementById("rest-timer");
     if (bar) bar.classList.remove("active");
     clearInterval(restState.interval);
+    restState.end = 0;
   }
   prevRoutePath = path;
 });

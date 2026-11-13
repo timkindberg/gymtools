@@ -12,7 +12,7 @@
 // open page once. So CACHE MUST CHANGE ON EVERY DEPLOY or installed apps never
 // see the change. Bump it with APP_VERSION (js/version.js); the deploy workflow
 // also appends the commit hash, so a forgotten bump can't strand anyone.
-const CACHE = "gymtools-v51";
+const CACHE = "gymtools-v52";
 const ASSETS = [
   "./",
   "./index.html",
