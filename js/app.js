@@ -77,13 +77,15 @@ function rememberRoute(path, param) {
 // The route a cold start should open, or null to take the default (today).
 function lastRoute() {
   let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(LAST_ROUTE_KEY) || "null"); } catch (e) { return null; }
-  if (!saved || !RESTORABLE.has(saved.path)) return null;
-  // A workout in progress is worth coming back to however long you were gone;
-  // everything else expires.
-  const inProgress = saved.path === "session" && !!store.loadDraft();
-  if (!inProgress && (!saved.at || Date.now() - saved.at > LAST_ROUTE_MAX_AGE)) return null;
-  if (saved.path === "session" && !inProgress) return null; // draft is gone
+  try { saved = JSON.parse(localStorage.getItem(LAST_ROUTE_KEY) || "null"); } catch (e) { saved = null; }
+  const draft = !!store.loadDraft();
+  // A workout in progress is worth coming back to however long you were gone,
+  // and wherever you wandered off to: a stray tap onto Settings (which is never
+  // remembered) used to mean the next launch opened Today, not your workout.
+  const fresh = saved && RESTORABLE.has(saved.path) && saved.at && Date.now() - saved.at <= LAST_ROUTE_MAX_AGE;
+  if (draft && (!fresh || saved.path === "session")) return "session";
+  if (!fresh) return null;
+  if (saved.path === "session") return null; // draft is gone
   return saved.path + (saved.param ? "/" + saved.param : "");
 }
 
@@ -2364,6 +2366,18 @@ function buildNav() {
     ]));
   });
 }
+// A workout in progress, and you're looking at some other screen (on purpose
+// or because a thumb caught the nav bar): one tap takes you back to it, from
+// anywhere, at the set you were on.
+function resumePill(path) {
+  let pill = document.getElementById("resume-pill");
+  const show = path !== "session" && !!store.loadDraft();
+  if (!show) { if (pill) pill.remove(); return; }
+  if (pill) return;
+  pill = el("button.resume-pill", { id: "resume-pill", text: "▶ Back to your workout", onclick: () => navigate("session") });
+  document.body.appendChild(pill);
+}
+
 function highlightNav(path) {
   document.querySelectorAll(".nav-btn").forEach((b) => {
     b.classList.toggle("active", b.dataset.path === path || (path === "session" && b.dataset.path === "today"));
@@ -2384,6 +2398,7 @@ if (["", "#", "#/"].includes(location.hash)) {
 startRouter((path, param) => {
   rememberRoute(path, param);
   highlightNav(path);
+  resumePill(path);
   // The rest timer lives outside #app, so make sure it never lingers on a
   // non-workout screen.
   if (path !== "session") {

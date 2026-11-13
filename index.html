@@ -15,9 +15,35 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="gymtools" />
   <link rel="stylesheet" href="./css/styles.css" />
+  <!-- Every module, named up front: without this the browser finds them one
+       import at a time and a first load is a chain of round trips. -->
+  <link rel="modulepreload" href="./js/app.js" />
+  <link rel="modulepreload" href="./js/config.js" />
+  <link rel="modulepreload" href="./js/effort.js" />
+  <link rel="modulepreload" href="./js/engine.js" />
+  <link rel="modulepreload" href="./js/goals.js" />
+  <link rel="modulepreload" href="./js/measures.js" />
+  <link rel="modulepreload" href="./js/movements.js" />
+  <link rel="modulepreload" href="./js/orientation.js" />
+  <link rel="modulepreload" href="./js/plates.js" />
+  <link rel="modulepreload" href="./js/program.js" />
+  <link rel="modulepreload" href="./js/sets.js" />
+  <link rel="modulepreload" href="./js/store.js" />
+  <link rel="modulepreload" href="./js/sync.js" />
+  <link rel="modulepreload" href="./js/ui.js" />
+  <link rel="modulepreload" href="./js/version.js" />
+  <style>
+    /* Painted before the stylesheet or any script arrives, so a slow start
+       shows the app is coming instead of an empty screen. */
+    html { background: #0e0f13; }
+    @media (prefers-color-scheme: light) { html { background: #f4f5f7; } }
+    .boot { min-height: 70vh; display: grid; place-content: center; text-align: center; gap: 6px;
+            font: 700 22px system-ui, sans-serif; color: #ff6b4d; }
+    .boot small { font: 500 13px system-ui, sans-serif; color: #9aa1af; }
+  </style>
 </head>
 <body>
-  <main id="app" aria-live="polite"></main>
+  <main id="app" aria-live="polite"><div class="boot">gymtools<small>Loading…</small></div></main>
 
   <nav id="nav" aria-label="Primary"></nav>
 
