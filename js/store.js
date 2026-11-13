@@ -267,6 +267,7 @@ export function onSave(fn) { saveHook = fn; }
 
 export function save() {
   if (!cache) return;
+  gen++;
   cache.updatedAt = new Date().toISOString();
   localStorage.setItem(KEY, JSON.stringify(cache));
   if (saveHook) { try { saveHook(); } catch (e) { /* ignore */ } }
@@ -278,6 +279,7 @@ export function getUpdatedAt() { return load().updatedAt || null; }
 // firing the save hook (so pulling doesn't echo back as a push).
 export function applyRemote(data) {
   cache = migrate(data);
+  gen++;
   localStorage.setItem(KEY, JSON.stringify(cache));
 }
 
@@ -294,8 +296,26 @@ export function setSettings(patch) {
   save();
 }
 
+// Derived reads are asked for dozens of times per screen (every lift row, every
+// goal, the index, the trends), and each used to re-sort and re-walk the whole
+// log. That cost grows with every session logged, so the answers are kept until
+// the data changes: save() and anything that replaces the blob bump `gen`, and
+// the sessions array's identity and length catch an edit made around them.
+let gen = 0;
+const memo = { key: null, sessions: null, history: new Map() };
+function memoFor(d) {
+  const key = `${gen}:${d.sessions.length}`;
+  if (memo.key !== key || memo.src !== d.sessions) {
+    memo.key = key; memo.src = d.sessions; memo.sessions = null; memo.history = new Map();
+  }
+  return memo;
+}
+
+// Newest first. A fresh array each call, so callers may reorder it freely.
 export function getSessions() {
-  return load().sessions.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  const m = memoFor(load());
+  if (!m.sessions) m.sessions = m.src.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  return m.sessions.slice();
 }
 
 export function addSession(session) {
@@ -455,6 +475,12 @@ export function lastPerformanceInSlot(exerciseId) {
 // doesn't apply (carries, planks, assisted work, 15+ rep sets) — those chart
 // their volume or their best time/distance instead.
 export function movementHistory(movementId) {
+  const kept = memoFor(load()).history;
+  if (!kept.has(movementId)) kept.set(movementId, buildMovementHistory(movementId));
+  return kept.get(movementId).slice();
+}
+
+function buildMovementHistory(movementId) {
   const mv = getMovement(movementId);
   const out = [];
   for (const s of getSessions().slice().reverse()) {

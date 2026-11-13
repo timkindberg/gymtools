@@ -36,6 +36,14 @@ jobs:
           # manual repo-settings toggle is needed.
           enablement: true
 
+      # The app is served cache-first, and a phone only fetches a new version
+      # when the service worker's cache name changes. Stamp the commit into it
+      # so every deploy is a new version even if nobody bumped the number.
+      - name: Stamp the service-worker cache with this commit
+        run: |
+          sed -i -E "s/^const CACHE = \"(gymtools-v[0-9]+)\";/const CACHE = \"\1-${GITHUB_SHA::7}\";/" sw.js
+          grep -q "const CACHE = \"gymtools-v[0-9]*-${GITHUB_SHA::7}\";" sw.js
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:

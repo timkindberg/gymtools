@@ -557,6 +557,15 @@ textarea.input { resize: vertical; }
 .nav-btn.active .nav-icon { filter: none; }
 .nav-label { font-weight: 600; }
 
+/* ---- Back to the workout in progress ---- */
+.resume-pill {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + var(--safe-b) + 12px); z-index: 49;
+  background: var(--accent); color: #fff; border: none; border-radius: 999px;
+  padding: 12px 20px; font-weight: 700; font-size: 15px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .35); white-space: nowrap;
+}
+
 /* ---- Rest timer ---- */
 .rest-timer {
   position: fixed; left: 50%; transform: translateX(-50%) translateY(8px);
