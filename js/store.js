@@ -853,6 +853,18 @@ export function getOverrideLog() { return (load().overrideLog || []).slice().rev
 function applyOverride(movementId, sugg) {
   const ov = overrideFor(movementId);
   if (!ov) return sugg;
+  // A note with no numbers: the engine keeps the load, the coach adds a word on
+  // how to do it. It rides on the card in plain sight, not behind the "?".
+  if (ov.weight == null && ov.amount == null) {
+    if (!ov.note) return sugg;
+    return {
+      ...(sugg || {}),
+      coachNote: ov.note,
+      coachNoteOnly: true,
+      basis: ((sugg && sugg.basis) ? sugg.basis + " " : "") +
+        `Coach's note from the weekly review${ov.date ? " on " + ov.date.slice(0, 10) : ""}; it shows for this session only.`,
+    };
+  }
   const units = getProfile().units;
   const weight = ov.weight == null ? (sugg && sugg.weight) : ov.weight;
   const amount = ov.amount == null ? (sugg && sugg.amount) : ov.amount;
@@ -863,6 +875,7 @@ function applyOverride(movementId, sugg) {
     weight,
     amount,
     override: true,
+    coachNote: ov.note || null,
     engine: sugg ? { action: sugg.action, weight: sugg.weight, amount: sugg.amount, note: sugg.note } : null,
     note: `Coach's call for today: ${weight == null ? "see the note" : weight + " " + units}` +
       (amount == null ? "" : ` × ${amount}`) + (ov.note ? ` — ${ov.note}` : "") + ".",
@@ -877,8 +890,12 @@ function applyOverride(movementId, sugg) {
 //   barbell-row: 130
 //   Incline DB Curl: clear
 //
-// Names or slugs both work; anything unrecognised comes back as an error
-// rather than being silently dropped.
+//   Face Pull: — chin tucked, stop if the neck pulls
+//
+// The last form is a note on its own: the engine's numbers stand and the note
+// shows on the card. Start it with a dash so a note like "2 sets only" isn't
+// read as a weight. Names or slugs both work; anything unrecognised comes back
+// as an error rather than being silently dropped.
 export function applyOverrideText(text) {
   const applied = [], cleared = [], errors = [];
   for (const raw of String(text || "").split(/\r?\n/)) {
@@ -895,7 +912,13 @@ export function applyOverrideText(text) {
       continue;
     }
     const nums = rest.match(/^([\d.]+)\s*(?:[x×]\s*([\d.]+))?/);
-    if (!nums) { errors.push(`${line} — no weight in that line`); continue; }
+    if (!nums) {
+      const note = rest.replace(/^[—–-]+\s*/, "").trim();
+      if (!note) { errors.push(`${line} — no weight or note in that line`); continue; }
+      setOverride(id, { note });
+      applied.push(movementName(id, id));
+      continue;
+    }
     const note = rest.slice(nums[0].length).replace(/^\s*[—–-]+\s*/, "").trim();
     setOverride(id, { weight: Number(nums[1]), amount: nums[2] == null ? null : Number(nums[2]), note });
     applied.push(movementName(id, id));
@@ -1534,8 +1557,9 @@ export function coachReport() {
       const load = n.weight == null ? "" : `${n.weight}${p.units} × `;
       const amount = n.amount == null ? "—" : `${n.amount}${n.measure === "reps" ? " reps" : info.unit}`;
       L.push(`- **${n.name}**${n.slot ? ` (slot ${n.slot})` : ""} → **${load}${amount}** · ${n.action}` +
-        (n.override ? " · ⚑ coach override in effect" : ""));
+        (n.override ? " · ⚑ coach override in effect" : n.coachNoteOnly ? " · 📝 coach note in effect" : ""));
       L.push(`  - ${n.note}`);
+      if (n.coachNoteOnly) L.push(`  - Coach's note: ${n.coachNote}`);
       if (n.basis) L.push(`  - _${n.basis}_`);
     });
   } else {
@@ -1730,6 +1754,10 @@ export function coachReport() {
   if (liveIds.length) {
     liveIds.forEach((id) => {
       const ov = live[id];
+      if (ov.weight == null && ov.amount == null) {
+        L.push(`- **${movementName(id, id)}** → note only, the engine's numbers stand (set ${ov.date.slice(0, 10)}) — ${ov.note}`);
+        return;
+      }
       L.push(`- **${movementName(id, id)}** → ${ov.weight == null ? "—" : ov.weight + p.units}` +
         (ov.amount == null ? "" : ` × ${ov.amount}`) +
         ` (set ${ov.date.slice(0, 10)}; the app had ${ov.engineWeight == null ? "no number" : ov.engineWeight + p.units})` +
@@ -1771,7 +1799,7 @@ export function coachReport() {
   L.push("## Coach, please");
   L.push("Review the numbers, progress what's working, and fix anything stalled or flagged for pain. Follow my current injury guardrails and preferences — the up-to-date source is coach/PROFILE.md in the repo, not this report. Give me updated loads/reps and any swaps for the next block.");
   L.push("");
-  L.push("If you want to change what the app prescribes next session, end your reply with a fenced block of adjustment lines — one movement per line, `weight × reps — why`, or `clear` to drop an existing one. I paste it straight into Settings → Coach adjustments:");
+  L.push("If you want to change what the app prescribes next session, end your reply with a fenced block of adjustment lines — one movement per line, `weight × reps — why`, `— note` on its own to keep the app's numbers and just put a note on the card, or `clear` to drop an existing one. I paste it straight into Settings → Coach adjustments:");
   L.push("");
   L.push("```");
   L.push("Barbell Bench Press: 155 x 8 — you left 3 in the tank, take the jump");

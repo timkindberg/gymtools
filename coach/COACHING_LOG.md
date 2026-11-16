@@ -5,6 +5,24 @@ thread. Newest entries at the top. When you change `js/program.js`, add an entry
 
 ---
 
+## 2026-11-16 — Coach adjustments can carry a note on its own
+
+Tim strained something on the right side of his upper back / neck towelling his
+hair: Day A felt fine, but tilting the head back-right or forward-left hurts.
+He asked for adjustments that leave a note on an exercise, not only a weight.
+
+- **New adjustment form `Movement: — note`.** The engine's numbers stand and
+  the note shows on the exercise card. Start it with a dash so "2 sets only"
+  isn't read as 2 lb. Same lifetime as any override: the movement's next
+  session only.
+- **Every coach note is now on the card** (`📝 Coach: …`), including notes
+  on weighted overrides, which used to sit behind the "?" drawer.
+- The report marks these "📝 coach note in effect" and asks for them by name.
+- Lasting form cues still belong in `program.js` (`techNote`), not here.
+- Deload advice given: it's due around Thanksgiving week at the 4-week
+  cadence. He was told he can take it this week instead by setting the cadence
+  to 2 for one session, then back to 4.
+
 ## 2026-11-10 — Real pull-ups lead the slot; goals get dates
 
 Tim asked what gains to expect at 3/6/12/24 months, then: "I can already do

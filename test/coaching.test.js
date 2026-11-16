@@ -136,6 +136,35 @@ test("adjustment lines parse names, slugs, notes and clears — and report what 
   assert.equal(store.overrideFor("barbell-row"), null);
 });
 
+test("a note-only line keeps the engine's numbers and puts the note on the card", () => {
+  fresh();
+  const engine = store.suggestion("barbell-box-squat", repRange(5, 8));
+  const res = store.applyOverrideText([
+    "Barbell Box Squat: — high bar today, neck is tweaked",
+    "Barbell Bench Press: — 2 sets only",
+    "Barbell Row: —",
+  ].join("\n"));
+  assert.deepEqual(res.applied, ["Barbell Box Squat", "Barbell Bench Press"]);
+  assert.equal(res.errors.length, 1);
+  const after = store.suggestion("barbell-box-squat", repRange(5, 8));
+  assert.equal(after.action, engine.action);
+  assert.equal(after.weight, engine.weight);
+  assert.equal(after.amount, engine.amount);
+  assert.equal(after.coachNote, "high bar today, neck is tweaked");
+  assert.equal(store.overrideFor("barbell-bench-press").note, "2 sets only"); // not a weight of 2
+  assert.equal(store.overrideFor("barbell-bench-press").weight, null);
+  const report = store.coachReport();
+  assert.match(report, /📝 coach note in effect/);
+  assert.match(report, /Coach's note: high bar today/);
+  assert.match(report, /\*\*Barbell Box Squat\*\* → note only/);
+});
+
+test("a weighted override's note shows on the card too", () => {
+  fresh();
+  store.setOverride("barbell-box-squat", { weight: 155, note: "knee felt off" });
+  assert.equal(store.suggestion("barbell-box-squat", repRange(5, 8)).coachNote, "knee felt off");
+});
+
 test("every override is logged against what the engine had proposed", () => {
   fresh();
   store.setOverride("barbell-box-squat", { weight: 200 });
