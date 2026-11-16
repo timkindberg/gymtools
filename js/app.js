@@ -797,6 +797,8 @@ function exerciseCard(exDef, draft, idx, session = {}) {
 
   const goal = progressionTerms(sugg, { movement, prescription, units: units() });
   if (goal) card.appendChild(el("p.rx-goal", { text: goal }));
+  // The review's word on this lift, where he'll read it between sets.
+  if (sugg && sugg.coachNote) card.appendChild(el("p.rx-coach-note", { text: "📝 Coach: " + sugg.coachNote }));
 
   // The engine's verdict at a glance; the full reasoning and the audit trail are
   // one tap away, where they belong — you read them when you doubt the number.
@@ -2203,7 +2205,7 @@ function overridesCard() {
   const ids = Object.keys(live);
   const card = el("div.card", {}, [
     el("h3", { text: "✎ Coach adjustments" }),
-    el("p.muted.small", { text: "Paste the adjustment block from your coach report review. One movement per line — \"Barbell Bench Press: 155 x 8 — take the jump\", or \"Barbell Row: clear\" to drop one. Each applies to that lift's next session only." }),
+    el("p.muted.small", { text: "Paste the adjustment block from your coach report review. One movement per line — \"Barbell Bench Press: 155 x 8 — take the jump\", \"Face Pull: — chin tucked\" for a note that keeps the app's numbers, or \"Barbell Row: clear\" to drop one. Each applies to that lift's next session only." }),
   ]);
   const ta = el("textarea.input.report-input", { rows: 4, placeholder: "Barbell Bench Press: 155 x 8 — you left 3 in the tank" });
   card.appendChild(ta);
@@ -2220,7 +2222,8 @@ function overridesCard() {
       const ov = live[id];
       card.appendChild(el("div.override-row", {}, [
         el("span.small", {
-          text: `${movementName(id, id)} → ${ov.weight == null ? "—" : ov.weight + " " + units()}` +
+          text: ov.weight == null && ov.amount == null ? `${movementName(id, id)} → 📝 note only` :
+            `${movementName(id, id)} → ${ov.weight == null ? "—" : ov.weight + " " + units()}` +
             (ov.amount == null ? "" : ` × ${ov.amount}`) +
             (ov.engineWeight != null ? ` (app said ${ov.engineWeight})` : ""),
         }),

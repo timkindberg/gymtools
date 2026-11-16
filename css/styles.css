@@ -266,6 +266,11 @@ textarea.input { resize: vertical; }
   font-size: 13px; font-weight: 600; color: var(--good); margin: 0 0 8px;
   padding-left: 10px; border-left: 3px solid var(--good);
 }
+/* A note from the weekly review: in plain sight, since it's for mid-set. */
+.rx-coach-note {
+  font-size: 13px; color: var(--accent2); margin: 0 0 8px;
+  padding-left: 10px; border-left: 3px solid var(--accent2);
+}
 .rx-seed { font-size: 13px; color: var(--accent2); font-style: italic; margin-bottom: 8px; }
 /* History the engine can't read is a problem to fix, not an estimate to act on. */
 .rx-seed.unreadable { color: var(--warn); font-style: normal; font-weight: 600; }
